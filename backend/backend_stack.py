@@ -1,6 +1,8 @@
 from aws_cdk import (
     # Duration,
     Stack,
+    aws_lambda_python_alpha as python,
+    aws_lambda
     # aws_sqs as sqs,
 )
 from constructs import Construct
@@ -17,3 +19,12 @@ class BackendStack(Stack):
         #     self, "BackendQueue",
         #     visibility_timeout=Duration.seconds(300),
         # )
+        my_function = python.PythonFunction(self, "MyFunction",
+            entry="./backend/python",
+            runtime=aws_lambda.Runtime.PYTHON_3_8,
+            handler="lambda_handler",
+            index="lambdas/hello_world.py",
+            bundling=python.BundlingOptions(
+                asset_excludes=[".venv"]
+            )
+        )
