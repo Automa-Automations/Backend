@@ -120,12 +120,14 @@ class DatabaseSyncedProfile():
 
     @expiry_date.setter
     def expiry_date(self, value):
-        if not isinstance(value, datetime.datetime):
-            raise ValueError(f"Cannot have datatype of {type(value)} for value \"expiry_date\" Expecting datetime.datetime")
+        if isinstance(value, datetime.datetime) or value is None:
+            self._update('expiry_date', value)
+            self._expiry_date = value
+            return
 
-        self._update('expiry_date', value)
-        self._expiry_date = value
-    
+        raise ValueError(f"Cannot have datatype of {type(value)} for value \"expiry_date\" Expecting datetime.datetime")
+            
+
     @property
     def stripe_customer_id(self):
         self._sync()
