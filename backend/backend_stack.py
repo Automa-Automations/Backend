@@ -2,9 +2,11 @@ from aws_cdk import (
     # Duration,
     Stack,
     aws_lambda_python_alpha as python,
-    aws_lambda
+    aws_lambda,
     # aws_sqs as sqs,
 )
+import os
+from aws_cdk import aws_apigateway
 from constructs import Construct
 
 class BackendStack(Stack):
@@ -26,7 +28,8 @@ class BackendStack(Stack):
             index="lambdas/stripe/payment_sheet.py",
             bundling=python.BundlingOptions(
                 asset_excludes=["venv"]
-            )
+            ),
+            environment=os.environ
         )
 
         stripe_event_webhook  = python.PythonFunction(self, "stripe-event-webhook",
@@ -36,5 +39,21 @@ class BackendStack(Stack):
             index="lambdas/stripe/webhook.py",
             bundling=python.BundlingOptions(
                 asset_excludes=["venv"]
-            )
+            ),
+            environment=os.environ
         )
+        
+        # Create api gateway construct
+        api = aws_apigateway.RestApi(self, "stripe-payment-api",
+                rest_api_name="stripe-payment-api"
+        )
+
+        # Add endpoints
+        payment_sheet = api.root.add_resource("payment-sheet")
+        payment_sheet_integration = aws_apigateway.LambdaIntegration(stripe_payment_sheet)
+        payment_sheet.add_method("GET", payment_sheet_integration)
+
+        stripe_event_webhook_integration = aws_apigateway.LambdaIntegration(stripe_event_webhook)
+        webhook = api.root.add_resource("webhook")
+        webhook.add_method("POST", stripe_event_webhook_integration)
+

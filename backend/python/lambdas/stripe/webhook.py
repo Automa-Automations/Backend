@@ -1,8 +1,9 @@
 import json
 from src.Classes.User import DatabaseSyncedProfile
 import stripe
+import os
 
-stripe.api_key = 'sk_test_51PCbyWRpgjuWcdPRWkDUKRRShKb8lZiYKQP8Ov37s2TdaAAGJYB4kteMHmiTHU7aBM40IoNbejAgMjRtn2wR4jDJ00gazKtd1m'
+stripe.api_key = os.environ['STRIPE_API_KEY']
 
 def handle_stripe_event(event):
     event_data = event['data']['object']

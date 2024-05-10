@@ -3,8 +3,10 @@ from src.Classes.User import DatabaseSyncedProfile
 import stripe
 import traceback
 from typing import Optional
+import os
 
-stripe.api_key = 'sk_test_51PCbyWRpgjuWcdPRWkDUKRRShKb8lZiYKQP8Ov37s2TdaAAGJYB4kteMHmiTHU7aBM40IoNbejAgMjRtn2wR4jDJ00gazKtd1m'
+stripe.api_key = os.environ['STRIPE_API_KEY']
+STRIPE_PUBLISHABLE_KEY = os.environ['STRIPE_PUBLISHABLE_KEY']
 
 # TODO: Fetch this from the database
 prices = {
@@ -59,5 +61,5 @@ def handler(event, context):
         "paymentIntent": payment_intent.client_secret,
         "ephemeralKey": getattr(ephemeral_key, "secret", None),
         "customer": customer.id,
-        "publishableKey": 'pk_test_51PCbyWRpgjuWcdPRNb5nGYKleCCaDgtnAEcidL7x8CEwR7jkYicsAM2DCHwmZO7CsKE0uYFPocH974I1xtHdDseP004I8LUgiT'
+        "publishableKey": STRIPE_PUBLISHABLE_KEY
     })
