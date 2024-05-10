@@ -45,17 +45,20 @@ class BackendStack(Stack):
             environment=environment_variables
         )
         
-        # Create api gateway construct
-        api = aws_apigateway.RestApi(self, "stripe-payment-sheet-api",
-                rest_api_name="stripe-payment-sheet-api"
-        )
+        # In our requests we will add this to the headers
+        api = aws_apigateway.RestApi(self, "stripe-payment-api",
+                             rest_api_name="stripe-payment-api",
+                             default_cors_preflight_options={
+                                 "allow_origins": aws_apigateway.Cors.ALL_ORIGINS
+                             })
 
         # Add endpoints
         payment_sheet = api.root.add_resource("payment-sheet")
         payment_sheet_integration = aws_apigateway.LambdaIntegration(stripe_payment_sheet)
-        payment_sheet.add_method("GET", payment_sheet_integration)
+        payment_sheet.add_method("POST", payment_sheet_integration)
 
         stripe_event_webhook_integration = aws_apigateway.LambdaIntegration(stripe_event_webhook)
         webhook = api.root.add_resource("webhook")
         webhook.add_method("POST", stripe_event_webhook_integration)
+
 

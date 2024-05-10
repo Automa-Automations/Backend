@@ -6,12 +6,14 @@ import os
 stripe.api_key = os.environ['STRIPE_API_KEY']
 
 def handle_stripe_event(event):
-    event_data = event['data']['object']
-    print(event_data)
-    if event_data['object'] == 'payment_intent' and event_data['status'] == 'succeeded':
+    print(event)
+    body = json.loads(event['body'])
+    print(body)
+    event_data = body['data']['object']
+    if event_data['object'] == 'charge':
         user_id = event_data['metadata']['user_id']
         price_id = event_data['metadata']['plan_id']
-        
+               
         user = DatabaseSyncedProfile.from_id(user_id)
         
         if "plan_" in price_id:

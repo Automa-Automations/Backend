@@ -1,4 +1,4 @@
-import json 
+import json
 from src.Classes.User import DatabaseSyncedProfile
 import stripe
 import traceback
@@ -18,8 +18,10 @@ prices = {
 def handler(event, context):
     # Extract data from the event
     print(event)
-    user_id = event['userId']
-    price_id = event['planId']
+    body = json.loads(event['body'])
+    print(body)
+    user_id = body['userId']
+    price_id = body['planId']
     
     # Retrieve or create a Stripe customer
     user = DatabaseSyncedProfile.from_id(user_id)
@@ -53,13 +55,27 @@ def handler(event, context):
     )
     
     if not payment_intent or not ephemeral_key:
+        # Return a response with appropriate status code and error message
         return {
-            "error": "Failed to create payment intent"
+            "statusCode": 500,  # Internal Server Error
+            "headers": {
+                "Content-Type": "application/json"
+            },
+            "body": json.dumps({
+                "error": "Failed to create payment intent"
+            })
         }
 
-    return json.dumps({
-        "paymentIntent": payment_intent.client_secret,
-        "ephemeralKey": getattr(ephemeral_key, "secret", None),
-        "customer": customer.id,
-        "publishableKey": STRIPE_PUBLISHABLE_KEY
-    })
+    # Return a successful response
+    return {
+        "statusCode": 200,  # OK
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "body": json.dumps({
+            "paymentIntent": payment_intent.client_secret,
+            "ephemeralKey": getattr(ephemeral_key, "secret", None),
+            "customer": customer.id,
+            "publishableKey": STRIPE_PUBLISHABLE_KEY
+        })
+    }

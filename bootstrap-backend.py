@@ -43,6 +43,7 @@ def bootstrap_stripe(stripe_api_key: str):
     import stripe
     stripe.api_key = stripe_api_key
     stripe_api_url = get_aws_api_gateway("stripe-payment-api")
+    print(stripe_api_url)
 
     create_stripe_webhook(stripe_api_url, ['charge.succeeded'], "Stripe Payment Success Webhook", 'webhook')
 

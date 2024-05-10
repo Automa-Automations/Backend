@@ -119,12 +119,9 @@ class DatabaseSyncedProfile():
 
     @expiry_date.setter
     def expiry_date(self, value):
-        if isinstance(value, datetime.datetime) or value is None:
-            self._update('expiry_date', value)
-            self._expiry_date = value
-            return
-
-        raise ValueError(f"Cannot have datatype of {type(value)} for value \"expiry_date\" Expecting datetime.datetime")
+        print("Updating Expiry Date")
+        self._update('expiry_date', value)
+        self._expiry_date = value
             
 
     @property
@@ -172,5 +169,5 @@ class DatabaseSyncedProfile():
 
     @staticmethod
     def from_id(id: str):
-        value = get_value(table='profiles', line=id)
+        value = get_value(table='profiles', line=id.lower())
         return DatabaseSyncedProfile.from_dict(value)
