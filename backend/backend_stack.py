@@ -46,8 +46,8 @@ class BackendStack(Stack):
         )
         
         # In our requests we will add this to the headers
-        api = aws_apigateway.RestApi(self, "stripe-payment-api",
-                             rest_api_name="stripe-payment-api",
+        api = aws_apigateway.RestApi(self, "backend-generic-api",
+                             rest_api_name="backend-generic-api",
                              default_cors_preflight_options={
                                  "allow_origins": aws_apigateway.Cors.ALL_ORIGINS
                              })
