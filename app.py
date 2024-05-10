@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-import os
-import dotenv
 import aws_cdk as cdk
-
-dotenv.load_dotenv()
 
 from backend.backend_stack import BackendStack
 

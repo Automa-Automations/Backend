@@ -5,9 +5,11 @@ from aws_cdk import (
     aws_lambda,
     # aws_sqs as sqs,
 )
-import os
 from aws_cdk import aws_apigateway
 from constructs import Construct
+from dotenv import dotenv_values
+
+environment_variables = dict(dotenv_values(".env"))
 
 class BackendStack(Stack):
 
@@ -29,7 +31,7 @@ class BackendStack(Stack):
             bundling=python.BundlingOptions(
                 asset_excludes=["venv"]
             ),
-            environment=os.environ
+            environment=environment_variables
         )
 
         stripe_event_webhook  = python.PythonFunction(self, "stripe-event-webhook",
@@ -40,12 +42,12 @@ class BackendStack(Stack):
             bundling=python.BundlingOptions(
                 asset_excludes=["venv"]
             ),
-            environment=os.environ
+            environment=environment_variables
         )
         
         # Create api gateway construct
-        api = aws_apigateway.RestApi(self, "stripe-payment-api",
-                rest_api_name="stripe-payment-api"
+        api = aws_apigateway.RestApi(self, "stripe-payment-sheet-api",
+                rest_api_name="stripe-payment-sheet-api"
         )
 
         # Add endpoints
