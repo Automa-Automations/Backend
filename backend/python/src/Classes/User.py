@@ -1,7 +1,6 @@
 import dataclasses 
 import datetime
-from typing import Optional, BinaryIO, Any
-from io import BytesIO
+from typing import BinaryIO, Any
 from src.utils import update_value, upload_file, download_file_url, get_value
 import base64
 
@@ -93,7 +92,7 @@ class DatabaseSyncedProfile():
         elif 'data:image' in value:
             value = value.split(',')[1]
             file_object = base64.b64decode(value)
-        elif isinstance(value, BinaryIO):
+        elif isinstance(value, bytes):
             file_object = value
         else:
             raise ValueError(f"User \"avatar_url\" expect http:// or https:// or base64 or bytes object, but recieved {value} of type {type(value)} instead!")

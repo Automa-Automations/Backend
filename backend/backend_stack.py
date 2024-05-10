@@ -19,12 +19,22 @@ class BackendStack(Stack):
         #     self, "BackendQueue",
         #     visibility_timeout=Duration.seconds(300),
         # )
-        my_function = python.PythonFunction(self, "MyFunction",
+        stripe_payment_sheet  = python.PythonFunction(self, "stripe-payment-sheet",
             entry="./backend/python",
-            runtime=aws_lambda.Runtime.PYTHON_3_8,
-            handler="lambda_handler",
-            index="lambdas/hello_world.py",
+            runtime=aws_lambda.Runtime.PYTHON_3_11,
+            handler="handler",
+            index="lambdas/stripe/payment_sheet.py",
             bundling=python.BundlingOptions(
-                asset_excludes=[".venv"]
+                asset_excludes=["venv"]
+            )
+        )
+
+        stripe_event_webhook  = python.PythonFunction(self, "stripe-event-webhook",
+            entry="./backend/python",
+            runtime=aws_lambda.Runtime.PYTHON_3_11,
+            handler="handler",
+            index="lambdas/stripe/webhook.py",
+            bundling=python.BundlingOptions(
+                asset_excludes=["venv"]
             )
         )

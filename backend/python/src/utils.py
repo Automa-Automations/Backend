@@ -41,6 +41,7 @@ def upload_file(bucket_name: str, path_on_bucket: str, content: bytes, extended_
     else:
         full_file_path = f"{joined_file_segments}/{full_filename}"
 
+    file_options = {}
     match extension:
         # Image MIME Types
         case "png":
@@ -103,7 +104,7 @@ def upload_file(bucket_name: str, path_on_bucket: str, content: bytes, extended_
             file_options = {"content-type": "application/msword"}
         case "docx":
             file_options = {"content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
-
+        
     # TODO: Recursively create the folder if it doesn't exist.
     # TODO: Create the bucket if it doesn't exist (With full rls lockdown always, because we don't want user interacting with the buckets at all!)
     # We want that type of functionality because it will allow us to easily bootstrap an entire project.
@@ -113,7 +114,7 @@ def upload_file(bucket_name: str, path_on_bucket: str, content: bytes, extended_
     return res
 
 
-def download_file_url(from_: str) -> BinaryIO:
+def download_file_url(from_: str) -> bytes:
     response = requests.get(from_)
     response_bytes = response.content
     file_object = response_bytes
