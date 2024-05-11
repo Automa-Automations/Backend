@@ -1,4 +1,5 @@
 import json
+from src.Classes.Plan import Plan
 from src.Classes.User import DatabaseSyncedProfile
 import stripe
 import traceback
@@ -8,22 +9,14 @@ import os
 stripe.api_key = os.environ['STRIPE_API_KEY']
 STRIPE_PUBLISHABLE_KEY = os.environ['STRIPE_PUBLISHABLE_KEY']
 
-# TODO: Fetch this from the database
-prices = {
-    'plan_premium': 2999,
-    'plan_exclusive': 5999,
-    'plan_standard': 1499
-}
 
 def handler(event, context):
-    # Extract data from the event
     print(event)
     body = json.loads(event['body'])
     print(body)
     user_id = body['userId']
     price_id = body['planId']
     
-    # Retrieve or create a Stripe customer
     user = DatabaseSyncedProfile.from_id(user_id)
     customer: Optional[stripe.Customer] = None
     if user and user.stripe_customer_id:
@@ -37,27 +30,24 @@ def handler(event, context):
         customer = stripe.Customer.create()
         user.stripe_customer_id = customer.id
     
-    # Create ephemeral key for client-side Stripe SDK
     ephemeral_key = stripe.EphemeralKey.create(
         customer=customer['id'],
         stripe_version='2024-04-10',
     )
     
-    # Create payment intent
     payment_intent = stripe.PaymentIntent.create(
-        amount=prices.get(price_id, 0),  # Get price from the dictionary or default to 0
+        amount=Plan.from_id(price_id).price * 100,
         currency='usd',
         customer=customer['id'],
         automatic_payment_methods={
             'enabled': True,
         },
-        metadata={'user_id': user_id, 'plan_id': price_id}  # Add metadata for later use
+        metadata={'user_id': user_id, 'plan_id': price_id}  
     )
     
     if not payment_intent or not ephemeral_key:
-        # Return a response with appropriate status code and error message
         return {
-            "statusCode": 500,  # Internal Server Error
+            "statusCode": 500,
             "headers": {
                 "Content-Type": "application/json"
             },
@@ -66,9 +56,8 @@ def handler(event, context):
             })
         }
 
-    # Return a successful response
     return {
-        "statusCode": 200,  # OK
+        "statusCode": 200,
         "headers": {
             "Content-Type": "application/json"
         },

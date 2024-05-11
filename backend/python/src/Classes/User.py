@@ -22,13 +22,20 @@ class Profile:
     website: str
     expiry_date: datetime.datetime
     stripe_customer_id: str
+    plan_type: str = "free"
 
     def to_dict(self):
         return dataclasses.asdict(self)
 
     @staticmethod
+    def from_dict(data: dict):
+        return Profile(**data)
+
+    @staticmethod
     def from_id(id: str):
-        return Profile(id=id, username="", updated_at=datetime.datetime.now(), full_name="", avatar_url="", website="", expiry_date=datetime.datetime.now(), stripe_customer_id="")
+        value = get_value(table='profiles', line=id.lower())
+        return Profile.from_dict(value)
+
 
 @dataclasses.dataclass
 class DatabaseSyncedProfile():
@@ -40,6 +47,7 @@ class DatabaseSyncedProfile():
         self._website = kwargs.pop('website')
         self._expiry_date = kwargs.pop('expiry_date')
         self._stripe_customer_id = kwargs.pop('stripe_customer_id')
+        self._plan_type = kwargs.pop('plan_type', "free")
 
     @property
     def id(self):
@@ -135,6 +143,20 @@ class DatabaseSyncedProfile():
         # TODO: Update the Stripe Customer
         self._update('stripe_customer_id', value)
         self._stripe_customer_id = value
+
+    @property
+    def plan_type(self):
+        self._sync()
+        return self._plan_type
+    
+    @plan_type.setter
+    def plan_type(self, value):
+        plan = get_value(table='plans', line=value)
+        if not plan:
+            raise ValueError(f"Plan with ID {value} does not exist!")
+
+        self._update('plan_type', value)
+        self._plan_type = value
     
     @staticmethod
     def from_dict(data: dict):

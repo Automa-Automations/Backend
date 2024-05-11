@@ -49,6 +49,10 @@ Here is a quick guide on how to export the migrations / import them & how to sav
 
 `npx supabase db push` will take the local migration scripts, and push them up to the remote project ($SUPABASE_PROJECT_REF)
 
+`npx supabase db diff --local --file=<the name of the migration>` You can make a migration using this command. To specify the schema use the `--schema=` flag.
+
+https://www.youtube.com/watch?v=LHw5fPX8XCk
+
 ---
 
 ### AWS CDK: Developmenet Settings / Help
