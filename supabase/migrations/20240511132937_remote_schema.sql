@@ -42,6 +42,22 @@ SET default_tablespace = '';
 
 SET default_table_access_method = "heap";
 
+CREATE TABLE IF NOT EXISTS "public"."plans" (
+    "id" "text" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "price" double precision,
+    "base_credits" bigint DEFAULT '500'::bigint,
+    "popularity_score" bigint DEFAULT '0'::bigint NOT NULL,
+    "name" "text" DEFAULT 'DEMO'::"text" NOT NULL,
+    "price_rep" "text" DEFAULT '$12.99'::"text" NOT NULL
+);
+
+ALTER TABLE "public"."plans" OWNER TO "postgres";
+
+COMMENT ON COLUMN "public"."plans"."popularity_score" IS 'The score we want to rank these as. The numbers indicates how they will show up in the interface)';
+
+COMMENT ON COLUMN "public"."plans"."name" IS 'The name of the product';
+
 CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "id" "uuid" NOT NULL,
     "updated_at" timestamp with time zone,
@@ -50,13 +66,17 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "avatar_url" "text",
     "website" "text",
     "stripe_customer_id" "text",
-    "expiry_date" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "expiry_date" timestamp with time zone DEFAULT "now"(),
+    "plan_type" "text",
     CONSTRAINT "username_length" CHECK (("char_length"("username") >= 3))
 );
 
 ALTER TABLE "public"."profiles" OWNER TO "postgres";
 
 COMMENT ON COLUMN "public"."profiles"."stripe_customer_id" IS 'The stripe customer id';
+
+ALTER TABLE ONLY "public"."plans"
+    ADD CONSTRAINT "plans_pkey" PRIMARY KEY ("id");
 
 ALTER TABLE ONLY "public"."profiles"
     ADD CONSTRAINT "profiles_pkey" PRIMARY KEY ("id");
@@ -67,11 +87,18 @@ ALTER TABLE ONLY "public"."profiles"
 ALTER TABLE ONLY "public"."profiles"
     ADD CONSTRAINT "profiles_id_fkey" FOREIGN KEY ("id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."profiles"
+    ADD CONSTRAINT "public_profiles_plan_type_fkey" FOREIGN KEY ("plan_type") REFERENCES "public"."plans"("id");
+
+CREATE POLICY "Enable read access for all users" ON "public"."plans" FOR SELECT USING (true);
+
 CREATE POLICY "Public profiles are viewable by everyone." ON "public"."profiles" FOR SELECT USING (true);
 
 CREATE POLICY "Users can insert their own profile." ON "public"."profiles" FOR INSERT WITH CHECK ((( SELECT "auth"."uid"() AS "uid") = "id"));
 
 CREATE POLICY "Users can update own profile." ON "public"."profiles" FOR UPDATE USING ((( SELECT "auth"."uid"() AS "uid") = "id"));
+
+ALTER TABLE "public"."plans" ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
 
@@ -85,6 +112,10 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "anon";
 GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "service_role";
+
+GRANT ALL ON TABLE "public"."plans" TO "anon";
+GRANT ALL ON TABLE "public"."plans" TO "authenticated";
+GRANT ALL ON TABLE "public"."plans" TO "service_role";
 
 GRANT ALL ON TABLE "public"."profiles" TO "anon";
 GRANT ALL ON TABLE "public"."profiles" TO "authenticated";
