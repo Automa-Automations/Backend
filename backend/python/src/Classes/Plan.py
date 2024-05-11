@@ -10,6 +10,7 @@ class Plan:
     created_at: datetime.datetime
     name: str
     popularity_score: int
+    price_rep: str
 
     def to_dict(self):
         return dataclasses.asdict(self)

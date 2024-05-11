@@ -36,7 +36,7 @@ def handler(event, context):
     )
     
     payment_intent = stripe.PaymentIntent.create(
-        amount=Plan.from_id(price_id).price * 100,
+        amount=int(Plan.from_id(price_id).price * 100),
         currency='usd',
         customer=customer['id'],
         automatic_payment_methods={
