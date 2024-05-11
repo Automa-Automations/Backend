@@ -54,7 +54,6 @@ def bootstrap_supabase():
     subprocess.run(["npx", "supabase", "init"])
     subprocess.run(["npx", "supabase", "link", "--project-ref", os.getenv("SUPABASE_PROJECT_REF", "")])
     subprocess.run(["npx", "supabase", "migration", "up"])
-    # Push
 
 
 def deploy_cdk_project():
