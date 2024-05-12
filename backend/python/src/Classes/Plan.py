@@ -11,6 +11,7 @@ class Plan:
     name: str
     popularity_score: int
     price_rep: str
+    hex_color_int: int
 
     def to_dict(self):
         return dataclasses.asdict(self)
