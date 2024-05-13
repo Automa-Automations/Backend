@@ -3,8 +3,6 @@ import os
 
 def handler(event, context):
     print(event)
-    body = json.loads(event['body'])
-    print(body) 
 
     env_type = "LOCAL_"
     if os.environ.get("CURRENT_ENVIRONMENT", "local") == "prod":

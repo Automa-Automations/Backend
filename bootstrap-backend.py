@@ -45,7 +45,7 @@ def bootstrap_stripe(stripe_api_key: str):
     stripe_api_url = get_aws_api_gateway("backend-generic-api")
     print(stripe_api_url)
 
-    create_stripe_webhook(stripe_api_url, ['charge.succeeded'], "Stripe Payment Success Webhook", 'webhook')
+    create_stripe_webhook(stripe_api_url, ['charge.succeeded'], "Stripe Payment Success Webhook", 'stripe/webhook')
 
 def bootstrap_supabase():
     subprocess.run(["npx", "supabase", "stop"])
