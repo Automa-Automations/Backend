@@ -1,7 +1,6 @@
 import random
 import websocket 
 import uuid
-import io
 import json
 import urllib.request
 import urllib.parse
@@ -10,6 +9,7 @@ import urllib.parse
 
 class ImageApi:
     server_address = "localhost:8188"
+
     def generate_image(self, prompt_: str, negative_prompt: str, model: str, width: int, height: int, seed: int = 0, batch_size: int = 1) -> list[bytes]:
         client_id = str(uuid.uuid4())
 
@@ -172,5 +172,7 @@ class ImageApi:
 
 if __name__ == "__main__":
     api = ImageApi()
+    api.server_address = "localhost:8188"
+
     images = api.generate_image("master piece", "bad hands", "v1-5-pruned-emaonly.ckpt", 512, 512)
     print(images[0])
