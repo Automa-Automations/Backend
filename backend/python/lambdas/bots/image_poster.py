@@ -16,5 +16,26 @@ def generate_image(prompt: str, negative_prompt: str, model: str, size: tuple):
     api = ImageApi()
     return api.generate_image(prompt, negative_prompt, model, size[0], size[1])
     
+def upload_image(botId: str, images: list[bytes], title: str) -> None:
+    from instagrapi import Client
+    cl = Client()
+    cl.login("adoniscodes_", "Simon...!23")
 
+    for image in images:
+        # Save image to temp file
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp:
+            temp.write(image)
+            temp.flush()
+            temp.seek(0)
 
+            media = cl.photo_upload(
+                temp.name,
+                "Test caption for photo with #hashtags and mention users such @example",
+                extra_data={
+                    "custom_accessibility_caption": "alt text example",
+                    "like_and_view_counts_disabled": 1,
+                    "disable_comments": 1,
+                }
+            )
+            print(media.model_dump()['code'])

@@ -52,10 +52,5 @@ if __name__ == "__main__":
     print("Topic:", new_topic, "\nPrompt:", new_prompt)
     images = generate_image(new_prompt, negative_prompt, model, image_size)
     # Save each image with random uuid and print
-    import uuid
-    for image in images:
-        # Images are bytes
-        with open(f"{uuid.uuid4()}.png", "wb") as file:
-            print(file.name)
-            file.write(image)
+    upload_image("a68c5905-205d-43e3-8bbb-0b6c87aea79e", images, generate_image_title(title_style, new_topic, base_style))
 
