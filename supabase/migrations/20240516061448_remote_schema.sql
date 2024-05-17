@@ -49,7 +49,8 @@ CREATE TABLE IF NOT EXISTS "public"."plans" (
     "base_credits" bigint DEFAULT '500'::bigint,
     "popularity_score" bigint DEFAULT '0'::bigint NOT NULL,
     "name" "text" DEFAULT 'DEMO'::"text" NOT NULL,
-    "price_rep" "text" DEFAULT '$12.99'::"text" NOT NULL
+    "price_rep" "text" DEFAULT '$12.99'::"text" NOT NULL,
+    "hex_color_int" bigint DEFAULT '0'::bigint NOT NULL
 );
 
 ALTER TABLE "public"."plans" OWNER TO "postgres";

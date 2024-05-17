@@ -12,6 +12,7 @@ class Plan:
     popularity_score: int
     price_rep: str
     hex_color_int: int
+    cta_page: list[str]
 
     def to_dict(self):
         return dataclasses.asdict(self)
@@ -24,3 +25,4 @@ class Plan:
     def from_id(id: str):
         value = get_value(table='plans', line=id.lower())
         return Plan.from_dict(value)
+
