@@ -60,7 +60,6 @@ dotenv.load_dotenv('.env')
 from src.Classes.Bots.AiImageGenerator import Instagram
 #
 bot = Instagram.from_id(1, type_=Instagram)
-print(bot.client)
 title, topic, prompt, description, images = bot.generate()
 bot.upload(title, topic, prompt, description, images)
 print(bot)
