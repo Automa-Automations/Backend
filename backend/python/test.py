@@ -57,9 +57,16 @@ dotenv.load_dotenv('.env')
 #     upload_image("a68c5905-205d-43e3-8bbb-0b6c87aea79e", images, generate_image_title(title_style, new_topic, base_style))
 #
 
-from src.Classes.Bots.AiImageGenerator import Instagram
-#
-bot = Instagram.from_id(1, type_=Instagram)
-title, topic, prompt, description, images = bot.generate()
-bot.upload(title, topic, prompt, description, images)
-print(bot)
+# from src.Classes.Bots.AiImageGenerator import Instagram
+# #
+# bot = Instagram.from_id(1, type_=Instagram)
+# title, topic, prompt, description, images = bot.generate()
+# bot.upload(title, topic, prompt, description, images)
+# print(bot)
+
+
+
+from src.Classes.Bot import AIImageGenerationBotHandler, InstagramPlatformBot
+
+bot = InstagramPlatformBot.from_id(1, type_=InstagramPlatformBot)
+bot.upload()

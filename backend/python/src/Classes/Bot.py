@@ -1,5 +1,7 @@
 # A "Bot" class is the baseclass for all other bots, each bot has a couple of paramaters that puts them into a subset of which ones we should parse them out in the switch case statement. Basically a BotFactory
 import datetime
+import uuid
+
 import instagrapi
 import json
 from enum import Enum
@@ -72,9 +74,13 @@ class BotSession:
         value = get_value(table=table, line=id)
         return BotSession.from_dict(value)
 
-    def update(self):
+    def update(self, new_metadata):
         table = "bot_sessions"
-        update_value(table=table, line=self.id, val="metadata_dict", new_value=self.metadata_dict)
+        # Take the current metadata
+        current_metadata = self.metadata_dict
+        # add the cookies
+        current_metadata['cookies'] = new_metadata
+        update_value(table=table, line=self.id, val="metadata_dict", new_value=current_metadata)
 
 
 
@@ -109,7 +115,7 @@ class Proxy:
     def from_id(cls, id: int):
         table = "proxies"
         value = get_value(table=table, line=id)
-        cls.from_dict(value)
+        return cls.from_dict(value)
 
 
 
@@ -164,7 +170,7 @@ class Bot():
      
 
     @property
-    def proxy(self) -> None:
+    def proxy(self) -> Proxy:
         """Proxy: The proxy of the bot. Useful for modifying the proxy based on bot actions."""
         return Proxy.from_id(self.proxy_id)
 
@@ -172,6 +178,18 @@ class Bot():
     def session(self) -> BotSession:
         """Session: The session of the bot. Useful for modifying the session based on bot actions. The session is just a dictionary!"""
         return BotSession.from_id(self.session_id)
+
+
+    @staticmethod
+    def from_id(id: int, type_: Any):
+        value = get_value("bots", id)
+        out = type_(**value)
+        # Loop over all of the bot_types to assign the ContentGenerationBotHandler
+        print(out.bot_type)
+        if out.bot_type == BotType.AiImageGeneration.value:
+            out.handler = AIImageGenerationBotHandler(metadata=AiImageGenerationBotMetadata(**out.metadata_dict))
+        return out
+
 
 
 class InstagramBotConfiguration():
@@ -212,7 +230,7 @@ class InstagramBotConfiguration():
     _bot_generator: 'ContentGenerationBotHandler'
     """None: This is the Generator that will be assigned in the Bot"""
 
-
+@dataclass
 class AiImageGenerationBotMetadata():
     """AiImageGenerationBotMetadata: The metadata for the AiImageGeneration bot."""
     model: str
@@ -235,9 +253,6 @@ class AiImageGenerationBotMetadata():
 
     description_prompt: str
     """str: The description prompt to use for generating the image."""
-
-    hashtags_prompt: str
-    """str: The hashtags prompt to use for generating the image."""
 
     total_images: int
     """int: The total number of images to generate."""
@@ -342,7 +357,7 @@ class AIImageGenerationBotHandler(ContentGenerationBotHandler):
                 self.metadata.size,
             )
             print("Generated image: ", len(images))
-            image_filepath = f"/tmp/{self.metadata.model}_{i}.png"
+            image_filepath = f"/tmp/{self.metadata.model}_{i}_{uuid.uuid4().hex}.png"
             with open(image_filepath, "wb") as f:
                 f.write(images[0])
 
@@ -363,13 +378,14 @@ class InstagramPlatformBot(Bot):
     """ContentGenerationBotHandler: The handler of the bot."""
 
     _client: Optional[Client]
-    _is_authenticated: bool
+    _is_authenticated: bool = False
     """Client: The Private Instagrapi Client"""
     
     def upload(self) -> None:
         posts = self.handler.generate()
+        print(posts)
         for post in posts:
-            print(self.client.upload_photo(path=post.content, caption=f"{post.title} {' '.join(post.tags)}\n\n{post.description}").dict())
+            print(self.client.photo_upload(path=post.content, caption=f"{post.title} {' '.join(post.tags)}\n\n{post.description}").dict())
         return None
 
     @property
@@ -383,7 +399,7 @@ class InstagramPlatformBot(Bot):
         
         cl = self._client
         session = self.session
-        cl.set_proxy(self.proxy)
+        cl.set_proxy(self.proxy.url)
         session_filepath = f"/tmp/{self.id}.json"
         if not session.metadata_dict['cookies']:
             cl.login(session.metadata_dict['username'], session.metadata_dict['password'])
@@ -391,8 +407,7 @@ class InstagramPlatformBot(Bot):
 
             with open(session_filepath, "r") as f:
                 content = json.load(f)
-                self.session.metadata_dict['cookies'] = content
-                self.session.update()
+                self.session.update(content)
 
         else:
             with open(session_filepath, "w") as f:
@@ -432,5 +447,4 @@ class InstagramPlatformBot(Bot):
 
 
 # Simple test
-if __name__ == "__main__":
-    
+   
