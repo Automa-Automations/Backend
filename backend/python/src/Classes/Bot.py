@@ -1,11 +1,15 @@
 # A "Bot" class is the baseclass for all other bots, each bot has a couple of paramaters that puts them into a subset of which ones we should parse them out in the switch case statement. Basically a BotFactory
 import datetime
+import instagrapi
+import json
 from enum import Enum
 from dataclasses import dataclass
-from typing import Tuple, Any, List
+from typing import Tuple, Any, List, Optional
 
 from ollama import Client
 from src.ai.ImageApi import ImageApi
+from src.utils import get_value, update_value
+from src.Classes.User import Profile, DatabaseSyncedProfile
 client = Client(host="http://localhost:11434")
 
 class BotType(Enum):
@@ -21,6 +25,9 @@ class PostPublicity(Enum):
 
 @dataclass
 class Post():
+    content: Any
+    """Any: The content of the post. This can be a file, a string, or anything else that is required for the post."""
+
     title: str
     """str: The title of the post."""
 
@@ -33,8 +40,80 @@ class Post():
     publicity: PostPublicity
     """PostPublicity: The visibility of the post"""
 
+@dataclass
+class BotSession:
+    id: str
+    """str: The unique identifier for the session of the bot."""
+
+    created_at: datetime.datetime
+    """datetime.datetime: The date this bot_session was created!"""
+
+    platform: Platform
+    """Platform: The platform of the bot. This will define the schema for 'Bot().bot_configuration'."""
+
+    owner_id: str
+    """str: The unique identifier for the owner of the bot."""
+
+    metadata_dict: dict
+    """dict: The metadata of the bot."""
+
+    @property
+    def owner(self) -> Tuple[Profile, DatabaseSyncedProfile]:
+        """Tuple[Profile, DatabaseSyncedProfile]: The owner of the bot. Useful for modifying the user account based on bot actions."""
+        return (Profile.from_id(self.owner_id), DatabaseSyncedProfile.from_id(self.owner_id))
+
+    @staticmethod
+    def from_dict(dict_: dict):
+        return BotSession(**dict_)
+
+    @staticmethod
+    def from_id(id: int):
+        table = "bot_sessions"
+        value = get_value(table=table, line=id)
+        return BotSession.from_dict(value)
+
+    def update(self):
+        table = "bot_sessions"
+        update_value(table=table, line=self.id, val="metadata_dict", new_value=self.metadata_dict)
 
 
+
+@dataclass
+class Proxy:
+    id: int
+    created_at: datetime.datetime
+    host: str
+    port: int
+    type_: str
+    security: str
+    username: str
+    password: str
+    country: str
+    
+    @property
+    def url(self) -> str:
+        return f"{self.type_}://{self.username}:{self.password}@{self.host}:{self.port}"
+    
+    @property
+    def requests_proxy(self) -> dict:
+        return {
+            "http": self.url,
+            "https": self.url
+        }
+
+    @classmethod
+    def from_dict(cls, dict_: dict):
+        return Proxy(**dict_)
+
+    @classmethod
+    def from_id(cls, id: int):
+        table = "proxies"
+        value = get_value(table=table, line=id)
+        cls.from_dict(value)
+
+
+
+@dataclass
 class Bot():
     id: str
     """str: The unique identifier for the bot."""
@@ -51,8 +130,8 @@ class Bot():
     description: str
     """str: The description of the bot."""
 
-    proxy_id: str
-    """str: The unique identifier for the proxy of the bot."""
+    proxy_id: int 
+    """int: The unique identifier for the proxy of the bot."""
 
     metadata_dict: dict
     """dict: The metadata of the bot."""
@@ -66,37 +145,33 @@ class Bot():
     platform: Platform
     """Platform: The platform of the bot. This will define the schema for 'Bot().bot_configuration'."""
 
-    session_id: str
-    """str: The unique identifier for the session of the bot. This is used to authenticate the bot. Because a single `SocialAccount` can have multiple bots, the session_id will provide us with the information required"""
+    session_id: int 
+    """int: The unique identifier for the session of the bot. This is used to authenticate the bot. Because a single `SocialAccount` can have multiple bots, the session_id will provide us with the information required"""
 
     currently_active: bool
     """bool: If the bot is currently active or not."""
 
-    metadata: None
+    metadata: None = None
     """None: The metadata of the bot. This will be defined in the subclass."""
 
-    configuration: None
+    configuration: None = None
     """None: The configuration of the bot. This will be defined in the subclass."""
 
     @property
-    def owner(self) -> None:
+    def owner(self) -> Tuple[Profile, DatabaseSyncedProfile]:
         """Tuple[Profile, DatabaseSyncedProfile]: The owner of the bot. Useful for modifying the user account based on bot actions."""
-        return None
+        return (Profile.from_id(self.owner_id), DatabaseSyncedProfile.from_id(self.owner_id))
+     
 
     @property
     def proxy(self) -> None:
         """Proxy: The proxy of the bot. Useful for modifying the proxy based on bot actions."""
-        return None
+        return Proxy.from_id(self.proxy_id)
 
     @property
-    def session(self) -> None:
-        """Session: The session of the bot. Useful for modifying the session based on bot actions."""
-        return None
-
-    @session.setter
-    def session(self, value) -> None:
-        """Session: The session of the bot. Useful for modifying the session based on bot actions."""
-        return None
+    def session(self) -> BotSession:
+        """Session: The session of the bot. Useful for modifying the session based on bot actions. The session is just a dictionary!"""
+        return BotSession.from_id(self.session_id)
 
 
 class InstagramBotConfiguration():
@@ -179,7 +254,7 @@ class ContentGenerationBotHandler():
     
     def generate(self) -> List['Post']:
         """generate: This method will generate the content using the metadata of the bot."""
-        return None
+        return []
 
     @classmethod
     def from_type(cls, type_: 'ContentGenerationBotHandler', metadata: Any) -> Any:
@@ -267,7 +342,11 @@ class AIImageGenerationBotHandler(ContentGenerationBotHandler):
                 self.metadata.size,
             )
             print("Generated image: ", len(images))
-            posts.append(Post(title=title, description=description, tags=[], publicity=PostPublicity.PUBLIC))
+            image_filepath = f"/tmp/{self.metadata.model}_{i}.png"
+            with open(image_filepath, "wb") as f:
+                f.write(images[0])
+
+            posts.append(Post(title=title, description=description, tags=[], publicity=PostPublicity.PUBLIC, content=image_filepath))
         
         return posts
 
@@ -290,7 +369,7 @@ class InstagramPlatformBot(Bot):
     def upload(self) -> None:
         posts = self.handler.generate()
         for post in posts:
-            print(post)
+            print(self.client.upload_photo(path=post.content, caption=f"{post.title} {' '.join(post.tags)}\n\n{post.description}").dict())
         return None
 
     @property
@@ -301,20 +380,23 @@ class InstagramPlatformBot(Bot):
 
         if self._is_authenticated:
             return self._client
-
+        
+        cl = self._client
         session = self.session
         cl.set_proxy(self.proxy)
         session_filepath = f"/tmp/{self.id}.json"
-        if not session['cookies']:
-            cl.login(self.username, self.password)
+        if not session.metadata_dict['cookies']:
+            cl.login(session.metadata_dict['username'], session.metadata_dict['password'])
             cl.dump_settings(session_filepath)
 
             with open(session_filepath, "r") as f:
                 content = json.load(f)
-                self.session['cookies'] = content
+                self.session.metadata_dict['cookies'] = content
+                self.session.update()
+
         else:
             with open(session_filepath, "w") as f:
-                json.dump(session['cookies'], f)
+                json.dump(session.metadata_dict['cookies'], f)
 
             cl.load_settings(session_filepath)
         
@@ -348,3 +430,7 @@ class InstagramPlatformBot(Bot):
         """Do comment dm promotion logic here"""
         print("Commenting dm promotion...")
 
+
+# Simple test
+if __name__ == "__main__":
+    
