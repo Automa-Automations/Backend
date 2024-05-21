@@ -66,7 +66,7 @@ dotenv.load_dotenv('.env')
 
 
 
-from src.Classes.Bot import AIImageGenerationBotHandler, InstagramPlatformBot
+from src.Classes.Bot import InstagramPlatformBot
 
 bot = InstagramPlatformBot.from_id(1, type_=InstagramPlatformBot)
 bot.upload()

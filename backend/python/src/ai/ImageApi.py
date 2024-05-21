@@ -1,6 +1,8 @@
 import random
 import websocket 
+from src.Classes.User import DatabaseSyncedProfile
 import uuid
+from typing import Optional
 import json
 import urllib.request
 import urllib.parse
@@ -10,8 +12,16 @@ import urllib.parse
 class ImageApi:
     server_address = "localhost:8188"
 
-    def generate_image(self, prompt_: str, negative_prompt: str, model: str, width: int, height: int, seed: int = 0, batch_size: int = 1) -> list[bytes]:
+    def generate_image(self, prompt_: str, negative_prompt: str, model: str, width: int, height: int, seed: int = 0, batch_size: int = 1, user_id: Optional[str] = None) -> list[bytes]:
         client_id = str(uuid.uuid4())
+
+        if user_id is not None:
+            # Subtract one credit from the user
+            user = DatabaseSyncedProfile.from_id(user_id)
+            if user.credits <= 0:
+                raise Exception("User has no credits")
+
+            user.credits -= 1
 
         def queue_prompt(prompt):
             p = {"prompt": prompt, "client_id": client_id}

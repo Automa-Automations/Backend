@@ -188,6 +188,7 @@ class Bot():
         print(out.bot_type)
         if out.bot_type == BotType.AiImageGeneration.value:
             out.handler = AIImageGenerationBotHandler(metadata=AiImageGenerationBotMetadata(**out.metadata_dict))
+
         return out
 
 
