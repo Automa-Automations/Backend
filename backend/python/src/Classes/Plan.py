@@ -13,6 +13,7 @@ class Plan:
     price_rep: str
     hex_color_int: int
     cta_page: list[str]
+    credits: int = 0
 
     def to_dict(self):
         return dataclasses.asdict(self)

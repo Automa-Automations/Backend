@@ -1,4 +1,5 @@
 import json
+from src.Classes.Plan import Plan
 from src.Classes.User import DatabaseSyncedProfile
 import stripe
 import os
@@ -19,6 +20,8 @@ def handle_stripe_event(event):
         if "plan_" in price_id:
             user.expiry_date = None
             user.plan_type = price_id
+            plan = Plan.from_id(price_id)
+            user.credits += plan.credits
         elif "credits_" in price_id:
             print("Credits integration pending!")
         

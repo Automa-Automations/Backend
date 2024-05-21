@@ -23,6 +23,7 @@ class Profile:
     expiry_date: datetime.datetime
     stripe_customer_id: str
     plan_type: str = "free"
+    credits: int = 0
 
     def to_dict(self):
         return dataclasses.asdict(self)
@@ -36,6 +37,10 @@ class Profile:
         value = get_value(table='profiles', line=id.lower())
         return Profile.from_dict(value)
 
+    @staticmethod
+    def to_synced_profile(profile: 'Profile'):
+        return DatabaseSyncedProfile.from_dict(profile.to_dict())
+
 
 @dataclasses.dataclass
 class DatabaseSyncedProfile():
@@ -48,6 +53,7 @@ class DatabaseSyncedProfile():
         self._expiry_date = kwargs.pop('expiry_date')
         self._stripe_customer_id = kwargs.pop('stripe_customer_id')
         self._plan_type = kwargs.pop('plan_type', "free")
+        self._credits = kwargs.pop('credits', 0)
 
     @property
     def id(self):
@@ -158,6 +164,16 @@ class DatabaseSyncedProfile():
         self._update('plan_type', value)
         self._plan_type = value
     
+    @property
+    def credits(self):
+        self._sync()
+        return self._credits
+    
+    @credits.setter
+    def credits(self, value):
+        self._update('credits', value)
+        self._credits = value
+
     @staticmethod
     def from_dict(data: dict):
         return DatabaseSyncedProfile(**data)

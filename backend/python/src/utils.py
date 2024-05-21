@@ -1,6 +1,6 @@
 import sys
 from src.supabase import supabase
-from typing import Any, BinaryIO
+from typing import Any, BinaryIO, Optional, Any
 import datetime
 import json
 from io import BytesIO
@@ -17,7 +17,7 @@ def update_value(table: str, line: str, val: str, new_value: Any, line_name: str
     except Exception as e:
         print(e, traceback.format_exc())
 
-def get_value(table: str, line: str, line_name: str = 'id') -> dict:
+def get_value(table: str, line: Any, line_name: str = 'id') -> dict:
     try:
         return supabase.table(table).select('*').eq(line_name, line).execute().data[0]
     except Exception as e:
