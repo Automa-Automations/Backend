@@ -267,8 +267,8 @@ class ContentGenerationBotHandler():
     
     metadata: Any
     """None: The metadata of the bot."""
-    
-    def generate(self) -> List['Post']:
+
+    def generate(self, owner: DatabaseSyncedProfile) -> List['Post']:
         """generate: This method will generate the content using the metadata of the bot."""
         return []
 
@@ -318,9 +318,15 @@ class AIImageGenerationBotHandler(ContentGenerationBotHandler):
             prompt, negative_prompt, model, size[0], size[1]
         )
 
-    def generate(self) -> List['Post']:
+    def generate(self, owner: DatabaseSyncedProfile) -> List['Post']:
         posts = []
         for i in range(self.metadata.total_images): 
+            # It costs 1 credit per image
+            if  owner.credits < 1:
+                raise Exception("Not enough credits to generate images!")
+
+            owner.credits -= 1
+
             print("Generating topic...")
             topic = self._generate_topic_item(self.metadata.base_topic)
             print("Generated topic: ", topic)
@@ -383,7 +389,7 @@ class InstagramPlatformBot(Bot):
     """Client: The Private Instagrapi Client"""
     
     def upload(self) -> None:
-        posts = self.handler.generate()
+        posts = self.handler.generate(owner=self.owner[1])
         print(posts)
         for post in posts:
             print(self.client.photo_upload(path=post.content, caption=f"{post.title} {' '.join(post.tags)}\n\n{post.description}").dict())
