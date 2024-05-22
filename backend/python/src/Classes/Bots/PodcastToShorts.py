@@ -49,6 +49,13 @@ class PodcastToShorts:
         return [transcription for transcription in transcriptions_feedback if transcription["stats"]["should_make_short"] == should_make_short]
 
     def __get_transcripts_feedback(self, full_sentences_transcript): 
+        """
+        Method to get the feedback of the transcriptions
+        Parameters:
+        - full_sentences_transcript: list: The list of the full sentences of the transcriptions
+        Returns: 
+        - list: The list of the feedback of the transcriptions
+        """
         chunked_transcript = self.__chunk_transcript(full_sentences_transcript)
         system_prompt = f"""
         You take in a transcript, and you decide whether or not the transcript is valid for a short. You also evaluate the short based off of this:
@@ -104,6 +111,14 @@ class PodcastToShorts:
         return video_transcript
 
     def __format_full_sentences_transcript(self, transcript: List[dict], system_prompt: str):
+        """
+        Method to format the full sentences transcript
+        Parameters:
+        - transcript: List[dict]: The list of the transcript
+        - system_prompt: str: The system prompt
+        Returns:
+        - list: The list of the formatted transcript
+        """
         message = f"Here is the transcript: {transcript}" 
         return client.generate(
             model=self.llama_model,
@@ -113,6 +128,14 @@ class PodcastToShorts:
         )["response"]
 
     def __chunk_transcript(self, video_transcript: str, chunk_length: int = 2000):
+        """
+        Method to chunk the transcript
+        Parameters:
+        - video_transcript: str: The video transcript
+        - chunk_length: int: The length of the chunk
+        Returns:
+        - list: The list of the chunked transcript
+        """
         # chunk the list of dictionaries into a final list of lists, each list having less than chunk_length amount of characters
         chunk_transcript_list = []
         for i in range(0, len(video_transcript), chunk_length):
@@ -121,6 +144,11 @@ class PodcastToShorts:
         return chunk_transcript_list
 
     def __get_full_sentences_transcript(self):
+        """
+        Method to get the full sentences transcript
+        Returns:
+        - list: The list of the full sentences transcript
+        """
         video_transcript = self.__get_video_transcript(self.podcast_url)
         chunked_transcript = self.__chunk_transcript(video_transcript)
 
@@ -132,5 +160,8 @@ class PodcastToShorts:
         return full_sentences_transcript
 
     def __validate_env_variables(self):
+        """
+        Method to evaluate the environment variables, and raise error if needed 
+        """
         if not OLLAMA_HOST_URL:
             raise ValueError("OLLAMA_HOST_URL is not set in the environment variables")
