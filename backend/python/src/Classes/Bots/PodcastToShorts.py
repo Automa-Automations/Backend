@@ -16,9 +16,8 @@ client = Client(OLLAMA_HOST_URL)
 @dataclass
 class PodcastToShorts:
     podcast_url: str
-    prompt: Optional[str] = None
     llama_model: str = "llama3"
-    system_prompt: Optional[str] = f"""
+    system_prompt: str = f"""
     You take in a transcirpt from a video, and merge the dictionaries into less dictionaries, by making full sentences. Here is an example:
     ###
     Input: [{'start': 0.0, 'duration': 2.0, 'text': 'Hello'}, {'start': 2.0, 'duration': 2.0, 'text': 'world!'}]
@@ -34,10 +33,41 @@ class PodcastToShorts:
         """
         Method to generate the shorts from the podcast
         """
+        full_sentences_transcript = self.__get_full_sentences_transcript()
+        transcriptions_feedback = self.__get_transcripts_feedback(full_sentences_transcript)
 
-        video_transcript = self.__get_video_transcript(self.podcast_url)
-        chunked_transcript = self.__chunk_transcript()
-        video_transcript_sentences = self.__format_full_sentences_transcript(video_transcript, self.system_prompt)
+    def __get_transcripts_feedback(self, full_sentences_transcript): 
+        chunked_transcript = self.__chunk_transcript(full_sentences_transcript)
+        system_prompt = f"""
+        You take in a transcript, and you decide whether or not the transcript is valid for a short. You also evaluate the short based off of this:
+        score: a score out of a 100, on how good this would make for a short. 
+        should_make_short: True or False. True, if the score is above or equal to 70, false if it is below 70
+        feedback: Any feedback you have on the short, what is good and bad about the transcript, how to make it better.
+        ###
+        Here is a few example outputs you might give, you respond in JSON (ignore the values, this is just so that you know the exact output structure):
+            {
+                "score": 65,
+                "should_make_short": False,
+                "feedback": "The transcript is too long, and the content is not engaging enough.",
+            }
+        """
+        message = f"Here is the transcript: {full_sentences_transcript}" 
+
+        transcripts_feedback = []
+        for chunk in chunked_transcript:
+            response = client.generate(
+                model=self.llama_model,
+                system=system_prompt,
+                prompt=message,
+                format="json",
+            )["response"]
+            if response["score"] >= 80 and response["should_make_short"] == True:
+                highlight = {
+                    "transcript": chunk,
+                    "stats": response
+                }
+                transcripts_feedback.append(highlight)
+        return transcripts_feedback
 
     def __get_video_transcript(self, video_url: str):
         """
@@ -69,6 +99,25 @@ class PodcastToShorts:
             prompt=message,
             format="json",
         )["response"]
+
+    def __chunk_transcript(self, video_transcript: str, chunk_length: int = 2000):
+        # chunk the list of dictionaries into a final list of lists, each list having less than chunk_length amount of characters
+        chunk_transcript_list = []
+        for i in range(0, len(video_transcript), chunk_length):
+            chunk_transcript_list.append(video_transcript[i:i + chunk_length])
+
+        return chunk_transcript_list
+
+    def __get_full_sentences_transcript(self):
+        video_transcript = self.__get_video_transcript(self.podcast_url)
+        chunked_transcript = self.__chunk_transcript(video_transcript)
+
+        full_sentences_transcript = []
+        for chunk in chunked_transcript:
+            chunk_transcript  = self.__format_full_sentences_transcript(chunk, self.system_prompt)
+            full_sentences_transcript.extend(chunk_transcript)
+
+        return full_sentences_transcript
 
     def __validate_env_variables(self):
         if not OLLAMA_HOST_URL:
