@@ -1,4 +1,7 @@
 annotated-types==0.6.0
+openai
+ollama
+youtube-transcript-api
 anyio==4.3.0
 attrs==23.2.0
 aws-cdk.assets==1.204.0
