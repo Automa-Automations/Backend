@@ -35,6 +35,18 @@ class PodcastToShorts:
         """
         full_sentences_transcript = self.__get_full_sentences_transcript()
         transcriptions_feedback = self.__get_transcripts_feedback(full_sentences_transcript)
+        shorts_transcripts = self.__filter_transcripts(transcriptions_feedback)
+
+    def __filter_transcripts(self, transcriptions_feedback, should_make_short = True):
+        """
+        Method to filter the transcriptions based on the should_make_short value
+        Parameters:
+        - transcriptions_feedback: list: The list of the feedback of the transcriptions
+        - should_make_short: bool: The value to filter the transcriptions
+        Returns:
+        - list: The list of the transcriptions that have the should_make_short value
+        """
+        return [transcription for transcription in transcriptions_feedback if transcription["stats"]["should_make_short"] == should_make_short]
 
     def __get_transcripts_feedback(self, full_sentences_transcript): 
         chunked_transcript = self.__chunk_transcript(full_sentences_transcript)
