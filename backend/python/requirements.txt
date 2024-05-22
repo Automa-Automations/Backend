@@ -1,5 +1,6 @@
 annotated-types==0.6.0
 openai
+pytube
 ollama
 youtube-transcript-api
 anyio==4.3.0
