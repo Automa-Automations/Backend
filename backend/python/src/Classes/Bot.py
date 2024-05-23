@@ -1,3 +1,11 @@
+# TODO: Insert the bot into the database
+# TODO: Getters and setters for the bot, because the bot doesn't require opting in to be "DatabaseSynced" it is "DatabaseSynced" by default.
+# TODO: Allow "AIImageGenerationBot" use custom comfyUI workflows where the "model" == "custom" & then "ImageApi" will use conditional to know what to do.
+# TODO: Make each and every item use "UUID" as their id instead of "int".
+# TODO: Make every class have a "DatabaseSynced" variant if applicable.
+# TODO: Extract Constants into the .env & correct files.
+# TODO: Refactor all the code into the correct place.
+
 # A "Bot" class is the baseclass for all other bots, each bot has a couple of paramaters that puts them into a subset of which ones we should parse them out in the switch case statement. Basically a BotFactory
 import datetime
 import uuid
@@ -212,8 +220,6 @@ class Bot():
         if bot_type == BotType.AiImageGeneration:
             bot.handler = AIImageGenerationBotHandler(metadata=AiImageGenerationBotMetadata(**metadata_dict))
         
-        # TODO: Insert the bot into the database
-        # TODO: Getters and setters for all of these properties (Because we want to easily update it!)
         return bot
 
     def modify_schedule(self, name: str, new_value: str) -> None:
@@ -483,9 +489,6 @@ class AIImageGenerationBotHandler(ContentGenerationBotHandler):
             posts.append(Post(title=title, description=description, tags=[], publicity=PostPublicity.PUBLIC, content=image_filepath))
         
         return posts
-
-
-
 
 
 class InstagramPlatformBot(Bot):
