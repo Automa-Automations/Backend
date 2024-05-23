@@ -60,6 +60,8 @@ def deploy_cdk_project():
     subprocess.run(["sudo", "cdk", "deploy"])
 
 if __name__ == "__main__":
+    dotenv.set_key(".env", "API_BASE_URL", get_aws_api_gateway("backend-generic-api"))
+
     deploy_cdk_project()
     bootstrap_supabase()
     bootstrap_stripe(os.getenv("STRIPE_API_KEY", ""))

@@ -1,11 +1,14 @@
 # A "Bot" class is the baseclass for all other bots, each bot has a couple of paramaters that puts them into a subset of which ones we should parse them out in the switch case statement. Basically a BotFactory
 import datetime
 import uuid
+import traceback
+import requests
+import os
 
 import instagrapi
 import json
 from enum import Enum
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import Tuple, Any, List, Optional
 
 from ollama import Client
@@ -163,6 +166,7 @@ class Bot():
     configuration: None = None
     """None: The configuration of the bot. This will be defined in the subclass."""
 
+
     @property
     def owner(self) -> Tuple[Profile, DatabaseSyncedProfile]:
         """Tuple[Profile, DatabaseSyncedProfile]: The owner of the bot. Useful for modifying the user account based on bot actions."""
@@ -189,20 +193,109 @@ class Bot():
         if out.bot_type == BotType.AiImageGeneration.value:
             out.handler = AIImageGenerationBotHandler(metadata=AiImageGenerationBotMetadata(**out.metadata_dict))
 
+        if out.platform == Platform.Instagram.value:
+            out.configuration = InstagramBotConfiguration(**out.bot_configuration_dict)
+
         return out
 
+    def modify_schedule(self, name: str, new_value: str) -> None:
+        """modify_schedule: This method will modify the schedule of the bot."""
+        # Firstly we convert the configuration to a dictionary
+        # All we need to do is make evenbridge take in the bot_id & the name of the property in order to make all of it's desired changes.
+        if not self.configuration:
+            raise Exception("No configuration found for the bot!")
 
+        # If there is an existing cron indicated by the _cron_job_{name} attr
+        existing_cron = getattr(self.configuration, f"cron_job_{name}", None)
+        if existing_cron:
+            self._delete_schedule(cron_id=existing_cron)
 
+        # Now create the cron
+        cron_id = self._create_cron(self.id, new_value, name)
+        # Now we update the configuration fully
+        setattr(self.configuration, f"cron_job_{name}", cron_id)
+        setattr(self.configuration, name, new_value)
+        # Now we need to update the value
+        self.bot_configuration_dict = self.configuration.__dict__
+        update_value("bots", self.id, "bot_configuration_dict", self.bot_configuration_dict)
+        
+
+    @staticmethod
+    def _create_cron(bot_id: str, cron: str, cron_name: str) -> Optional[dict]:
+        api_base_url = os.environ['API_BASE_URL'] + "/run_cron_job" # This is because a ton of the code will be super generic for this first version as it makes us build way faster!
+        try:
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f'Bearer  {os.environ.get("CRON_JOBS_ORG_API_KEY")}',
+            }
+
+            values = cron.split(" ")
+            new_values = []
+            for value in values:
+                cleaned_value = value.strip()
+                if cleaned_value == "*":
+                    cleaned_value = ["-1"]
+                elif "," in cleaned_value and isinstance(cleaned_value, str):
+                    cleaned_value = cleaned_value.split(",")
+                else:
+                    cleaned_value = [cleaned_value]
+
+                cleaned_value = [int(x) for x in cleaned_value]
+                new_values.append(cleaned_value)
+
+            json_data = {
+                "job": {
+                    "url": f"{api_base_url}/?bot_id={bot_id}&cron_name={cron_name}",
+                    "enabled": "true",
+                    "saveResponses": True,
+                    "schedule": {
+                        "timezone": "Europe/Berlin",
+                        "expiresAt": 0,
+                        "hours": new_values[1],
+                        "mdays": new_values[2],
+                        "minutes": new_values[0],
+                        "months": new_values[3],
+                        "wdays": new_values[4],
+                    },
+                },
+            }
+
+            response = requests.put(
+                "https://api.cron-job.org/jobs", headers=headers, json=json_data
+            )
+            return response.json()['jobId']
+        except Exception as e:
+            print(e, traceback.format_exc())
+            return None
+
+    
+    @staticmethod
+    def _delete_schedule(cron_id: str): 
+        try:
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f'Bearer {os.environ.get("CRON_JOB_ORG_API")}',
+            }
+
+            requests.delete(f"https://api.cron-job.org/jobs/{cron_id}", headers=headers)
+            return True
+        except Exception as e:
+            print(e)
+            return False
+
+    
+
+@dataclass
 class InstagramBotConfiguration():
     """InstagramBotConfiguration: The configuration for the Instagram bot."""
-    posting_interval: int
-    """int: The interval at which the bot should post to Instagram. This is calculated in seconds."""
-    
+    posting_interval: str
+    """str: This is the cron job used to post to the platform."""
+   
     follow_for_follow: bool
     """bool: If the bot should follow for follow."""
 
-    follow_interval: int
-    """int: The interval at which the bot should follow users. This is calculated in seconds."""
+    follow_interval: str
+    """str: The cron schedule for when it should do it's follow for follow actions"""
 
     follow_limit: Tuple[int, int]
     """Tuple[int, int]: The minimum and maximum number of users the bot should follow. On Each iteration, the bot will follow a random number of users between the minimum and maximum."""
@@ -210,8 +303,8 @@ class InstagramBotConfiguration():
     reply_to_comments: bool
     """bool: If the bot should reply to comments."""
 
-    reply_interval: int
-    """int: The interval at which the bot should reply to comments. This is calculated in seconds."""
+    reply_interval: str
+    """str: The cron schedule for when it should reply to comments."""
 
     reply_limit: Tuple[int, int]
     """Tuple[int, int]: The minimum and maximum number of comments the bot should reply to. On Each iteration, the bot will reply to a random number of comments between the minimum and maximum."""
@@ -222,14 +315,15 @@ class InstagramBotConfiguration():
     comment_dm_promotion: bool
     """bool: If the bot should comment on other posts, to try and get a promotion in DM's"""
 
-    comment_dm_promotion_interval: int
-    """int: The interval at which the bot should comment on other posts to try and get a promotion in DM's. This is calculated in seconds."""
+    comment_dm_promotion_interval: str
+    """str: The cron schedule for when it should do self dm promotions."""
 
     comment_dm_promotion_limit: Tuple[int, int]
     """Tuple[int, int]: The minimum and maximum number of comments the bot should make to try and get a promotion in DM's. On Each iteration, the bot will comment on a random number of posts between the minimum and maximum."""
 
-    _bot_generator: 'ContentGenerationBotHandler'
-    """None: This is the Generator that will be assigned in the Bot"""
+    cron_job_posting_interval: int = None
+    """int: The cron-job.org jobId"""
+ 
 
 @dataclass
 class AiImageGenerationBotMetadata():

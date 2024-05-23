@@ -1,7 +1,7 @@
 import dotenv
 import os
 
-dotenv.load_dotenv('.env')
+dotenv.load_dotenv('../../.env')
 
 
 
@@ -69,4 +69,8 @@ dotenv.load_dotenv('.env')
 from src.Classes.Bot import InstagramPlatformBot
 
 bot = InstagramPlatformBot.from_id(1, type_=InstagramPlatformBot)
-bot.upload()
+print(bot.configuration)
+bot.modify_schedule('posting_interval', "* * * * *")
+
+# bot.upload()
+
