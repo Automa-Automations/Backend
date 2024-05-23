@@ -198,6 +198,24 @@ class Bot():
 
         return out
 
+    @staticmethod
+    def new(friendly_name: str, description: str, owner_id: str, bot_type: BotType, platform: Platform, metadata_dict: dict, bot_configuration_dict: dict, session_id: int, proxy_id: int, currently_active: bool) -> Any:
+        """new: This method will create a new bot."""
+        id = str(uuid.uuid4().hex)
+        created_at = datetime.datetime.now()
+        # bot = Bot(id=id, created_at=created_at, friendly_name=friendly_name, description=description, owner_id=owner_id, bot_type=bot_type, platform=platform, metadata_dict=metadata_dict, bot_configuration_dict=bot_configuration_dict, session_id=session_id, proxy_id=proxy_id, currently_active=currently_active)       
+        if platform == Platform.Instagram.value:
+            bot = InstagramPlatformBot(id=id, created_at=created_at, friendly_name=friendly_name, description=description, owner_id=owner_id, bot_type=bot_type, platform=platform, metadata_dict=metadata_dict, bot_configuration_dict=bot_configuration_dict, session_id=session_id, proxy_id=proxy_id, currently_active=currently_active)
+        else:
+            bot = Bot(id=id, created_at=created_at, friendly_name=friendly_name, description=description, owner_id=owner_id, bot_type=bot_type, platform=platform, metadata_dict=metadata_dict, bot_configuration_dict=bot_configuration_dict, session_id=session_id, proxy_id=proxy_id, currently_active=currently_active)
+
+        if bot_type == BotType.AiImageGeneration:
+            bot.handler = AIImageGenerationBotHandler(metadata=AiImageGenerationBotMetadata(**metadata_dict))
+        
+        # TODO: Insert the bot into the database
+        # TODO: Getters and setters for all of these properties (Because we want to easily update it!)
+        return bot
+
     def modify_schedule(self, name: str, new_value: str) -> None:
         """modify_schedule: This method will modify the schedule of the bot."""
         # Firstly we convert the configuration to a dictionary
@@ -547,5 +565,3 @@ class InstagramPlatformBot(Bot):
         print("Commenting dm promotion...")
 
 
-# Simple test
-   

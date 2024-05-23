@@ -1,8 +1,7 @@
 import dotenv
 import os
 
-dotenv.load_dotenv('../../.env')
-
+dotenv.load_dotenv("../../.env")
 
 
 # from src.Classes.User import DatabaseSyncedProfile
@@ -31,7 +30,7 @@ dotenv.load_dotenv('../../.env')
 #
 # user.stripe_customer_id = "gus_123456868686"
 # print(user.stripe_customer_id)
-#\
+# \
 # from lambdas.stripe.payment_sheet import handler as payment_sheet
 # print(payment_sheet({'resource': '/payment-sheet', 'path': '/payment-sheet', 'httpMethod': 'POST', 'headers': {'Accept': '*/*', 'Accept-Encoding': 'gzip, deflate', 'CloudFront-Forwarded-Proto': 'https', 'CloudFront-Is-Desktop-Viewer': 'true', 'CloudFront-Is-Mobile-Viewer': 'false', 'CloudFront-Is-SmartTV-Viewer': 'false', 'CloudFront-Is-Tablet-Viewer': 'false', 'CloudFront-Viewer-ASN': '37611', 'CloudFront-Viewer-Country': 'ZA', 'Content-Type': 'application/json', 'Host': 'ia4csru8sj.execute-api.us-east-1.amazonaws.com', 'User-Agent': 'python-requests/2.31.0', 'Via': '1.1 1db4ab20ef3897e534041f147e869cca.cloudfront.net (CloudFront)', 'X-Amz-Cf-Id': 'f4XX0UDe_CH0lrRsK2LUk93Ec9tRvfPcvhIG0tJpk5FEiaggfZ9m0g==', 'X-Amzn-Trace-Id': 'Root=1-663e8cd8-4e5ba6634bd1c71826008184', 'X-Forwarded-For': '169.0.3.162, 130.176.145.152', 'X-Forwarded-Port': '443', 'X-Forwarded-Proto': 'https'}, 'multiValueHeaders': {'Accept': ['*/*'], 'Accept-Encoding': ['gzip, deflate'], 'CloudFront-Forwarded-Proto': ['https'], 'CloudFront-Is-Desktop-Viewer': ['true'], 'CloudFront-Is-Mobile-Viewer': ['false'], 'CloudFront-Is-SmartTV-Viewer': ['false'], 'CloudFront-Is-Tablet-Viewer': ['false'], 'CloudFront-Viewer-ASN': ['37611'], 'CloudFront-Viewer-Country': ['ZA'], 'Content-Type': ['application/json'], 'Host': ['ia4csru8sj.execute-api.us-east-1.amazonaws.com'], 'User-Agent': ['python-requests/2.31.0'], 'Via': ['1.1 1db4ab20ef3897e534041f147e869cca.cloudfront.net (CloudFront)'], 'X-Amz-Cf-Id': ['f4XX0UDe_CH0lrRsK2LUk93Ec9tRvfPcvhIG0tJpk5FEiaggfZ9m0g=='], 'X-Amzn-Trace-Id': ['Root=1-663e8cd8-4e5ba6634bd1c71826008184'], 'X-Forwarded-For': ['169.0.3.162, 130.176.145.152'], 'X-Forwarded-Port': ['443'], 'X-Forwarded-Proto': ['https']}, 'queryStringParameters': None, 'multiValueQueryStringParameters': None, 'pathParameters': None, 'stageVariables': None, 'requestContext': {'resourceId': 'hafc3s', 'resourcePath': '/payment-sheet', 'httpMethod': 'POST', 'extendedRequestId': 'Xkrx6FaMIAMEQEg=', 'requestTime': '10/May/2024:21:08:40 +0000', 'path': '/prod/payment-sheet', 'accountId': '471112943852', 'protocol': 'HTTP/1.1', 'stage': 'prod', 'domainPrefix': 'ia4csru8sj', 'requestTimeEpoch': 1715375320721, 'requestId': 'fe9068e4-0cd0-459d-a3a9-9e21484712f8', 'identity': {'cognitoIdentityPoolId': None, 'accountId': None, 'cognitoIdentityId': None, 'caller': None, 'sourceIp': '169.0.3.162', 'principalOrgId': None, 'accessKey': None, 'cognitoAuthenticationType': None, 'cognitoAuthenticationProvider': None, 'userArn': None, 'userAgent': 'python-requests/2.31.0', 'user': None}, 'domainName': 'ia4csru8sj.execute-api.us-east-1.amazonaws.com', 'deploymentId': '1pw1kd', 'apiId': 'ia4csru8sj'}, 'body': '{"userId": "a68c5905-205d-43e3-8bbb-0b6c87aea79e", "planId": "plan_standard"}', 'isBase64Encoded': False}, None))
 #
@@ -65,12 +64,56 @@ dotenv.load_dotenv('../../.env')
 # print(bot)
 
 
-
-from src.Classes.Bot import InstagramPlatformBot
-
-bot = InstagramPlatformBot.from_id(1, type_=InstagramPlatformBot)
-print(bot.configuration)
-bot.modify_schedule('posting_interval', "* * * * *")
+from src.Classes.Bot import (
+    AiImageGenerationBotMetadata,
+    BotSession,
+    BotType,
+    InstagramBotConfiguration,
+    InstagramPlatformBot,
+    Platform,
+)
+# bot = InstagramPlatformBot.from_id(1, type_=InstagramPlatformBot)
+# bot.modify_schedule('posting_interval', "* * * * *")
 
 # bot.upload()
+bot = InstagramPlatformBot.new(
+    friendly_name="Cute Spider Generator",
+    description="A cute little spider generator instagram themepage",
+    owner_id="25cde0b8-c486-419c-96c4-f975be675ca9",
+    bot_type=BotType.AiImageGeneration,
+    platform=Platform.Instagram,
+    metadata_dict=AiImageGenerationBotMetadata(
+        **{
+            "size": [256, 256],
+            "model": "realisticVisionV60B1_v51VAE.safetensors",
+            "style": "playful, puffy, smooth, cute, 4k, --rtx",
+            "base_topic": "The topic for the image should be of a random animal, preferrably cats, alligators, dogs, pandas, duck as, bears. It should be an animal name, with a prefix and or suffix, which will make it more descriptive and will not obstruct the image generation!",
+            "title_prompt": "The title should be in a cute and playful style, with a lot of emojis and a lot of exclamation marks Also include 3-4 hashtags in the title that will perform well.",
+            "total_images": 2,
+            "negative_prompt": "Text, Watermark, hands, ugly, dark, gloomy, sad, depressing, scary, horror, nightmare, creepy, spooky, evil, mean, angry, mad, rage, hate, violence, blood, gore",
+            "positive_prompt": "Cute cats, bright and colorful landscapes, Usage of humanlike behaviours, cute eyes, bliss, loving and kind personality.",
+            "description_prompt": "The description should be super descriptive based on the title, This should make the algorithm like us more!",
+        }
+    ).__dict__,
+    bot_configuration_dict=InstagramBotConfiguration(
+        **{
+            "posting_interval": "* * * * *",
+            "follow_for_follow": True,
+            "follow_interval": 7200,
+            "follow_limit": [5, 30],
+            "reply_to_comments": True,
+            "reply_interval": 9000,
+            "reply_limit": [1, 10],
+            "self_like": False,
+            "comment_dm_promotion": True,
+            "comment_dm_promotion_interval": 2000,
+            "comment_dm_promotion_limit": [5, 20],
+            "cron_job_posting_interval": 5102130,
+        }
+    ).__dict__,
+    session_id=1,
+    proxy_id=1,
+    currently_active=True,
+)
 
+print(bot)
