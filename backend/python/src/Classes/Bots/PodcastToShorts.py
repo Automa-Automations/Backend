@@ -210,14 +210,17 @@ class PodcastToShorts:
         """
         # chunk the list of dictionaries into a final list of lists, each list having less than chunk_length amount of characters
         chunk_transcript_list = []
-        for i in range(0, len(video_transcript), chunk_length):
-            chunked_transcript = video_transcript[i:i + chunk_length]
-            print(f"\n\n{i+1}. Chunked Transcript (length: {len(chunked_transcript)}): {chunked_transcript}")
-            with open("chunk_transcript.json", "w") as f:
-                f.write(json.dumps(chunked_transcript, indent=4))
-                print(f"(length: {len(chunked_transcript)}) Saved chunk transcript to 'chunk_transcript.json'")
+        current_chunk = []
 
-            chunk_transcript_list.append(chunked_transcript)
+        for transcript_dict in video_transcript:
+            # the chunk can take in another transcription dictionary
+            if len(json.dumps(current_chunk)) + len(json.dumps(transcript_dict)) < chunk_length - 100:
+                current_chunk.append(transcript_dict)
+            # the chunk cannot take in another transcription dictionary
+            else:
+                # the length cannot be 0.
+                chunk_transcript_list.append(current_chunk)
+                current_chunk = [transcript_dict]
 
         return chunk_transcript_list
 
