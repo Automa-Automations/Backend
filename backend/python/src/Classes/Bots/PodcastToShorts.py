@@ -144,22 +144,30 @@ class PodcastToShorts:
         - list: The list of the feedback of the transcriptions
         """
         chunked_transcript = self.__chunk_transcript(full_sentences_transcript)
-        prompt = f"""
-        Here is transcript data from a long from podcast style video: {full_sentences_transcript}. Decide whether or not the transcript is valid for a short. Evaluate the short based off of this:
-        score: a score out from 0 to 100, on how good this would make for a short. Be quite strict here, as the goal is to make the short as engaging as possible, not too strict. 
-        should_make_short: True or False. True, if the score is above or equal to 70, false if it is below 70
-        feedback: Any feedback on the short, what is good and bad about the transcript, how to make it better.
-        ###
-        Please output in the following format (ignore the values, just use the structure): 
-        {json.dumps({
-                "score": "a score out of a 100, on how good this would make for a short. Use an integer here. Don't surround this value with \"", 
-                "should_make_short": "True or False. True, if the score is above or equal to 70, false if it is below 70. Don't surround this value with \"",
-                "feedback": "Any feedback on the short, what is good and bad about the transcript, how to make it better.",
-            }, indent=4)}
-        """
-
         transcripts_feedback = []
         for idx, chunk in enumerate(chunked_transcript):
+            prompt = f"""
+            Here is transcript data from a long-form podcast style video: {chunk}. Decide whether or not the transcript is valid for a short. Evaluate the short based off of this:
+            score: a score out from 0 to 100, on how good this would make for a viral short. Be quite strict here, as the goal is to make the short as engaging as possible. If it is some sort of ad for a product, or introduction for the podcast, then give it a score of 40. The transcript must be one of the following to get a score above 70, anything that is not this should get a score below 70:
+            1. Really engaging, or interesting
+            2. Really funny, which will make viewers with fried dopamine receptors laugh, meaning it is really funny.
+            3. Really highly motivating, or inspiring
+            4. Really highly educational, or informative
+            5. Something that is following the trends, that people would want to hear from,
+            6. A really strong story that will make people feel understood, that people can resonate from. It should envoke a lot of emotion for the viewer.
+            7. Anything that will envoke strong emotions for the viewer. Whether that is sadness, happiness, really feeling understood, really feeling hyped up and motivated, a "wow" feeling of understanding or learning something new, that will make the viewer want to watch the full video.
+            and make the viewer want to watch the full video.
+            should_make_short: True or False. True, if the score is above or equal to 70, false if it is below 70
+            feedback: Any feedback on the short, what is good and bad about the transcript, how to make it better.
+###
+            Please output in the following format (ignore the values, just use the structure):
+            {{
+                "score": a score out of 100, on how good this would make for a short. Be quite strict here, as the goal is to make the short as engaging as possible. Use an integer here. Don't surround this value with "",
+                "should_make_short": True or False. True, if the score is above or equal to 70, false if it is below 70. Don't surround this value with "",
+                "feedback": "Any feedback on the short, what is good and bad about the transcript, how to make it better."
+            }}
+            """
+
             response = json.loads(llama_client.generate(
                 model=self.llama_model,
                 prompt=prompt,
@@ -199,7 +207,7 @@ class PodcastToShorts:
         video_transcript = YouTubeTranscriptApi.get_transcript(video_id)
         return video_transcript
 
-    def __chunk_transcript(self, video_transcript: str, chunk_length: int = 2000):
+    def __chunk_transcript(self, video_transcript: str, chunk_length: int = 4000):
         """
         Method to chunk the transcript
         Parameters:
