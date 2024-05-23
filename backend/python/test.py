@@ -1,5 +1,4 @@
 import dotenv
-import os
 from src.Classes.Bots import PodcastToShorts 
 dotenv.load_dotenv('.env')
 
