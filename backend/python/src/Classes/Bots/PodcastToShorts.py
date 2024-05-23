@@ -37,7 +37,7 @@ class PodcastToShorts:
         shorts_transcripts = self.__filter_transcripts(transcriptions_feedback)
         print(f"Shorts Transcripts: (length: {len(shorts_transcripts)}): {shorts_transcripts}")
 
-        # take each short, use OpenAI to remove all unnecessary content in the start, middle and end, so that it is just the short. 
+        # take each short, use OpenAI to remove all unnecessary content in the start, so that it is just the short. 
         shorts_final_transcripts = self.__get_shorts_final_transcripts(shorts_transcripts)
         print(f"Shorts Final Transcripts: (length: {len(shorts_final_transcripts)}): {shorts_final_transcripts}")
 
@@ -144,19 +144,17 @@ class PodcastToShorts:
         - list: The list of the feedback of the transcriptions
         """
         chunked_transcript = self.__chunk_transcript(full_sentences_transcript)
-        system_prompt = f"""
+        prompt = f"""
         Here is transcript data from a long from podcast style video: {full_sentences_transcript}. Decide whether or not the transcript is valid for a short. Evaluate the short based off of this:
-        score: a score out of a 100, on how good this would make for a short. 
+        score: a score out from 0 to 100, on how good this would make for a short. Be quite strict here, as the goal is to make the short as engaging as possible, not too strict. 
         should_make_short: True or False. True, if the score is above or equal to 70, false if it is below 70
         feedback: Any feedback on the short, what is good and bad about the transcript, how to make it better.
-
-        Be reasonable. Don't be to strict with your evauation, nor too soft. 
         ###
         Please output in the following format (ignore the values, just use the structure): 
         {json.dumps({
-                "score": "use an integer here. from 0 to 100. Don't surround this value with \"", 
-                "should_make_short": "Use boolean here (True, False), don't surround this value with \"",
-                "feedback": "Any feedback on what is good, what is bad, and how to improve",
+                "score": "a score out of a 100, on how good this would make for a short. Use an integer here. Don't surround this value with \"", 
+                "should_make_short": "True or False. True, if the score is above or equal to 70, false if it is below 70. Don't surround this value with \"",
+                "feedback": "Any feedback on the short, what is good and bad about the transcript, how to make it better.",
             }, indent=4)}
         """
 
@@ -164,7 +162,7 @@ class PodcastToShorts:
         for idx, chunk in enumerate(chunked_transcript):
             response = json.loads(llama_client.generate(
                 model=self.llama_model,
-                prompt=system_prompt,
+                prompt=prompt,
                 format="json",
             )["response"])
 
@@ -173,8 +171,8 @@ class PodcastToShorts:
                 "stats": response,
             }
 
-            print(f"Feedback Chunk: {feedback_chunk}")
-            print(f"Feedback Chunk Stats Length: {len(feedback_chunk["stats"])}")
+            print(f"{idx+1}. Formatted Chunk: {chunk}")
+            print(f"{idx+1}. Feedback Chunk Stats Length: {len(feedback_chunk["stats"])}")
 
             transcripts_feedback.append(feedback_chunk)
         return transcripts_feedback
@@ -200,25 +198,6 @@ class PodcastToShorts:
 
         video_transcript = YouTubeTranscriptApi.get_transcript(video_id)
         return video_transcript
-
-    def __format_full_sentences_transcript(self, transcript: List[dict], system_prompt: str):
-        """
-        Method to format the full sentences transcript
-        Parameters:
-        - transcript: List[dict]: The list of the transcript
-        - system_prompt: str: The system prompt
-        Returns:
-        - list: The list of the formatted transcript
-        """
-        message = f"Here is the transcript: {transcript}" 
-        llama_response = llama_client.generate(
-            model=self.llama_model,
-            system=system_prompt,
-            prompt=message,
-            format="json",
-        )["response"]
-
-        return json.loads(llama_response)["transcript"]
 
     def __chunk_transcript(self, video_transcript: str, chunk_length: int = 2000):
         """
