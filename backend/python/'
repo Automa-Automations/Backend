@@ -45,12 +45,12 @@ class PodcastToShorts:
             # get all the shorts that is "should_make_short" false. We need to get the best of them, so that there is enough shorts.
             other_shorts = self.__filter_transcripts(transcriptions_feedback, should_make_short=False)
             extra_shorts = self.__get_best_shorts(shorts_transcripts=other_shorts, total_shorts=round(podcast_length / 10) - len(shorts_transcripts))
+
             shorts_transcripts.extend(extra_shorts)
 
         elif len(shorts_transcripts) > round(podcast_length / 10):
             # Make a new list by putting only the highest scores in there, so that it is the length of round(podcast_length / 10)
             highest_score_list = sorted(shorts_transcripts, key=lambda x: x["stats"]["score"], reverse=True)[:round(podcast_length / 10)]
-            shorts_transcripts = highest_score_list
 
         # take each short, use OpenAI to remove all unnecessary content in the start, so that it is just the short. 
         shorts_final_transcripts = self.__get_shorts_final_transcripts(shorts_transcripts)
