@@ -1,6 +1,7 @@
+from requests import options
 from youtube_transcript_api import YouTubeTranscriptApi
 from typing import Optional, List 
-from ollama import Client
+from ollama import Client, Options
 from dotenv import load_dotenv
 from pytube import YouTube
 import os
@@ -79,6 +80,7 @@ class PodcastToShorts:
                 system=system_prompt,
                 prompt=message,
                 format="json",
+                keep_alive="1m"
             )["response"]
 
             append_dict = {
@@ -148,7 +150,7 @@ class PodcastToShorts:
         for idx, chunk in enumerate(chunked_transcript):
             prompt = f"""
             Here is transcript data from a long-form podcast style video: {chunk}. Decide whether or not the transcript is valid for a short. Evaluate the short based off of this:
-            score: a score out from 0 to 100, on how good this would make for a viral short. Be quite strict here, as the goal is to make the short as engaging as possible. If it is some sort of ad for a product, or introduction for the podcast, then give it a score of 40. The transcript must be one of the following to get a score above 70, anything that is not this should get a score below 70:
+            score: a score out from 0 to 100, on how good this would make for a viral short. Be quite strict here, as the goal is to make the short as engaging as possible. If it is some sort of ad for a product, or introduction for the podcast, then give it a score of 40. NOTE: swearing and cussing shouldn't make the score less or more. The transcript must be one of the following to get a score above 70, anything that is not this should get a score below 70. The transcript should have at least one or a few of the following, to get a score of 70 and above:
             1. Really engaging, or interesting
             2. Really funny, which will make viewers with fried dopamine receptors laugh, meaning it is really funny.
             3. Really highly motivating, or inspiring
@@ -156,9 +158,11 @@ class PodcastToShorts:
             5. Something that is following the trends, that people would want to hear from,
             6. A really strong story that will make people feel understood, that people can resonate from. It should envoke a lot of emotion for the viewer.
             7. Anything that will envoke strong emotions for the viewer. Whether that is sadness, happiness, really feeling understood, really feeling hyped up and motivated, a "wow" feeling of understanding or learning something new, that will make the viewer want to watch the full video.
-            and make the viewer want to watch the full video.
+            8. Anything that is really unique, and hasn't been done before. That will make the viewer want to watch the full video.
+            9. A "badass" moment, or how someone is talking about how badass they are, something that could inspire and motivate people to do hard things, to push themselves. This is a moment that will make people feel like they can do anything, and they are unstoppable.
+            10. Soneone talking about how they went through difficult times, something that could resonate with the audience.
             should_make_short: True or False. True, if the score is above or equal to 70, false if it is below 70
-            feedback: Any feedback on the short, what is good and bad about the transcript, how to make it better.
+            feedback: Any feedback on the short, what is good and bad about the transcript, how to make it better. Note: only evaluate it based off of the transcript. Don't give feedback saying that there could be visuals or animations. 
 ###
             Please output in the following format (ignore the values, just use the structure):
             {{
@@ -172,6 +176,7 @@ class PodcastToShorts:
                 model=self.llama_model,
                 prompt=prompt,
                 format="json",
+                keep_alive="1m"
             )["response"])
 
             feedback_chunk = {
@@ -183,6 +188,14 @@ class PodcastToShorts:
             print(f"{idx+1}. Feedback Chunk Stats Length: {len(feedback_chunk["stats"])}")
 
             transcripts_feedback.append(feedback_chunk)
+            with open("transcripts_feedback.json", "w") as f:
+                f.write(json.dumps(transcripts_feedback, indent=4))
+                print("saved transcripts feedback for this chunk to transcripts_feedback.json")
+
+            with open("transcripts_score.json", "w") as f:
+                f.write(json.dumps([transcript["stats"] for transcript in transcripts_feedback], indent=4))
+                print("saved scores to transcripts_score.json")
+
         return transcripts_feedback
 
     def __get_video_transcript(self, video_url: str):
