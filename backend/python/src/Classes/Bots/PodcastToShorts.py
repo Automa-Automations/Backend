@@ -14,6 +14,9 @@ OLLAMA_HOST_URL=os.getenv("OLLAMA_HOST_URL")
 # import dataclass
 from dataclasses import dataclass
 
+
+
+
 llama_client = Client(OLLAMA_HOST_URL)
 
 @dataclass

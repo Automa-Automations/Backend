@@ -2,21 +2,441 @@
     {
         "score": 40,
         "should_make_short": false,
-        "feedback": "The transcript lacks engaging or interesting content. It seems like an introduction or backstory for a podcast, but it's not strong enough to be the main focus of a short video. Consider adding more surprising or motivating moments to make the viewer want to continue watching."
+        "feedback": "This transcript seems to be a introduction or background information for the podcast. It's not particularly engaging, funny, motivating, educational, or inspiring. The story is not unique and doesn't evoke strong emotions. There isn't anything 'badass' about it either. To make this into a short that can go viral, you would need to add more interesting facts, surprising twists, or motivational quotes."
     },
     {
         "score": 40,
         "should_make_short": false,
-        "feedback": "This introduction is informative, but lacks any really engaging or interesting content. It's just a straightforward warning about cursing and an invitation to listen if you're comfortable with it. There's no real attempt to grab the viewer's attention or make them want to watch more."
+        "feedback": "The introduction is straightforward and lacks any engaging or interesting content. The podcast episode doesn't seem to offer anything unique or educational, and the tone is rather casual. To make it more engaging, consider adding a surprising statistic, a thought-provoking question, or an interesting anecdote."
     },
     {
         "score": 40,
         "should_make_short": false,
-        "feedback": "The transcript seems to be just a series of product promotions and introductions. There's no engaging or interesting content, nor is there any attempt to be funny, motivational, educational, or unique. The score remains low because the transcript does not meet any of the criteria for a high-scoring short."
+        "feedback": "The transcript seems to be just an ad for a product and an introduction for the podcast. It's not engaging or interesting enough to grab the audience's attention. To make it better, consider adding more humor, inspiration, or education to make it more compelling."
     },
     {
         "score": 40,
         "should_make_short": false,
-        "feedback": "This transcript seems like a product advertisement or introduction for the podcast. It's not engaging or interesting enough to grab the audience's attention and make them want to watch the full video."
+        "feedback": "The transcript is mostly an ad for a product and introduction to the podcast. It's not engaging, funny, motivating, educational, or inspiring. The tone is casual and conversational, but it doesn't have any unique or interesting moments that would make viewers want to watch the full video. To improve, consider adding more interesting facts about the product, highlighting its benefits, or sharing personal experiences related to sleep."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The introduction seems a bit dull. It lacks any engaging or interesting elements that would grab the viewer's attention. The conversation feels too casual and doesn't have any unique or educational value."
+    },
+    {
+        "score": 60,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be a conversation between two people, which could work well if the rest of the video is engaging and funny. However, as it stands, it doesn't really showcase anything that would make viewers want to watch the full video. The conversation seems quite normal and lacks any standout moments or interesting points. To improve this, consider adding more humor, making the conversation more relatable, or highlighting some surprising or unique information."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems like an introduction or a self-help advice. It's not engaging, interesting, funny, highly motivating, educational, following trends, unique, or emotional. The tone is quite flat and lacks a strong story or 'badass' moment. To make it better, consider adding more personal anecdotes, surprising facts, or unexpected twists to grab the audience's attention."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems like a standard introduction or ad for a podcast. It's not particularly engaging, funny, motivating, educational, or unique. The speaker is sharing their personal story and goals, but it doesn't seem to have any strong emotional hooks or 'wow' moments that would make viewers want to watch the full video."
+    },
+    {
+        "score": 50,
+        "should_make_short": false,
+        "feedback": "The transcript is mostly a casual conversation that doesn't seem to have any particularly engaging or unique moments. The speaker shares their personal writing process, which might be interesting for people who enjoy creative pursuits, but it's not likely to resonate with a broad audience. To make this more engaging, consider adding more surprising or unexpected elements, or exploring themes that are more universally relatable."
+    },
+    {
+        "score": 60,
+        "should_make_short": false,
+        "feedback": "The transcript is decent, but it's a bit too abstract and doesn't have any real 'hooks' to grab the viewer's attention. The idea of the trench and ball bearing is interesting, but it could be developed further. There's no real call-to-action or motivational moment that would make viewers want to watch the full video. Consider adding some concrete examples or a more relatable analogy to make the concept more accessible."
+    },
+    {
+        "score": 60,
+        "should_make_short": false,
+        "feedback": "The transcript is a bit too introspective and lacks a strong hook or motivation. It's not particularly engaging or funny. The motivational parts are good, but they could be more explicit. Try adding some more interesting facts or surprising statements to make it more unique."
+    },
+    {
+        "score": 60,
+        "should_make_short": false,
+        "feedback": "The conversation between David Goggins and Andrew Huberman seems interesting and engaging. However, the starting part of the transcript about 'friction' and morning routines might not be enough to grab the viewer's attention. The scores for humor, education, or inspiration are low because there is no strong emotional connection or unique moment in this part of the transcript."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be an introduction or a personal statement from the podcast host. It lacks any of the engaging or inspiring elements mentioned in the criteria. The tone is somewhat confrontational and doesn't evoke strong emotions. To improve, consider adding more interesting or thought-provoking statements that can grab the audience's attention."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be an introduction or a setup for the podcast. It's not engaging, interesting, funny, highly motivating, inspiring, educational, or unique. The speaker is sharing their personal experiences and opinions, but it doesn't evoke strong emotions or inspire viewers. To make this into a short, you could consider cutting out the less important parts and focusing on one or two key points that would resonate with the audience."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be an introduction or ad for a podcast. While it's not entirely uninteresting, it lacks the key elements that would make it engaging for a short. There is no strong story, unique perspective, or highly motivating message. It's mostly just someone talking about themselves and their experiences. To make this more engaging, consider adding a hook or an interesting fact to grab the viewer's attention."
+    },
+    {
+        "score": 60,
+        "should_make_short": false,
+        "feedback": "The transcript has some interesting moments, like when David Goggins talks about being misunderstood. However, most of the content is quite straightforward and doesn't have a strong emotional appeal. The tone is also somewhat aggressive, which might not be suitable for all audiences. To make it more engaging, consider adding more humor or surprising insights that would keep viewers curious."
+    },
+    {
+        "score": 60,
+        "should_make_short": false,
+        "feedback": "The transcript has some interesting moments, but overall it's a bit too focused on the speaker's personal story and feelings. It would benefit from more engaging or surprising statements to keep the viewer interested. Additionally, some parts of the transcript feel like an introduction or setup for the podcast, which might not be suitable for a short video."
+    },
+    {
+        "score": 60,
+        "should_make_short": false,
+        "feedback": "The transcript is somewhat engaging and has a few interesting points. However, it feels like a continuation of an introduction or a monologue rather than a standalone short. It would benefit from more concise language, clearer structure, and more surprising or unique insights to make it truly memorable."
+    },
+    {
+        "score": 20,
+        "should_make_short": false,
+        "feedback": "The transcript seems too focused on the speaker's personal opinions and emotions. While some of these moments might be engaging for a long-form podcast, they may not translate well to a short format. Consider adding more informative or educational content to make the short more engaging."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be a product introduction or advertisement. It's straightforward and informative, but lacks any of the key elements that would make it engaging for a short video. To improve, consider adding more personal anecdotes, interesting facts, or emotional connections to make the audience more invested."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript appears to be an introduction or ad for a podcast. It lacks engaging, interesting, funny, motivating, educational, and unique content. The use of swear words does not make it more appealing. To improve the short, consider adding personal stories, insights, or surprising facts that will resonate with the audience."
+    },
+    {
+        "score": 20,
+        "should_make_short": false,
+        "feedback": "The transcript lacks any really engaging or interesting content. It's mostly just a personal anecdote that may not be relatable or motivating for most viewers. To make it better, consider adding more humor, surprise, or unexpected twists to keep the audience engaged."
+    },
+    {
+        "score": 60,
+        "should_make_short": false,
+        "feedback": "The transcript has some interesting moments, such as the speaker's self-reflection and frustration. However, it lacks a clear narrative or a strong emotional resonance. To make it more engaging, consider adding more context or explaining what the speaker is trying to achieve with their 'carrot' system. The use of profanity may be off-putting for some viewers."
+    },
+    {
+        "score": 60,
+        "should_make_short": false,
+        "feedback": "The transcript is somewhat engaging, with a decent narrative arc. However, it's quite introspective and lacks a clear hook or punchline. Adding more context or a surprising twist could elevate the score."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript is not engaging or interesting enough. It seems like an introduction for a podcast, which is typical of a score of 40. To improve the score, try to make the conversation more interesting and unique."
+    },
+    {
+        "score": 50,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be a continuation of the conversation from previous podcast. It lacks a clear hook or surprise element that would grab the audience's attention. The topics discussed are interesting but not necessarily viral-worthy on their own. To make this short engaging, consider adding a provocative statement or an unexpected twist to pique the viewer's curiosity."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be more of an introduction or explanation of a topic. It's not particularly engaging, funny, motivating, educational, or unique. The conversation is quite calm and doesn't evoke strong emotions. To make this into a viral short, the tone would need to be adjusted to something more exciting and attention-grabbing."
+    },
+    {
+        "score": 50,
+        "should_make_short": false,
+        "feedback": "The transcript lacks a clear direction or message. The speaker seems to be reflecting on their life choices without providing any concrete insights or takeaways. To improve the short, consider focusing on a specific theme or lesson that can be applied to the audience's lives."
+    },
+    {
+        "score": 60,
+        "should_make_short": false,
+        "feedback": "The transcript has some interesting points, but overall it's not engaging enough. The use of profanity doesn't affect the score, but there isn't much to make the viewer want to watch the full video. It could be more motivating or inspiring. Consider adding a strong story or unique perspective to make the transcript more compelling."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be more of an introduction or explanation rather than something that would grab the audience's attention. It lacks a strong emotional hook, and the topics discussed are not particularly unique or inspiring. To make it more engaging, consider adding more personal anecdotes or surprising statistics to make the conversation more interesting."
+    },
+    {
+        "score": 50,
+        "should_make_short": false,
+        "feedback": "The transcript lacks any real engaging or interesting moments. It seems like a series of disconnected statements without much emotional resonance or motivation. The swearing is not enough to make it stand out as funny, and the rest of the text doesn't seem to be highly educational or inspiring. There isn't really anything that would envoke strong emotions for the viewer, nor is there anything unique or 'badass' about the transcript."
+    },
+    {
+        "score": 50,
+        "should_make_short": false,
+        "feedback": "The transcript starts off strong, with some interesting and relatable points. However, it becomes a bit repetitive and lacks a clear direction or punchline. The language is straightforward and conversational, but could benefit from more varied sentence structures and creative phrasing to keep the viewer engaged."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems like a good introduction or setup for the podcast, but it's not engaging enough to be a standalone short. The conversation is interesting, but it's too focused on building willpower and doesn't have any 'aha' moments or surprising insights. It's also quite slow-paced. To make this into a compelling short, consider adding more provocative statements, surprising statistics, or unexpected anecdotes."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript is a bit too casual and doesn't quite fit the typical format of a motivational or educational short. It's more of an introduction to the podcast, but it lacks the engaging and inspiring elements that would make it a viral hit."
+    },
+    {
+        "score": 50,
+        "should_make_short": false,
+        "feedback": "The transcript has some interesting points, such as the mention of dopamine release in response to pain. However, it feels more like a continuation of an introduction or a setup for the podcast rather than a standalone short. To make it more engaging, consider adding a hook at the beginning that grabs the viewer's attention and makes them want to learn more."
+    },
+    {
+        "score": 45,
+        "should_make_short": false,
+        "feedback": "The transcript starts off interesting but gets a bit dry. It would be great if there was something more engaging or unique in this part of the conversation. Maybe David Goggins' experiences could be highlighted to make it more relatable and inspiring."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems more like an introduction or setup for a podcast episode. It doesn't quite fit any of the criteria listed (really engaging, funny, motivating, educational, trending, emotional, unique, or 'badass'). The tone is somewhat negative and critical, but it's not particularly inspiring or motivational. To make this into a short that could work well, you might consider focusing on one or two key points and elaborating on them in a more concise and compelling way."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "This transcript seems like an introduction or ad for a product (InsideTracker). It's not particularly engaging, funny, motivating, educational, trend-following, or storytelling. The content is mostly about promoting the product rather than being interesting or inspiring."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be an introduction or setup for a podcast episode. It's a bit too rational and doesn't have any of the engaging, interesting, funny, highly motivating, inspiring, educational, unique, or strong story elements that would make it stand out as a viral short. It might work well as an introduction, but not as a standalone short."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be an introduction or a promotional material for the podcast. It lacks any of the characteristics that would make it engaging or viral. The tone is also quite harsh and may not appeal to many viewers."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be an introduction or an ad for the podcast. It's not engaging, funny, motivating, educational, or inspiring. The language used is strong and might not appeal to a wide audience."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript is quite straightforward and lacks any engaging or interesting content. It's mostly a personal anecdote that may not resonate with a wide audience. To improve, consider adding more humor, inspiration, education, or uniqueness to make it more appealing."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be an introduction or a setup for something else. It's quite ordinary and doesn't have any of the characteristics I listed earlier that would make it engaging, funny, motivating, educational, etc. The conversation is friendly, but it lacks any 'wow' moments or strong emotions. To make this more engaging, you could try to add some unexpected twists or surprises, or create a sense of anticipation for what's to come."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems like an introduction or a summary of thoughts. It's not particularly engaging, funny, motivating, educational, or unique. The tone is somewhat conversational, but it lacks a strong hook or emotional resonance to make the viewer want to watch more."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be an introduction or a personal story, which may not be engaging enough for a viral short. The conversation is quite casual and doesn't have any standout points that would make it memorable or shareable."
+    },
+    {
+        "score": 60,
+        "should_make_short": false,
+        "feedback": "The transcript has some interesting moments, such as the discussion of skateboarding and the comparison between it and work. However, it lacks a strong emotional hook or unique perspective that would make it stand out. The tone is also somewhat uneven, with some parts feeling like an introduction to a podcast rather than a short-form video. To improve, consider adding more vivid language or anecdotes to make the topics more engaging."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "This introduction is too casual and doesn't have any of the engaging or interesting elements that would typically score above 70. It's a good start, but to make it more compelling, consider adding some interesting facts, personal anecdotes, or surprising insights."
+    },
+    {
+        "score": 80,
+        "should_make_short": true,
+        "feedback": "The transcript has a strong narrative that flows well. The speaker shares their personal experience in an engaging way. However, some parts of the transcript could be tightened up for better pacing and impact. For example, the phrase 'something's got to give' is repeated multiple times - it might be more effective to rephrase or use different language to convey this idea. Additionally, the transcript could benefit from a clearer structure and more defined sections to keep the listener engaged."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be an introduction or an ad for a podcast. It doesn't have any of the characteristics that would make it engaging enough for a viral short. It's quite bland and lacks any unique or inspiring moments."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems like an introduction or a personal anecdote. It's not particularly engaging, funny, motivating, educational, or unique. The content is quite straightforward and doesn't seem to have any strong emotional appeal or 'aha' moments. To make it more interesting, consider adding a surprising twist, making it more relatable, or highlighting a key takeaway."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "This transcript is quite dry and doesn't seem to have any of the engaging or inspiring elements that would make a short viral. It's mainly just someone talking about their routine and expectations. To make it more interesting, you could try adding some humor, personal anecdotes, or unique perspectives."
+    },
+    {
+        "score": 80,
+        "should_make_short": true,
+        "feedback": "The conversation seems engaging, but some parts are a bit too straightforward. Consider adding more interesting or unique insights to make it stand out. Also, the swearing doesn't hurt or help the score, so it's neutral."
+    },
+    {
+        "score": 60,
+        "should_make_short": false,
+        "feedback": "The transcript has some interesting moments, but overall it's a bit too focused on the speaker's personal opinions. To make it more engaging, consider adding more concrete examples or anecdotes to support their points."
+    },
+    {
+        "score": 85,
+        "should_make_short": true,
+        "feedback": "The transcript is engaging and honest, which can resonate with a lot of people. The speaker's vulnerability and willingness to share their story can evoke strong emotions in the viewer. To make it better, consider adding more context or backstory to help viewers connect with the speaker on a deeper level."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be a introduction or an ad for a podcast. It's not engaging, funny, highly motivating, educational, or inspiring. There are no strong emotions evoked, and it doesn't follow any trends. The conversation is quite generic and doesn't have a unique tone or perspective."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The conversation between David Goggins and Andrew Huberman seems informative, but it lacks engaging or interesting points. The topics discussed are not particularly unique or inspiring. To make this transcript more engaging, consider adding a personal story or anecdote that relates to the topic of resting or recovery."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "This transcript appears to be an introduction or self-reflective statement from the podcast host. While it's a personal and honest account, it may not be engaging enough for a viral short. To improve it, consider highlighting specific moments or experiences that can be used as hooks to grab the viewer's attention."
+    },
+    {
+        "score": 50,
+        "should_make_short": false,
+        "feedback": "The transcript lacks a strong emotional hook or something unique that would grab the audience's attention. It seems like just a conversation with no clear direction or message. The language is quite strong and might not appeal to all audiences, but that's not what I'm focusing on here. The transcript doesn't have any of the key elements I listed earlier (engaging, funny, motivating, educational, trending, emotional story, unique, badass moment) that would make it a compelling short."
+    },
+    {
+        "score": 60,
+        "should_make_short": false,
+        "feedback": "The transcript has some interesting moments, like the idea of having a 'medicine cabinet' inside oneself. However, it feels more like a personal anecdote or introduction to the podcast rather than something that would grab attention and make people want to watch the full video. The tone is conversational and lacks a clear hook or surprise to keep viewers engaged."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be an introduction or a personal story. It's not particularly engaging, funny, motivating, educational, or unique. The tone is somewhat informal and conversational, but it doesn't evoke strong emotions or inspire the viewer to watch more. To make this a good short, consider adding more humor, making the story more relatable, or highlighting an inspiring message."
+    },
+    {
+        "score": 60,
+        "should_make_short": false,
+        "feedback": "The transcript has some interesting points, such as the idea of building true confidence. However, it's a bit too focused on self-reflection and doesn't have any 'aha' moments or surprising insights that would make viewers want to watch the full video. The language is also quite formal and lacks a sense of humor or playfulness."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be a continuation of a podcast conversation. It's not particularly engaging, funny, motivating, educational, or inspirational. The conversation seems to be focused on personal experiences and opinions rather than providing valuable information or insights. To make this into an effective short, the conversation would need to be more concise, focused, and attention-grabbing."
+    },
+    {
+        "score": 60,
+        "should_make_short": false,
+        "feedback": "The transcript has some interesting moments, but it's mostly a conversation that may not be engaging enough for a short. The topics discussed are quite general and don't have a strong hook to grab the viewer's attention. To make it better, consider editing the conversation to focus on one or two main points and removing any repetitive or uninteresting parts."
+    },
+    {
+        "score": 50,
+        "should_make_short": false,
+        "feedback": "The transcript lacks a strong emotional appeal or educational value. It's mostly just casual conversation. To improve, consider adding more insightful or inspiring moments that will resonate with the audience."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be just an introduction or a personal anecdote, which doesn't fit any of the criteria for making a engaging short. It's not really funny, interesting, motivating, educational, or unique. It also doesn't have a strong story or evoke strong emotions. The 'badass' moment is not present here either. To make it better, consider focusing on one of the above-mentioned criteria and build upon that."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be more of a personal reflection or introduction to the podcast. It lacks engaging, interesting, funny, highly motivating, educational, or unique content that would typically score above 70. The language is straightforward and doesn't evoke strong emotions. To make it better, consider adding more provocative statements, surprising insights, or relatable anecdotes to create a stronger connection with the audience."
+    },
+    {
+        "score": 30,
+        "should_make_short": false,
+        "feedback": "The transcript seems like a continuation of an existing conversation. It's not particularly engaging or unique. The speaker is sharing their personal experience and frustration, which could be interesting if it were more surprising or unexpected. However, the tone seems fairly generic and doesn't have any 'aha' moments or strong emotional resonance. To make this more compelling, consider adding a twist or surprise to the conversation, or highlighting a specific aspect of the speaker's experience that makes it stand out."
+    },
+    {
+        "score": 60,
+        "should_make_short": false,
+        "feedback": "The conversation between David Goggins and Andrew Huberman is interesting, but it's not particularly engaging or funny. The topic of perseverance in the face of adversity is inspiring, but it's not a new or unique idea. The transcript could be improved by adding more personal anecdotes or surprising revelations to make it more memorable."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "This introduction is quite generic and doesn't have any specific elements that would grab the audience's attention. It could be made more engaging by adding a personal touch, an interesting fact or statistic, or a provocative statement."
+    },
+    {
+        "score": 60,
+        "should_make_short": false,
+        "feedback": "The transcript has some interesting points, but overall it's not engaging enough. The conversation seems to be quite personal and might resonate with a specific audience, but it doesn't have the 'wow' factor or something unique that would make viewers want to watch the full video. To improve, consider adding more context or examples to support the points being made."
+    },
+    {
+        "score": 60,
+        "should_make_short": false,
+        "feedback": "The transcript lacks a clear theme or direction. The language used is quite casual and some viewers might find it off-putting. To improve, consider adding more structure to the conversation and using more engaging language. While there are some interesting moments, such as the mention of 'willpower' and 'growth', they are not enough to make the transcript stand out."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "This transcript seems more like an introduction or an ad for a podcast. It lacks engaging, interesting, funny, motivating, educational, or unique content. The topics discussed seem too general and don't evoke strong emotions in the viewer. To make this into a viral short, it would need to be rewritten with more specific and provocative ideas that grab the audience's attention."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be an introduction or ad for a podcast. It doesn't have any of the elements that would make it engaging and viral-worthy. The conversation is quite mundane and lacks any unique or inspiring moments."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be just an introduction or an ad for a podcast. It's not engaging, funny, motivating, educational, unique, or emotionally evoking. The speaker is talking about painting and brainstorming, which might not appeal to many people. To make it better, try to add some interesting facts, surprising revelations, or personal stories that can grab the audience's attention."
+    },
+    {
+        "score": 60,
+        "should_make_short": false,
+        "feedback": "The transcript has some interesting moments, but overall it's quite casual and doesn't have any really engaging or motivating parts. The humor is okay, but not laugh-out-loud funny. The conversation about politics could be an interesting topic, but it feels too brief to make a significant impact. The story about the birthday connection is unique, but it doesn't quite tie together with the rest of the transcript. Overall, the short feels like a collection of thoughts rather than a cohesive narrative."
+    },
+    {
+        "score": 30,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be a continuation of a conversation or an introduction. It lacks engagement, humor, inspiration, education, and strong emotions. The language is straightforward but not particularly interesting. To improve it, consider adding a hook at the beginning, making the content more relatable or personal, or incorporating surprising statistics or stories."
+    },
+    {
+        "score": 30,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be a philosophical discussion, which may not be engaging enough for a viral short. The language is too formal and lacks humor or strong emotions. To make it better, consider adding more relatable examples or personal anecdotes to make the concepts more accessible and interesting."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be an introduction or ad for a podcast. It lacks engaging or interesting content. To improve, consider adding more insightful or thought-provoking statements. The tone is conversational, but it doesn't quite feel like there's enough substance to hold the viewer's attention."
+    },
+    {
+        "score": 80,
+        "should_make_short": true,
+        "feedback": "This transcript has a good mix of interesting and motivational content. The speaker's honesty about failures and climbing out of deep holes is relatable and engaging. However, the language used can be improved to make it more concise and impactful. Additionally, some parts feel like a repetition of previous ideas, so condensing the message would be beneficial."
+    },
+    {
+        "score": 80,
+        "should_make_short": true,
+        "feedback": "This transcript has a strong narrative voice and conveys a clear message of resilience and determination. The use of profanity adds authenticity but may not be suitable for all audiences. To make it even more engaging, consider adding more surprising or unexpected turns to the story. Additionally, providing more context about what makes this 'process' unique could help viewers connect with it on a deeper level."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be an introduction or a personal anecdote. While it's honest and relatable, it lacks engagement, humor, motivation, education, trendiness, strong storytelling, uniqueness, and 'badass' moments. To improve, consider making the conversation more dynamic, adding surprising insights, or sharing a personal struggle and triumph."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript lacks engaging or interesting content. It's mostly a discussion with a lot of pauses in between sentences. There is no humor, motivation, education, or unique aspect that would make the viewer want to watch more. The conversation seems slow-paced and doesn't evoke any strong emotions."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be an introduction or a personal anecdote. While it's honest and raw, it may not be engaging enough for a viral short. Consider adding more humor, surprise, or emotional resonance to make it more compelling."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript appears to be a introduction or an ad for the podcast. It doesn't contain any of the engaging elements that would make a viral short. The tone is casual and conversational, but it lacks any real humor, motivation, education, trend-following, strong storytelling, uniqueness, or 'badass' moments."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The conversation starts off strong with a provocative statement, but it seems to meander after that. The tone is also quite intense and confrontational, which might not be the most engaging for a short video. Consider adding more context or building up to a stronger conclusion to make it more compelling."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems like an introduction or ad for a podcast. It doesn't have any particularly engaging, funny, motivating, educational, trend-following, story-driven, unique, or 'badass' moments that would make viewers want to watch the full video. The tone is conversational and lacks emotional resonance."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript appears to be an introduction or ad for the podcast. It's not engaging, funny, motivating, educational, following trends, or evoking strong emotions. It lacks any unique or 'badass' moments. To make it better, consider adding a personal touch, sharing a relevant story, or providing valuable information."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "This transcript appears to be an introduction or advertisement for a podcast. It lacks engaging content, humor, motivation, education, trend-following, strong storytelling, or uniqueness that would typically score above 70. The tone is informative and straightforward, but it doesn't evoke strong emotions or inspire the audience."
     }
 ]
