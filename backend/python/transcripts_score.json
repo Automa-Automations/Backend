@@ -2,56 +2,21 @@
     {
         "score": 40,
         "should_make_short": false,
-        "feedback": "The transcript seems to be an introduction or setup for a longer story. While it provides some context about David's past, it lacks any real engagement, humor, motivation, education, trendiness, strong emotions, uniqueness, or 'badass' moments. To make this more engaging, consider adding more interesting or surprising facts, asking thought-provoking questions, or creating a sense of tension or anticipation for what's to come."
+        "feedback": "The transcript lacks engaging or interesting content. It seems like an introduction or backstory for a podcast, but it's not strong enough to be the main focus of a short video. Consider adding more surprising or motivating moments to make the viewer want to continue watching."
     },
     {
         "score": 40,
         "should_make_short": false,
-        "feedback": "The transcript seems to be an introduction for a podcast episode. It's informative but lacks any of the key elements that would make it engaging for a short video. The language is straightforward and doesn't evoke any strong emotions or motivations. To improve, consider adding more interesting facts, surprising statistics, or thought-provoking questions to grab the viewer's attention."
+        "feedback": "This introduction is informative, but lacks any really engaging or interesting content. It's just a straightforward warning about cursing and an invitation to listen if you're comfortable with it. There's no real attempt to grab the viewer's attention or make them want to watch more."
     },
     {
         "score": 40,
         "should_make_short": false,
-        "feedback": "The transcript appears to be a product promotion or introduction for the podcast. It doesn't have any engaging, funny, motivating, educational, or unique elements that would make it stand out. The only strong emotions evoked are perhaps curiosity about the product. To improve this, consider adding more interesting facts or anecdotes about the product, its benefits, or how it was developed."
+        "feedback": "The transcript seems to be just a series of product promotions and introductions. There's no engaging or interesting content, nor is there any attempt to be funny, motivational, educational, or unique. The score remains low because the transcript does not meet any of the criteria for a high-scoring short."
     },
     {
         "score": 40,
         "should_make_short": false,
-        "feedback": "This transcript seems to be a product ad or introduction for the podcast. It's not engaging, funny, highly motivating, inspiring, educational, following trends, unique, or emotional. The tone is more informative and promotional. To make this short better, consider adding more personal anecdotes, interesting facts, or surprising statistics to grab the audience's attention."
-    },
-    {
-        "score": 40,
-        "should_make_short": false,
-        "feedback": "The transcript seems to be an introduction or advertisement for a podcast, which doesn't have enough engaging content. The conversation is informal and lacks any really interesting or unique points. It's mainly just a casual chat between two people. To make this into a viral short, more excitement, humor, inspiration, education, or strong emotions are needed."
-    },
-    {
-        "score": 40,
-        "should_make_short": false,
-        "feedback": "The transcript seems to be a continuation of the podcast's conversation. While it's mildly interesting, it lacks any real engagement or motivation factors. The conversation is quite casual and doesn't seem to have any strong emotional moments or unique perspectives."
-    },
-    {
-        "score": 40,
-        "should_make_short": false,
-        "feedback": "The transcript seems to be a straightforward explanation of someone's learning process. While it's informative, it doesn't have any particularly engaging or unique elements that would make it stand out as a viral short. The language is straightforward and lacks humor, motivation, or strong emotions that would keep viewers invested."
-    },
-    {
-        "score": 40,
-        "should_make_short": false,
-        "feedback": "The transcript seems like a personal anecdote or introduction to a podcast, rather than something engaging enough to stand alone as a short. It lacks any of the criteria mentioned earlier (engaging, funny, motivating, educational, etc.) and is too focused on the speaker's personal experience. To make it more compelling, consider adding more context, making it more relatable or surprising, or incorporating more interesting or unexpected elements."
-    },
-    {
-        "score": 40,
-        "should_make_short": false,
-        "feedback": "The transcript seems to be more of an introduction or a personal anecdote rather than something that would be engaging for a short. The speaker is sharing their writing process, which might not be interesting or unique enough for a viral short. The content is fairly ordinary and lacks any real 'wow' factor or strong emotional resonance."
-    },
-    {
-        "score": 40,
-        "should_make_short": false,
-        "feedback": "The transcript seems to be a continuation of a conversation or topic, which may not be engaging enough for a short video. It lacks the elements that would typically make someone want to watch the full video. To improve it, consider adding more humor, inspiration, or education. Perhaps use storytelling techniques or share personal experiences to make the content more relatable and memorable."
-    },
-    {
-        "score": 60,
-        "should_make_short": false,
-        "feedback": "The transcript seems to be more of an introduction or a personal story. While it's nice to hear the host's perspective, it's not particularly engaging or inspiring. To make it better, consider adding some more interesting facts or anecdotes about David Goggins or the journey to find one's greatness."
+        "feedback": "This transcript seems like a product advertisement or introduction for the podcast. It's not engaging or interesting enough to grab the audience's attention and make them want to watch the full video."
     }
 ]

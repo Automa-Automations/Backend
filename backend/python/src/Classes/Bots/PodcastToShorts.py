@@ -32,11 +32,21 @@ class PodcastToShorts:
         transcript = self.__get_video_transcript(self.podcast_url)
         print(f"Transcript: (length: {len(transcript)}): {transcript}")
 
+        podcast_length = round((transcript[-1]["start"] + transcript[-1]["duration"]) / 60)
+        print(f"Podcast Length: {podcast_length} minutes")
+
         transcriptions_feedback = self.__get_transcripts_feedback(transcript)
         print(f"Transcriptions With Feedback: (length: {len(transcriptions_feedback)}): {transcriptions_feedback}")
 
         shorts_transcripts = self.__filter_transcripts(transcriptions_feedback)
         print(f"Shorts Transcripts: (length: {len(shorts_transcripts)}): {shorts_transcripts}")
+
+        if len(shorts_transcripts) < round(podcast_length / 10):
+            # get all the shorts that is "should_make_short" false. We need to get the best of them, so that there is enough shorts.
+            other_shorts = self.__filter_transcripts(transcriptions_feedback, should_make_short=False)
+            extra_shorts = self.__get_best_shorts(shorts_transcripts=other_shorts, total_shorts=round(podcast_length / 10) - len(shorts_transcripts))
+
+            shorts_transcripts.extend(extra_shorts)
 
         # take each short, use OpenAI to remove all unnecessary content in the start, so that it is just the short. 
         shorts_final_transcripts = self.__get_shorts_final_transcripts(shorts_transcripts)
@@ -47,6 +57,46 @@ class PodcastToShorts:
 
         return clip_shorts_data
 
+    def __get_best_shorts(self, shorts_transcripts: List[dict], total_shorts: int):
+        """
+        Method to get the best shorts from the passed in shorts
+        Parameters:
+        - shorts_transcripts: list: The list of the shorts transcripts
+        - total_shorts: int: The total number of shorts needed
+        Returns:
+        - list: The list of the best shorts
+        """
+        # chunk shorts_transcripts into lists, each list being the length of shorts_transcripts / total_shorts. It should select the best one from each list.
+        chunked_shorts_transcripts = []
+        current_chunk = []
+
+        for short_dict in shorts_transcripts:
+            if len(current_chunk) < total_shorts:
+                current_chunk.append(short_dict)
+            else:
+                chunked_shorts_transcripts.append(current_chunk)
+                current_chunk = [short_dict]
+
+        best_shorts = []
+        for chunk_list in chunked_shorts_transcripts:
+            best_short = self.__get_best_short(chunk_list)
+            best_shorts.append(best_short)
+
+        return best_shorts
+
+    def __get_best_short(self, chunk_list: List[dict]):
+        prompt = f"""
+        Here are the shorts transcripts: {json.dumps(chunk_list, indent=4)}. Decide which one is the best for a short (you must only chooose 1). Return that short dictionary in the exact same format as it was given to you. 
+        """
+        best_short = json.loads(llama_client.generate(
+            model=self.llama_model,
+            prompt=prompt,
+            format="json",
+            keep_alive="1m"
+        )["response"])
+
+        return best_short 
+
     def __get_shorts_final_transcripts(self, shorts_transcripts: List[dict]):
         """
         Method to get the final transcripts of the shorts, by removing the start and end sentences, to get the optimized short.
@@ -55,8 +105,8 @@ class PodcastToShorts:
         Returns: 
         - list: The list of the final transcripts of the shorts
         """
-        system_prompt = f"""
-        You get in a transcript, and you are supposed to remove dictionaries in the start and end of the transcript, so that the transcript only have the part that will be fitting for a short. Make it 100 - 150 words max, and take in the total length into account, as the total length of all sentences dictionaries combined may be at max 55 seconds. The final clip should be in a great format for a social media short, so the primary goal is to make the short get as much views as possible. Here is an example input and output formats:
+        prompt = f"""
+        Here are the transcripts: {json.dumps(shorts_transcripts, indent=4)} Remove the start and end of each transcript, so that each transcript only have the part that will be fitting for a short. Make it 100 - 150 words max for each transcript, and take in the total length into account, as the total length of all sentences dictionaries combined may be at max 55 seconds. The final transcript for each of the transcripts should be in a great format for a social media short, so the primary goal is to make the short get as much views as possible. Here is an example input and output formats:
         ###
         Input (the input will be provided to you by the user): 
         {json.dumps({
@@ -67,18 +117,13 @@ class PodcastToShorts:
                 "feedback": "The transcript is too long, and the content is not engaging enough."
             }
         }, indent=4)}
-        Output (you give the output, in this exact format. Make sure to put the transcript in the "transcript" list): 
-        {json.dumps({
-            "transcript": [{'start': 0.0, 'duration': 2.0, 'text': 'Hello world!'}], # Change the transcription, to be fitting for a short that will be optimized for the most amount of views. 
-        }, indent=4)}
+        Your goal is to trim (remove start and end objects of the transcript), so that the thing that is left is only part that will go viral.
         """
         final_transcripts = []
         for short in shorts_transcripts:
-            message = f"Here is the transcript: {json.dumps(short, indent=4)}"
             llama_response = llama_client.generate(
                 model=self.llama_model,
-                system=system_prompt,
-                prompt=message,
+                prompt=prompt,
                 format="json",
                 keep_alive="1m"
             )["response"]
@@ -149,7 +194,7 @@ class PodcastToShorts:
         transcripts_feedback = []
         for idx, chunk in enumerate(chunked_transcript):
             prompt = f"""
-            Here is transcript data from a long-form podcast style video: {chunk}. Decide whether or not the transcript is valid for a short. Evaluate the short based off of this:
+            Here is transcript data from a long-form podcast style video: {chunk}. Decide whether or not a specific part of the transcript or the whole transcript is valid for a short. Evaluate the short based off of this:
             score: a score out from 0 to 100, on how good this would make for a viral short. Be quite strict here, as the goal is to make the short as engaging as possible. If it is some sort of ad for a product, or introduction for the podcast, then give it a score of 40. NOTE: swearing and cussing shouldn't make the score less or more. The transcript must be one of the following to get a score above 70, anything that is not this should get a score below 70. The transcript should have at least one or a few of the following, to get a score of 70 and above:
             1. Really engaging, or interesting
             2. Really funny, which will make viewers with fried dopamine receptors laugh, meaning it is really funny.
