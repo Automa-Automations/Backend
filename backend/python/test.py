@@ -99,14 +99,14 @@ bot = InstagramPlatformBot.new(
         **{
             "posting_interval": "* * * * *",
             "follow_for_follow": True,
-            "follow_interval": 7200,
+            "follow_interval": "* * * * *",
             "follow_limit": [5, 30],
             "reply_to_comments": True,
-            "reply_interval": 9000,
+            "reply_interval": "* * * * *",
             "reply_limit": [1, 10],
             "self_like": False,
             "comment_dm_promotion": True,
-            "comment_dm_promotion_interval": 2000,
+            "comment_dm_promotion_interval": "* * * * *",
             "comment_dm_promotion_limit": [5, 20],
             "cron_job_posting_interval": 5102130,
         }

@@ -1,12 +1,13 @@
 import sys
 from src.supabase import supabase
-from typing import Any, BinaryIO, Optional, Any
+from typing import Any, BinaryIO, Optional, Any, Union
 import datetime
 import json
 from io import BytesIO
 import traceback
 import uuid
 import requests
+
 
 def update_value(table: str, line: str, val: str, new_value: Any, line_name: str = 'id'):
     try:
@@ -17,12 +18,21 @@ def update_value(table: str, line: str, val: str, new_value: Any, line_name: str
     except Exception as e:
         print(e, traceback.format_exc())
 
+
 def get_value(table: str, line: Any, line_name: str = 'id') -> dict:
     try:
         return supabase.table(table).select('*').eq(line_name, line).execute().data[0]
     except Exception as e:
         print(e, traceback.format_exc())
     return {}
+
+
+def insert_value(table: str, values: dict) -> Union[int, str]:
+    try:
+        return supabase.table(table).insert(values).execute().data[0].get('id')
+    except Exception as e:
+        print(e, traceback.format_exc())
+    return ''
 
 
 def upload_file(bucket_name: str, path_on_bucket: str, content: bytes, extended_file_options=None) -> str:
