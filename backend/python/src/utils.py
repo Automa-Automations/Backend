@@ -9,7 +9,7 @@ import uuid
 import requests
 
 
-def update_value(table: str, line: str, val: str, new_value: Any, line_name: str = 'id'):
+def update_value(table: str, line: Any, val: str, new_value: Any, line_name: str = 'id'):
     try:
         if isinstance(new_value, datetime.datetime):
             new_value = str(new_value)

@@ -67,56 +67,60 @@ from src.ai.ImageApi import ImageApi
 # print(bot)
 
 
-from src.Classes.Bot import (
-    AiImageGenerationBotMetadata,
-    BotSession,
-    BotType,
-    InstagramBotConfiguration,
-    InstagramPlatformBot,
-    Platform,
-)
-# bot = InstagramPlatformBot.from_id(1, type_=InstagramPlatformBot)
-# bot.modify_schedule('posting_interval', "* * * * *")
-
+# from src.Classes.Bot import (
+#     AiImageGenerationBotMetadata,
+#     BotSession,
+#     BotType,
+#     InstagramBotConfiguration,
+#     InstagramPlatformBot,
+#     Platform,
+# )
+# # bot = InstagramPlatformBot.from_id(1, type_=InstagramPlatformBot)
+# # bot.modify_schedule('posting_interval', "* * * * *")
+#
+# # bot.upload()
+# bot: InstagramPlatformBot = InstagramPlatformBot.new(
+#     friendly_name="Cute Spider Generator",
+#     description="A cute little spider generator instagram themepage",
+#     owner_id="25cde0b8-c486-419c-96c4-f975be675ca9",
+#     bot_type=BotType.AiImageGeneration,
+#     platform=Platform.Instagram,
+#     metadata_dict=AiImageGenerationBotMetadata(
+#         **{
+#             "size": [512, 512],
+#             "model": "json-workflow"+open('/Users/simonferns/Downloads/workflow_custom.json').read(),
+#             "style": "claymorphism, playful, smooth, cute, 4k, sharp, claymorphism, no-blur, --rtx",
+#             "base_topic": "The topic for the image should be of a species of spider, or just the name of a popular spider (AKA movies & more). It should be an animal name, with a prefix and or suffix, which will make it more descriptive and will not obstruct the image generation!",
+#             "title_prompt": "The title should be in a cute and playful style, with a lot of emojis and a lot of exclamation marks Also include 3-4 hashtags in the title that will perform well.",
+#             "total_images": 1,
+#             "negative_prompt": "Text, Watermark, hands, ugly, dark, gloomy, blurry, dark, sad, depressing, scary, horror, nightmare, creepy, spooky, evil, mean, angry, mad, rage, hate, violence, blood, gore",
+#             "positive_prompt": "Cute spiders, bright and colorful landscapes, cute eyes, bliss, loving and kind personality.",
+#             "description_prompt": "The description should be super descriptive based on the title, This should make the algorithm like us more!",
+#         }
+#     ).__dict__,
+#     bot_configuration_dict=InstagramBotConfiguration(
+#         **{
+#             "posting_interval": "* * * * *",
+#             "follow_for_follow": True,
+#             "follow_interval": "* * * * *",
+#             "follow_limit": [5, 30],
+#             "reply_to_comments": True,
+#             "reply_interval": "* * * * *",
+#             "reply_limit": [1, 10],
+#             "self_like": False,
+#             "comment_dm_promotion": True,
+#             "comment_dm_promotion_interval": "* * * * *",
+#             "comment_dm_promotion_limit": [5, 20],
+#             "cron_job_posting_interval": 5102130,
+#         }
+#     ).__dict__,
+#     session_id=1,
+#     proxy_id=1,
+#     currently_active=True,
+# )
+#
 # bot.upload()
-bot: InstagramPlatformBot = InstagramPlatformBot.new(
-    friendly_name="Cute Spider Generator",
-    description="A cute little spider generator instagram themepage",
-    owner_id="25cde0b8-c486-419c-96c4-f975be675ca9",
-    bot_type=BotType.AiImageGeneration,
-    platform=Platform.Instagram,
-    metadata_dict=AiImageGenerationBotMetadata(
-        **{
-            "size": [512, 512],
-            "model": "json-workflow"+open('/Users/simonferns/Downloads/workflow_custom.json').read(),
-            "style": "claymorphism, playful, smooth, cute, 4k, sharp, claymorphism, no-blur, --rtx",
-            "base_topic": "The topic for the image should be of a species of spider, or just the name of a popular spider (AKA movies & more). It should be an animal name, with a prefix and or suffix, which will make it more descriptive and will not obstruct the image generation!",
-            "title_prompt": "The title should be in a cute and playful style, with a lot of emojis and a lot of exclamation marks Also include 3-4 hashtags in the title that will perform well.",
-            "total_images": 1,
-            "negative_prompt": "Text, Watermark, hands, ugly, dark, gloomy, blurry, dark, sad, depressing, scary, horror, nightmare, creepy, spooky, evil, mean, angry, mad, rage, hate, violence, blood, gore",
-            "positive_prompt": "Cute spiders, bright and colorful landscapes, cute eyes, bliss, loving and kind personality.",
-            "description_prompt": "The description should be super descriptive based on the title, This should make the algorithm like us more!",
-        }
-    ).__dict__,
-    bot_configuration_dict=InstagramBotConfiguration(
-        **{
-            "posting_interval": "* * * * *",
-            "follow_for_follow": True,
-            "follow_interval": "* * * * *",
-            "follow_limit": [5, 30],
-            "reply_to_comments": True,
-            "reply_interval": "* * * * *",
-            "reply_limit": [1, 10],
-            "self_like": False,
-            "comment_dm_promotion": True,
-            "comment_dm_promotion_interval": "* * * * *",
-            "comment_dm_promotion_limit": [5, 20],
-            "cron_job_posting_interval": 5102130,
-        }
-    ).__dict__,
-    session_id=1,
-    proxy_id=1,
-    currently_active=True,
-)
 
-bot.upload()
+from src.Classes.Proxy import DatabaseSyncedProxy
+proxy = DatabaseSyncedProxy.from_id(1)
+proxy.host = "0.0.0.0"

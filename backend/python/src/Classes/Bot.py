@@ -1,10 +1,6 @@
-# TODO: Getters and setters for the bot, because the bot doesn't require opting in to be "DatabaseSynced" it is "DatabaseSynced" by default.
-# TODO: Allow "AIImageGenerationBot" use custom comfyUI workflows where the "model" == "custom" & then "ImageApi" will use conditional to know what to do.
 # TODO: Make every class have a "DatabaseSynced" variant if applicable.
-# TODO: Extract Constants into the .env & correct files.
 # TODO: Refactor all the code into the correct place.
 
-# A "Bot" class is the baseclass for all other bots, each bot has a couple of paramaters that puts them into a subset of which ones we should parse them out in the switch case statement. Basically a BotFactory
 import datetime
 import uuid
 import traceback
@@ -14,10 +10,10 @@ import os
 import instagrapi
 import json
 from enum import Enum
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from typing import Tuple, Any, List, Optional
 
-from ollama import Client, Options
+from ollama import Client
 from src.ai.ImageApi import ImageApi
 from src.utils import get_value, insert_value, update_value
 from src.Classes.User import Profile, DatabaseSyncedProfile
@@ -90,41 +86,6 @@ class BotSession:
         # add the cookies
         current_metadata['cookies'] = new_metadata
         update_value(table=table, line=self.id, val="metadata_dict", new_value=current_metadata)
-
-
-
-@dataclass
-class Proxy:
-    id: int
-    created_at: datetime.datetime
-    host: str
-    port: int
-    type_: str
-    security: str
-    username: str
-    password: str
-    country: str
-    
-    @property
-    def url(self) -> str:
-        return f"{self.type_}://{self.username}:{self.password}@{self.host}:{self.port}"
-    
-    @property
-    def requests_proxy(self) -> dict:
-        return {
-            "http": self.url,
-            "https": self.url
-        }
-
-    @classmethod
-    def from_dict(cls, dict_: dict):
-        return Proxy(**dict_)
-
-    @classmethod
-    def from_id(cls, id: int):
-        table = "proxies"
-        value = get_value(table=table, line=id)
-        return cls.from_dict(value)
 
 
 
