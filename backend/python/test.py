@@ -1,7 +1,10 @@
 import dotenv
+dotenv.load_dotenv(".env")
+
 import os
 
-dotenv.load_dotenv("../../.env")
+from src.ai.ImageApi import ImageApi
+
 
 
 # from src.Classes.User import DatabaseSyncedProfile
@@ -76,7 +79,7 @@ from src.Classes.Bot import (
 # bot.modify_schedule('posting_interval', "* * * * *")
 
 # bot.upload()
-bot = InstagramPlatformBot.new(
+bot: InstagramPlatformBot = InstagramPlatformBot.new(
     friendly_name="Cute Spider Generator",
     description="A cute little spider generator instagram themepage",
     owner_id="25cde0b8-c486-419c-96c4-f975be675ca9",
@@ -84,14 +87,14 @@ bot = InstagramPlatformBot.new(
     platform=Platform.Instagram,
     metadata_dict=AiImageGenerationBotMetadata(
         **{
-            "size": [256, 256],
-            "model": "realisticVisionV60B1_v51VAE.safetensors",
-            "style": "playful, puffy, smooth, cute, 4k, --rtx",
-            "base_topic": "The topic for the image should be of a random animal, preferrably cats, alligators, dogs, pandas, duck as, bears. It should be an animal name, with a prefix and or suffix, which will make it more descriptive and will not obstruct the image generation!",
+            "size": [512, 512],
+            "model": "json-workflow"+open('/Users/simonferns/Downloads/workflow_custom.json').read(),
+            "style": "claymorphism, playful, smooth, cute, 4k, sharp, claymorphism, no-blur, --rtx",
+            "base_topic": "The topic for the image should be of a species of spider, or just the name of a popular spider (AKA movies & more). It should be an animal name, with a prefix and or suffix, which will make it more descriptive and will not obstruct the image generation!",
             "title_prompt": "The title should be in a cute and playful style, with a lot of emojis and a lot of exclamation marks Also include 3-4 hashtags in the title that will perform well.",
-            "total_images": 2,
-            "negative_prompt": "Text, Watermark, hands, ugly, dark, gloomy, sad, depressing, scary, horror, nightmare, creepy, spooky, evil, mean, angry, mad, rage, hate, violence, blood, gore",
-            "positive_prompt": "Cute cats, bright and colorful landscapes, Usage of humanlike behaviours, cute eyes, bliss, loving and kind personality.",
+            "total_images": 1,
+            "negative_prompt": "Text, Watermark, hands, ugly, dark, gloomy, blurry, dark, sad, depressing, scary, horror, nightmare, creepy, spooky, evil, mean, angry, mad, rage, hate, violence, blood, gore",
+            "positive_prompt": "Cute spiders, bright and colorful landscapes, cute eyes, bliss, loving and kind personality.",
             "description_prompt": "The description should be super descriptive based on the title, This should make the algorithm like us more!",
         }
     ).__dict__,
@@ -116,4 +119,4 @@ bot = InstagramPlatformBot.new(
     currently_active=True,
 )
 
-print(bot)
+bot.upload()

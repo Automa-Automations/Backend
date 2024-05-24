@@ -1,7 +1,5 @@
-# TODO: Insert the bot into the database
 # TODO: Getters and setters for the bot, because the bot doesn't require opting in to be "DatabaseSynced" it is "DatabaseSynced" by default.
 # TODO: Allow "AIImageGenerationBot" use custom comfyUI workflows where the "model" == "custom" & then "ImageApi" will use conditional to know what to do.
-# TODO: Make each and every item use "UUID" as their id instead of "int".
 # TODO: Make every class have a "DatabaseSynced" variant if applicable.
 # TODO: Extract Constants into the .env & correct files.
 # TODO: Refactor all the code into the correct place.
@@ -19,11 +17,11 @@ from enum import Enum
 from dataclasses import dataclass, asdict
 from typing import Tuple, Any, List, Optional
 
-from ollama import Client
+from ollama import Client, Options
 from src.ai.ImageApi import ImageApi
 from src.utils import get_value, insert_value, update_value
 from src.Classes.User import Profile, DatabaseSyncedProfile
-client = Client(host="http://localhost:11434")
+client = Client(host=os.environ['OLLAMA_BASE_URL'])
 
 class BotType(Enum):
     AiImageGeneration = "AiImageGeneration"
@@ -212,7 +210,7 @@ class Bot():
         id = str(uuid.uuid4().hex)
         created_at = datetime.datetime.now()
         # bot = Bot(id=id, created_at=created_at, friendly_name=friendly_name, description=description, owner_id=owner_id, bot_type=bot_type, platform=platform, metadata_dict=metadata_dict, bot_configuration_dict=bot_configuration_dict, session_id=session_id, proxy_id=proxy_id, currently_active=currently_active)       
-        if platform == Platform.Instagram.value:
+        if platform == Platform.Instagram:
             bot = InstagramPlatformBot(id=id, created_at=created_at, friendly_name=friendly_name, description=description, owner_id=owner_id, bot_type=bot_type, platform=platform, metadata_dict=metadata_dict, bot_configuration_dict=bot_configuration_dict, session_id=session_id, proxy_id=proxy_id, currently_active=currently_active)
         else:
             bot = Bot(id=id, created_at=created_at, friendly_name=friendly_name, description=description, owner_id=owner_id, bot_type=bot_type, platform=platform, metadata_dict=metadata_dict, bot_configuration_dict=bot_configuration_dict, session_id=session_id, proxy_id=proxy_id, currently_active=currently_active)
@@ -240,16 +238,16 @@ class Bot():
         # Register the cron_jobs for the bot
         if platform == Platform.Instagram:
             bot.configuration = InstagramBotConfiguration(**bot_configuration_dict)
-            print(bot_configuration_dict.items())
-            for key, value in bot_configuration_dict.items():
-                if "_interval" in key and "cron_job" not in key:
-                    cron_id = bot._create_cron(bot.id, value, key)
-                    setattr(bot.configuration, f"cron_job_{key}", cron_id)
-                    setattr(bot.configuration, key, value)
 
-            # Now we need to update the values
-            bot.bot_configuration_dict = bot.configuration.__dict__
-            update_value("bots", bot.id, "bot_configuration_dict", bot.bot_configuration_dict)
+        for key, value in bot_configuration_dict.items():
+            if "_interval" in key and "cron_job" not in key:
+                cron_id = bot._create_cron(bot.id, value, key)
+                setattr(bot.configuration, f"cron_job_{key}", cron_id)
+                setattr(bot.configuration, key, value)
+
+        # Now we need to update the values
+        bot.bot_configuration_dict = bot.configuration.__dict__
+        update_value("bots", bot.id, "bot_configuration_dict", bot.bot_configuration_dict)
 
             
         return bot
@@ -436,28 +434,32 @@ class AIImageGenerationBotHandler(ContentGenerationBotHandler):
 
     def _generate_topic_item(self, base_topic: str):
         return client.generate(
-            model="llama3",
-            prompt=f"Please generate a 1-3 word topic based on the base_topic provided: {base_topic}. You should only respond with the response, no extra fluff attached to the message, for example <BASE_TOPIC>, your response: Cute ginger cat",
+            model="phi3:3.8b",
+            prompt=f"Please generate a 1-3 word topic based on the base_topic provided: {base_topic}. You should only respond with the response, no extra fluff attached to the message, for example <BASE_TOPIC>, your response: Cute ginger cat. Only respond with the answer in the format  have given you!",
+            keep_alive="1m"
         )["response"]
 
     def _generate_image_prompt(self, base_prompt: str, topic: str, style: str):
         return client.generate(
-            model="llama3",
+            model="phi3:3.8b",
             prompt=f'{base_prompt} The topic for the image should be: {topic}. And the stile reference should be {style}. Give us a descriptive image prompt that will allow the AI image generator to generate a high quality image! Limit your propmpt to 2 sentences, and only respond with the image prompt, No extra context before or after, for example: MY INPUT, your output: "very cute tiny, A cute orange cat smile wearing sweater avatar, rim lighting, adorable big eyes, small, By greg rutkowski, chibi, Perfect lighting, Sharp focus"',
+            keep_alive="1m"
         )["response"]
 
     def _generate_image_title(self, base_title: str, topic: str, style: str):
         return client.generate(
-            model="llama3",
-            prompt=f'{base_title} The topic for the image should be: {topic}. And the stile reference should be {style}. Give us a descriptive image title that will allow the AI image generator to generate a high quality image! Limit your title to 2 sentences, and only respond with the image title, No extra context before or after, for example: MY INPUT, your output: "Cute orange cat smile wearing sweater avatar, rim lighting, adorable big eyes, small, By greg rutkowski, chibi, Perfect lighting, Sharp focus"',
+            model="phi3:3.8b",
+            prompt=f'{base_title} The topic for the image should be: {topic}. And the stile reference should be {style}. Give us a descriptive image title that will allow the AI image generator to generate a high quality image! Limit your title to 2 sentences, and only respond with the image title, No extra context before or after, for example: MY INPUT, your output: "Cute orange cat smile wearing sweater avatar, rim lighting, adorable big eyes, small, By greg rutkowski, chibi, Perfect lighting, Sharp focus. Ensure you are fully exclaiming the main topic of the image, as we dont want the AI to generate an image that is invalid."',
+            keep_alive='1m'
         )["response"]
 
     def _generate_image_description(
         self, base_title: str, topic: str, style: str
     ):
         return client.generate(
-            model="llama3",
-            prompt=f'{base_title} The topic for the image should be: {topic}. And the stile reference should be {style}. Give us a descriptive image description that will allow the AI image generator to generate a high quality image! Limit your description to 10 sentences, max, and 1 sentence min, only respond with the image description, No extra context before or after, for example: MY INPUT, your output: "Cute orange cat smile wearing sweater avatar, rim lighting, adorable big eyes, small, By greg rutkowski, chibi, Perfect lighting, Sharp focus... REST OF RESPONSE ... Check out my socials ... #something, something something!"',
+            model="phi3:3.8b",
+            prompt=f'{base_title} The topic for the image should be: {topic}. And the stile reference should be {style}. Give us a descriptive image description that will allow the AI image generator to generate a high quality image! Limit your description to 10 sentences, max, and 1 sentence min, only respond with the image description, No extra context before or after, for example: MY INPUT, your output: "Cute orange cat smile wearing sweater avatar, rim lighting, adorable big eyes, small, By greg rutkowski, chibi, Perfect lighting, Sharp focus... REST OF RESPONSE ... Check out my socials ... #something, something something! . Ensure you are fully exclaiming the main topic of the image, as we dont want the AI to generate an image that is invalid."',
+            keep_alive='1m'
         )["response"]
 
     def _generate_image(
@@ -478,13 +480,13 @@ class AIImageGenerationBotHandler(ContentGenerationBotHandler):
             owner.credits -= 1
 
             print("Generating topic...")
-            topic = self._generate_topic_item(self.metadata.base_topic)
+            topic = self._generate_topic_item(self.metadata.base_topic).split('\n')[0].strip()
             print("Generated topic: ", topic)
 
             print("Generating prompt...")
             prompt = self._generate_image_prompt(
                 self.metadata.positive_prompt, topic, self.metadata.style
-            )
+            ).strip()
             print("Generated prompt: ", prompt)
         
             print("Generating title...")
@@ -495,7 +497,7 @@ class AIImageGenerationBotHandler(ContentGenerationBotHandler):
                 ),
                 topic,
                 self.metadata.style,
-            )
+            ).strip()
             print("Generated title: ", title)
         
             print("Generating description...")
@@ -503,7 +505,7 @@ class AIImageGenerationBotHandler(ContentGenerationBotHandler):
                 title,
                 topic + "\nImage Prompt: {prompt}".format(prompt=prompt),
                 self.metadata.style,
-            )
+            ).strip()
             print("Generated description: ", description)
 
             print("Generating image...")
@@ -514,7 +516,7 @@ class AIImageGenerationBotHandler(ContentGenerationBotHandler):
                 self.metadata.size,
             )
             print("Generated image: ", len(images))
-            image_filepath = f"/tmp/{self.metadata.model}_{i}_{uuid.uuid4().hex}.png"
+            image_filepath = f"/tmp/{i}_{uuid.uuid4().hex}.png"
             with open(image_filepath, "wb") as f:
                 f.write(images[0])
 
