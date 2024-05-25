@@ -1,6 +1,11 @@
-# A "Bot" class is the baseclass for all other bots, each bot has a couple of paramaters that puts them into a subset of which ones we should parse them out in the switch case statement. Basically a BotFactory
+# TODO: Make every class have a "DatabaseSynced" variant if applicable.
+# TODO: Refactor all the code into the correct place.
+
 import datetime
 import uuid
+import traceback
+import requests
+import os
 
 import instagrapi
 import json
@@ -10,9 +15,9 @@ from typing import Tuple, Any, List, Optional
 
 from ollama import Client
 from src.ai.ImageApi import ImageApi
-from src.utils import get_value, update_value
+from src.utils import get_value, insert_value, update_value
 from src.Classes.User import Profile, DatabaseSyncedProfile
-client = Client(host="http://localhost:11434")
+client = Client(host=os.environ['OLLAMA_BASE_URL'])
 
 class BotType(Enum):
     AiImageGeneration = "AiImageGeneration"
@@ -85,41 +90,6 @@ class BotSession:
 
 
 @dataclass
-class Proxy:
-    id: int
-    created_at: datetime.datetime
-    host: str
-    port: int
-    type_: str
-    security: str
-    username: str
-    password: str
-    country: str
-    
-    @property
-    def url(self) -> str:
-        return f"{self.type_}://{self.username}:{self.password}@{self.host}:{self.port}"
-    
-    @property
-    def requests_proxy(self) -> dict:
-        return {
-            "http": self.url,
-            "https": self.url
-        }
-
-    @classmethod
-    def from_dict(cls, dict_: dict):
-        return Proxy(**dict_)
-
-    @classmethod
-    def from_id(cls, id: int):
-        table = "proxies"
-        value = get_value(table=table, line=id)
-        return cls.from_dict(value)
-
-
-
-@dataclass
 class Bot():
     id: str
     """str: The unique identifier for the bot."""
@@ -163,6 +133,7 @@ class Bot():
     configuration: None = None
     """None: The configuration of the bot. This will be defined in the subclass."""
 
+
     @property
     def owner(self) -> Tuple[Profile, DatabaseSyncedProfile]:
         """Tuple[Profile, DatabaseSyncedProfile]: The owner of the bot. Useful for modifying the user account based on bot actions."""
@@ -189,20 +160,157 @@ class Bot():
         if out.bot_type == BotType.AiImageGeneration.value:
             out.handler = AIImageGenerationBotHandler(metadata=AiImageGenerationBotMetadata(**out.metadata_dict))
 
+        if out.platform == Platform.Instagram.value:
+            out.configuration = InstagramBotConfiguration(**out.bot_configuration_dict)
+
         return out
 
+    @staticmethod
+    def new(friendly_name: str, description: str, owner_id: str, bot_type: BotType, platform: Platform, metadata_dict: dict, bot_configuration_dict: dict, session_id: int, proxy_id: int, currently_active: bool) -> Any:
+        """new: This method will create a new bot."""
+        id = str(uuid.uuid4().hex)
+        created_at = datetime.datetime.now()
+        # bot = Bot(id=id, created_at=created_at, friendly_name=friendly_name, description=description, owner_id=owner_id, bot_type=bot_type, platform=platform, metadata_dict=metadata_dict, bot_configuration_dict=bot_configuration_dict, session_id=session_id, proxy_id=proxy_id, currently_active=currently_active)       
+        if platform == Platform.Instagram:
+            bot = InstagramPlatformBot(id=id, created_at=created_at, friendly_name=friendly_name, description=description, owner_id=owner_id, bot_type=bot_type, platform=platform, metadata_dict=metadata_dict, bot_configuration_dict=bot_configuration_dict, session_id=session_id, proxy_id=proxy_id, currently_active=currently_active)
+        else:
+            bot = Bot(id=id, created_at=created_at, friendly_name=friendly_name, description=description, owner_id=owner_id, bot_type=bot_type, platform=platform, metadata_dict=metadata_dict, bot_configuration_dict=bot_configuration_dict, session_id=session_id, proxy_id=proxy_id, currently_active=currently_active)
+            
+        # Create a 100% dict version of the bot
+        bot_dict = bot.__dict__
 
+        del bot_dict['configuration']
+        del bot_dict['metadata']
+        del bot_dict['id']
 
+        for key, value in bot_dict.items():
+            if isinstance(value, Enum):
+                bot_dict[key] = value.value
+
+            if isinstance(value, datetime.datetime):
+                bot_dict[key] = value.isoformat()
+
+        id = insert_value("bots", bot_dict)
+        bot.id = id
+
+        if bot_type == BotType.AiImageGeneration:
+            bot.handler = AIImageGenerationBotHandler(metadata=AiImageGenerationBotMetadata(**metadata_dict))
+
+        # Register the cron_jobs for the bot
+        if platform == Platform.Instagram:
+            bot.configuration = InstagramBotConfiguration(**bot_configuration_dict)
+
+        for key, value in bot_configuration_dict.items():
+            if "_interval" in key and "cron_job" not in key:
+                cron_id = bot._create_cron(bot.id, value, key)
+                setattr(bot.configuration, f"cron_job_{key}", cron_id)
+                setattr(bot.configuration, key, value)
+
+        # Now we need to update the values
+        bot.bot_configuration_dict = bot.configuration.__dict__
+        update_value("bots", bot.id, "bot_configuration_dict", bot.bot_configuration_dict)
+
+            
+        return bot
+
+    def modify_schedule(self, name: str, new_value: str) -> None:
+        """modify_schedule: This method will modify the schedule of the bot."""
+        # Firstly we convert the configuration to a dictionary
+        # All we need to do is make evenbridge take in the bot_id & the name of the property in order to make all of it's desired changes.
+        if not self.configuration:
+            raise Exception("No configuration found for the bot!")
+
+        # If there is an existing cron indicated by the _cron_job_{name} attr
+        existing_cron = getattr(self.configuration, f"cron_job_{name}", None)
+        if existing_cron:
+            self._delete_schedule(cron_id=existing_cron)
+
+        # Now create the cron
+        cron_id = self._create_cron(self.id, new_value, name)
+        # Now we update the configuration fully
+        setattr(self.configuration, f"cron_job_{name}", cron_id)
+        setattr(self.configuration, name, new_value)
+        # Now we need to update the value
+        self.bot_configuration_dict = self.configuration.__dict__
+        update_value("bots", self.id, "bot_configuration_dict", self.bot_configuration_dict)
+        
+
+    @staticmethod
+    def _create_cron(bot_id: str, cron: str, cron_name: str) -> Optional[dict]:
+        api_base_url = os.environ['API_BASE_URL'] + "/run_cron_job" # This is because a ton of the code will be super generic for this first version as it makes us build way faster!
+        try:
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f'Bearer  {os.environ.get("CRON_JOBS_ORG_API_KEY")}',
+            }
+
+            values = cron.split(" ")
+            new_values = []
+            for value in values:
+                cleaned_value = value.strip()
+                if cleaned_value == "*":
+                    cleaned_value = ["-1"]
+                elif "," in cleaned_value and isinstance(cleaned_value, str):
+                    cleaned_value = cleaned_value.split(",")
+                else:
+                    cleaned_value = [cleaned_value]
+
+                cleaned_value = [int(x) for x in cleaned_value]
+                new_values.append(cleaned_value)
+
+            json_data = {
+                "job": {
+                    "url": f"{api_base_url}/?bot_id={bot_id}&cron_name={cron_name}",
+                    "enabled": "true",
+                    "saveResponses": True,
+                    "schedule": {
+                        "timezone": "Europe/Berlin",
+                        "expiresAt": 0,
+                        "hours": new_values[1],
+                        "mdays": new_values[2],
+                        "minutes": new_values[0],
+                        "months": new_values[3],
+                        "wdays": new_values[4],
+                    },
+                },
+            }
+
+            response = requests.put(
+                "https://api.cron-job.org/jobs", headers=headers, json=json_data
+            )
+            return response.json()['jobId']
+        except Exception as e:
+            print(e, traceback.format_exc())
+            return None
+
+    
+    @staticmethod
+    def _delete_schedule(cron_id: str): 
+        try:
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f'Bearer {os.environ.get("CRON_JOB_ORG_API")}',
+            }
+
+            requests.delete(f"https://api.cron-job.org/jobs/{cron_id}", headers=headers)
+            return True
+        except Exception as e:
+            print(e)
+            return False
+
+    
+
+@dataclass
 class InstagramBotConfiguration():
     """InstagramBotConfiguration: The configuration for the Instagram bot."""
-    posting_interval: int
-    """int: The interval at which the bot should post to Instagram. This is calculated in seconds."""
-    
+    posting_interval: str
+    """str: This is the cron job used to post to the platform."""
+   
     follow_for_follow: bool
     """bool: If the bot should follow for follow."""
 
-    follow_interval: int
-    """int: The interval at which the bot should follow users. This is calculated in seconds."""
+    follow_interval: str
+    """str: The cron schedule for when it should do it's follow for follow actions"""
 
     follow_limit: Tuple[int, int]
     """Tuple[int, int]: The minimum and maximum number of users the bot should follow. On Each iteration, the bot will follow a random number of users between the minimum and maximum."""
@@ -210,8 +318,8 @@ class InstagramBotConfiguration():
     reply_to_comments: bool
     """bool: If the bot should reply to comments."""
 
-    reply_interval: int
-    """int: The interval at which the bot should reply to comments. This is calculated in seconds."""
+    reply_interval: str
+    """str: The cron schedule for when it should reply to comments."""
 
     reply_limit: Tuple[int, int]
     """Tuple[int, int]: The minimum and maximum number of comments the bot should reply to. On Each iteration, the bot will reply to a random number of comments between the minimum and maximum."""
@@ -222,14 +330,15 @@ class InstagramBotConfiguration():
     comment_dm_promotion: bool
     """bool: If the bot should comment on other posts, to try and get a promotion in DM's"""
 
-    comment_dm_promotion_interval: int
-    """int: The interval at which the bot should comment on other posts to try and get a promotion in DM's. This is calculated in seconds."""
+    comment_dm_promotion_interval: str
+    """str: The cron schedule for when it should do self dm promotions."""
 
     comment_dm_promotion_limit: Tuple[int, int]
     """Tuple[int, int]: The minimum and maximum number of comments the bot should make to try and get a promotion in DM's. On Each iteration, the bot will comment on a random number of posts between the minimum and maximum."""
 
-    _bot_generator: 'ContentGenerationBotHandler'
-    """None: This is the Generator that will be assigned in the Bot"""
+    cron_job_posting_interval: int = None
+    """int: The cron-job.org jobId"""
+ 
 
 @dataclass
 class AiImageGenerationBotMetadata():
@@ -286,28 +395,32 @@ class AIImageGenerationBotHandler(ContentGenerationBotHandler):
 
     def _generate_topic_item(self, base_topic: str):
         return client.generate(
-            model="llama3",
-            prompt=f"Please generate a 1-3 word topic based on the base_topic provided: {base_topic}. You should only respond with the response, no extra fluff attached to the message, for example <BASE_TOPIC>, your response: Cute ginger cat",
+            model="phi3:3.8b",
+            prompt=f"Please generate a 1-3 word topic based on the base_topic provided: {base_topic}. You should only respond with the response, no extra fluff attached to the message, for example <BASE_TOPIC>, your response: Cute ginger cat. Only respond with the answer in the format  have given you!",
+            keep_alive="1m"
         )["response"]
 
     def _generate_image_prompt(self, base_prompt: str, topic: str, style: str):
         return client.generate(
-            model="llama3",
+            model="phi3:3.8b",
             prompt=f'{base_prompt} The topic for the image should be: {topic}. And the stile reference should be {style}. Give us a descriptive image prompt that will allow the AI image generator to generate a high quality image! Limit your propmpt to 2 sentences, and only respond with the image prompt, No extra context before or after, for example: MY INPUT, your output: "very cute tiny, A cute orange cat smile wearing sweater avatar, rim lighting, adorable big eyes, small, By greg rutkowski, chibi, Perfect lighting, Sharp focus"',
+            keep_alive="1m"
         )["response"]
 
     def _generate_image_title(self, base_title: str, topic: str, style: str):
         return client.generate(
-            model="llama3",
-            prompt=f'{base_title} The topic for the image should be: {topic}. And the stile reference should be {style}. Give us a descriptive image title that will allow the AI image generator to generate a high quality image! Limit your title to 2 sentences, and only respond with the image title, No extra context before or after, for example: MY INPUT, your output: "Cute orange cat smile wearing sweater avatar, rim lighting, adorable big eyes, small, By greg rutkowski, chibi, Perfect lighting, Sharp focus"',
+            model="phi3:3.8b",
+            prompt=f'{base_title} The topic for the image should be: {topic}. And the stile reference should be {style}. Give us a descriptive image title that will allow the AI image generator to generate a high quality image! Limit your title to 2 sentences, and only respond with the image title, No extra context before or after, for example: MY INPUT, your output: "Cute orange cat smile wearing sweater avatar, rim lighting, adorable big eyes, small, By greg rutkowski, chibi, Perfect lighting, Sharp focus. Ensure you are fully exclaiming the main topic of the image, as we dont want the AI to generate an image that is invalid."',
+            keep_alive='1m'
         )["response"]
 
     def _generate_image_description(
         self, base_title: str, topic: str, style: str
     ):
         return client.generate(
-            model="llama3",
-            prompt=f'{base_title} The topic for the image should be: {topic}. And the stile reference should be {style}. Give us a descriptive image description that will allow the AI image generator to generate a high quality image! Limit your description to 10 sentences, max, and 1 sentence min, only respond with the image description, No extra context before or after, for example: MY INPUT, your output: "Cute orange cat smile wearing sweater avatar, rim lighting, adorable big eyes, small, By greg rutkowski, chibi, Perfect lighting, Sharp focus... REST OF RESPONSE ... Check out my socials ... #something, something something!"',
+            model="phi3:3.8b",
+            prompt=f'{base_title} The topic for the image should be: {topic}. And the stile reference should be {style}. Give us a descriptive image description that will allow the AI image generator to generate a high quality image! Limit your description to 10 sentences, max, and 1 sentence min, only respond with the image description, No extra context before or after, for example: MY INPUT, your output: "Cute orange cat smile wearing sweater avatar, rim lighting, adorable big eyes, small, By greg rutkowski, chibi, Perfect lighting, Sharp focus... REST OF RESPONSE ... Check out my socials ... #something, something something! . Ensure you are fully exclaiming the main topic of the image, as we dont want the AI to generate an image that is invalid."',
+            keep_alive='1m'
         )["response"]
 
     def _generate_image(
@@ -328,13 +441,13 @@ class AIImageGenerationBotHandler(ContentGenerationBotHandler):
             owner.credits -= 1
 
             print("Generating topic...")
-            topic = self._generate_topic_item(self.metadata.base_topic)
+            topic = self._generate_topic_item(self.metadata.base_topic).split('\n')[0].strip()
             print("Generated topic: ", topic)
 
             print("Generating prompt...")
             prompt = self._generate_image_prompt(
                 self.metadata.positive_prompt, topic, self.metadata.style
-            )
+            ).strip()
             print("Generated prompt: ", prompt)
         
             print("Generating title...")
@@ -345,7 +458,7 @@ class AIImageGenerationBotHandler(ContentGenerationBotHandler):
                 ),
                 topic,
                 self.metadata.style,
-            )
+            ).strip()
             print("Generated title: ", title)
         
             print("Generating description...")
@@ -353,7 +466,7 @@ class AIImageGenerationBotHandler(ContentGenerationBotHandler):
                 title,
                 topic + "\nImage Prompt: {prompt}".format(prompt=prompt),
                 self.metadata.style,
-            )
+            ).strip()
             print("Generated description: ", description)
 
             print("Generating image...")
@@ -364,16 +477,13 @@ class AIImageGenerationBotHandler(ContentGenerationBotHandler):
                 self.metadata.size,
             )
             print("Generated image: ", len(images))
-            image_filepath = f"/tmp/{self.metadata.model}_{i}_{uuid.uuid4().hex}.png"
+            image_filepath = f"/tmp/{i}_{uuid.uuid4().hex}.png"
             with open(image_filepath, "wb") as f:
                 f.write(images[0])
 
             posts.append(Post(title=title, description=description, tags=[], publicity=PostPublicity.PUBLIC, content=image_filepath))
         
         return posts
-
-
-
 
 
 class InstagramPlatformBot(Bot):
@@ -453,5 +563,3 @@ class InstagramPlatformBot(Bot):
         print("Commenting dm promotion...")
 
 
-# Simple test
-   

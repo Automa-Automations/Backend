@@ -6,11 +6,12 @@ from typing import Optional
 import json
 import urllib.request
 import urllib.parse
+import os
 
 
 
 class ImageApi:
-    server_address = "localhost:8188"
+    server_address = os.environ['COMFYUI_BASE_URL'].replace("https://", "").replace("http://", "")
 
     def generate_image(self, prompt_: str, negative_prompt: str, model: str, width: int, height: int, seed: int = 0, batch_size: int = 1, user_id: Optional[str] = None) -> list[bytes]:
         client_id = str(uuid.uuid4())
@@ -145,17 +146,23 @@ class ImageApi:
             }
         }
         """
-
-        prompt = json.loads(prompt_text)
-        prompt["6"]["inputs"]["text"] =prompt_
-        prompt["7"]["inputs"]["text"] = negative_prompt
-        prompt["4"]["inputs"]["ckpt_name"] = model
-        prompt["5"]["inputs"]["width"] = width
-        prompt["5"]["inputs"]["height"] = height
-        prompt["5"]["inputs"]["batch_size"] = batch_size
-
-
-        prompt["3"]["inputs"]["seed"] = random.randint(0, 10000000) if seed == 0 else seed
+        if model.startswith("json-workflow"):
+            me_ = model.replace("<PROMPT HERE>", prompt_)
+            me_ = me_.replace("<NEGATIVE PROMPT HERE>", negative_prompt)
+            me_ = me_.replace("<WIDTH HERE>", str(width))
+            me_ = me_.replace("<HEIGHT HERE>", str(height))
+            me_ = me_.replace("<BATCH SIZE HERE>", str(batch_size))
+            me_ = me_.replace("<SEED HERE>", str(random.randint(0, 10000000) if seed == 0 else seed))
+            prompt = json.loads(me_.replace("json-workflow", ""))
+        else:
+            prompt = json.loads(prompt_text)
+            prompt["6"]["inputs"]["text"] =prompt_
+            prompt["7"]["inputs"]["text"] = negative_prompt
+            prompt["4"]["inputs"]["ckpt_name"] = model
+            prompt["5"]["inputs"]["width"] = width
+            prompt["5"]["inputs"]["height"] = height
+            prompt["5"]["inputs"]["batch_size"] = batch_size
+            prompt["3"]["inputs"]["seed"] = random.randint(0, 10000000) if seed == 0 else seed
 
         ws = websocket.WebSocket()
         ws.connect("ws://{}/ws?clientId={}".format(self.server_address, client_id))
