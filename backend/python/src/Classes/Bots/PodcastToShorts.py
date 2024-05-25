@@ -7,6 +7,7 @@ import os
 import json
 import math
 load_dotenv()
+import re
 
 OLLAMA_HOST_URL=os.getenv("OLLAMA_HOST_URL")
 
@@ -115,357 +116,74 @@ class PodcastToShorts:
         """
         final_transcripts = []
         for short in shorts_transcripts:
-            prompt = f"""
-            Below th example, I will give you the transcript. Remove a few start and end objects of the transcript, so that the result is a better transcript that makes sense, not starting or ending in a middle of a sentence. Additionally, yuu can remove a few start and end objects that are not needed, for an engaging short. Remove all unnecessary "cues", like [STUTTERING SOUNDS], [BACKGROUND MUSIC] (this are just a few examples. Remove all cues in the sentences that are in full capitals.) Here is an example input and example output so you have a better understanding on what to do. 
-            ### Example Input:
+            prompt = f"""I want to make a great short of 15 - 55 seconds long from the following transcript: {json.dumps(short["transcript"])}. Give me the perfect start text and end text for the short that will make it the most engaging from the transcript. Note, the start and end text must be from the transcript. The start text must be before the end text. The start text must be engaging, and the end text must be a good ending to the short. The start text must be the beginning of a sentence, and the end text must end a sentence.
+            Your output in the following format (ignore the values):
             {json.dumps({
-                "transcript": [
-                    {
-                        "text": "And speech therapy\ndidn't help that.",
-                        "start": 5072.04,
-                        "duration": 2.85
-                    },
-                    {
-                        "text": "Nothing helped that.",
-                        "start": 5074.89,
-                        "duration": 1.53
-                    },
-                    {
-                        "text": "I have to forgo a lot of\nshit to be as fucked up",
-                        "start": 5076.42,
-                        "duration": 3.78
-                    },
-                    {
-                        "text": "as I am to build\nconfidence, for me",
-                        "start": 5080.2,
-                        "duration": 3.27
-                    },
-                    {
-                        "text": "to stand in a fucking room of\n10,000-- of one person, and not",
-                        "start": 5083.47,
-                        "duration": 3.373
-                    },
-                    {
-                        "text": "[STUTTERING SOUNDS] and be\nlike, oh, and put my head down.",
-                        "start": 5086.843,
-                        "duration": 2.417
-                    },
-                    {
-                        "text": "Let me look around.",
-                        "start": 5089.26,
-                        "duration": 2.16
-                    },
-                    {
-                        "text": "Let me read these\nparagraphs first.",
-                        "start": 5091.42,
-                        "duration": 3.037
-                    },
-                    {
-                        "text": "And then before I\nread the paragraphs,",
-                        "start": 5094.457,
-                        "duration": 1.583
-                    },
-                    {
-                        "text": "because they're\ncalling me next, let",
-                        "start": 5096.04,
-                        "duration": 1.5
-                    },
-                    {
-                        "text": "me just leave the room\nbecause I'm going to stutter.",
-                        "start": 5097.54,
-                        "duration": 2.54
-                    },
-                    {
-                        "text": "That's a miserable life.",
-                        "start": 5100.08,
-                        "duration": 2.2
-                    },
-                    {
-                        "text": "And that's one of many\nthings I did besides lying,",
-                        "start": 5102.28,
-                        "duration": 3.12
-                    },
-                    {
-                        "text": "besides being insecure,\nbesides being immature,",
-                        "start": 5105.4,
-                        "duration": 2.52
-                    },
-                    {
-                        "text": "besides being fat, besides\nbeing one of the only Black kids",
-                        "start": 5107.92,
-                        "duration": 3.208
-                    },
-                    {
-                        "text": "in my school.",
-                        "start": 5111.128,
-                        "duration": 0.542
-                    },
-                    {
-                        "text": "There's a lot of things I had\nto overcome to gain confidence.",
-                        "start": 5111.67,
-                        "duration": 5.01
-                    },
-                    {
-                        "text": "And in doing so, a\nlot of that had to go.",
-                        "start": 5116.68,
-                        "duration": 3.84
-                    },
-                    {
-                        "text": "A lot of it.",
-                        "start": 5120.52,
-                        "duration": 0.82
-                    },
-                    {
-                        "text": "So I became the guy that became,\nonce again, misunderstood.",
-                        "start": 5121.34,
-                        "duration": 2.87
-                    },
-                    {
-                        "text": "You only sleep four hours\na day, two hours a day?",
-                        "start": 5124.21,
-                        "duration": 2.28
-                    },
-                    {
-                        "text": "Sometimes you\ndon't sleep at all?",
-                        "start": 5126.49,
-                        "duration": 2.28
-                    },
-                    {
-                        "text": "Like, what's this, and\nwhat's this, and what's this?",
-                        "start": 5128.77,
-                        "duration": 2.55
-                    },
-                    {
-                        "text": "I know it's all important.",
-                        "start": 5131.32,
-                        "duration": 3.69
-                    },
-                    {
-                        "text": "I can't.",
-                        "start": 5135.01,
-                        "duration": 0.5
-                    },
-                    {
-                        "text": "Something's got to go.",
-                        "start": 5135.51,
-                        "duration": 1.2
-                    },
-                    {
-                        "text": "For me to get confidence,\nbecause confidence",
-                        "start": 5136.71,
-                        "duration": 2.73
-                    },
-                    {
-                        "text": "is the building block of\nwhere I'm trying to go,",
-                        "start": 5139.44,
-                        "duration": 2.28
-                    },
-                    {
-                        "text": "for me to gain\nconfidence in myself,",
-                        "start": 5141.72,
-                        "duration": 2.28
-                    },
-                    {
-                        "text": "this fucked up kid has got\nto do a lot of fucked up shit",
-                        "start": 5144.0,
-                        "duration": 2.73
-                    },
-                    {
-                        "text": "to gain confidence.",
-                        "start": 5146.73,
-                        "duration": 1.62
-                    },
-                    {
-                        "text": "And along the way,\nthe stutter went away.",
-                        "start": 5148.35,
-                        "duration": 2.67
-                    },
-                    {
-                        "text": "And I gained confidence.",
-                        "start": 5151.02,
-                        "duration": 1.62
-                    },
-                    {
-                        "text": "And now, my life is\na little bit more--",
-                        "start": 5152.64,
-                        "duration": 4.08
-                    },
-                    {
-                        "text": "there is no balance.",
-                        "start": 5156.72,
-                        "duration": 2.69
-                    },
-                    {
-                        "text": "There is no balance.",
-                        "start": 5159.41,
-                        "duration": 1.64
-                    },
-                    {
-                        "text": "It's a little bit more what it\nshould be for a lot of people.",
-                        "start": 5161.05,
-                        "duration": 4.088
-                    },
-                    {
-                        "text": "But there'll never be balance\nbecause confidence is something",
-                        "start": 5165.138,
-                        "duration": 2.542
-                    },
-                    {
-                        "text": "that you're constantly--",
-                        "start": 5167.68,
-                        "duration": 1.35
-                    },
-                    {
-                        "text": "confidence and belief\nyou're building every day.",
-                        "start": 5169.03,
-                        "duration": 4.39
-                    },
-                    {
-                        "text": "And so something's got to give.",
-                        "start": 5173.42,
-                        "duration": 2.272
-                    },
-                    {
-                        "text": "And I'm willing to\nforego a lot of things",
-                        "start": 5175.692,
-                        "duration": 1.708
-                    },
-                    {
-                        "text": "to have that because\nI know if you",
-                        "start": 5177.4,
-                        "duration": 3.54
-                    }
-                ],
-                "stats": {
-                    "score": 80,
-                    "should_make_short": True,
-                    "feedback": "The transcript has a strong narrative that flows well. The speaker shares their personal experience in an engaging way. However, some parts of the transcript could be tightened up for better pacing and impact. For example, the phrase 'something's got to give' is repeated multiple times - it might be more effective to rephrase or use different language to convey this idea. Additionally, the transcript could benefit from a clearer structure and more defined sections to keep the listener engaged."
-                }})}
-                ### Example Output:
-                {json.dumps({
-                    "transcript": [
-                        {
-                            "text": "And that's one of many\nthings I did besides lying,",
-                            "start": 5102.28,
-                            "duration": 3.12
-                        },
-                        {
-                            "text": "besides being insecure,\nbesides being immature,",
-                            "start": 5105.4,
-                            "duration": 2.52
-                        },
-                        {
-                            "text": "besides being fat, besides\nbeing one of the only Black kids",
-                            "start": 5107.92,
-                            "duration": 3.208
-                        },
-                        {
-                            "text": "in my school.",
-                            "start": 5111.128,
-                            "duration": 0.542
-                        },
-                        {
-                            "text": "There's a lot of things I had\nto overcome to gain confidence.",
-                            "start": 5111.67,
-                            "duration": 5.01
-                        },
-                        {
-                            "text": "And in doing so, a\nlot of that had to go.",
-                            "start": 5116.68,
-                            "duration": 3.84
-                        },
-                        {
-                            "text": "A lot of it.",
-                            "start": 5120.52,
-                            "duration": 0.82
-                        },
-                        {
-                            "text": "So I became the guy that became,\nonce again, misunderstood.",
-                            "start": 5121.34,
-                            "duration": 2.87
-                        },
-                        {
-                            "text": "You only sleep four hours\na day, two hours a day?",
-                            "start": 5124.21,
-                            "duration": 2.28
-                        },
-                        {
-                            "text": "Sometimes you\ndon't sleep at all?",
-                            "start": 5126.49,
-                            "duration": 2.28
-                        },
-                        {
-                            "text": "Like, what's this, and\nwhat's this, and what's this?",
-                            "start": 5128.77,
-                            "duration": 2.55
-                        },
-                        {
-                            "text": "I know it's all important.",
-                            "start": 5131.32,
-                            "duration": 3.69
-                        },
-                        {
-                            "text": "I can't.",
-                            "start": 5135.01,
-                            "duration": 0.5
-                        },
-                        {
-                            "text": "Something's got to go.",
-                            "start": 5135.51,
-                            "duration": 1.2
-                        },
-                        {
-                            "text": "For me to get confidence,\nbecause confidence",
-                            "start": 5136.71,
-                            "duration": 2.73
-                        },
-                        {
-                            "text": "is the building block of\nwhere I'm trying to go,",
-                            "start": 5139.44,
-                            "duration": 2.28
-                        },
-                        {
-                            "text": "for me to gain\nconfidence in myself,",
-                            "start": 5141.72,
-                            "duration": 2.28
-                        },
-                        {
-                            "text": "this fucked up kid has got\nto do a lot of fucked up shit",
-                            "start": 5144.0,
-                            "duration": 2.73
-                        },
-                        {
-                            "text": "to gain confidence.",
-                            "start": 5146.73,
-                            "duration": 1.62
-                        },
-                        {
-                            "text": "And along the way,\nthe stutter went away.",
-                            "start": 5148.35,
-                            "duration": 2.67
-                        },
-                        {
-                            "text": "And I gained confidence.",
-                            "start": 5151.02,
-                            "duration": 1.62
-                        },
-                    ]})}
-            ###
-            Input: {json.dumps(short)} 
-            Output: Give me the output
-            """
-            llama_response = llama_client.generate(
+                "start_text": "the exact start text",
+                "end_text": "the exact end text"
+            }, indent=4)}"""
+            llama_response = json.loads(llama_client.generate(
                 model=self.llama_model,
                 prompt=prompt,
                 format="json",
                 keep_alive="1m"
-            )["response"]
+            )["response"])
+
+            shortened_transcript = []
+            for idx, dict in enumerate(short["transcript"]):
+                if dict["text"] == llama_response["start_text"]:
+                    count = 0
+                    while dict["text"] != llama_response["end_text"] and len(shortened_transcript) < len(short["transcript"]) - (idx + 1):
+                        try:
+                            # regex to match [any character in here, with as much of them as possible]
+                            regex = r"[a-zA-Z0-9\s]"
+                            cleaned_text = short["transcript"][idx+count]["text"].replace("\n", " ")
+                            # replace cleaned_text matched of regex with ""
+                            cleaned_text = re.sub(regex, "", cleaned_text)
+                            append_dict = short["transcript"][idx+count]
+                            append_dict["text"] = cleaned_text
+
+                            shortened_transcript.append(append_dict)
+                            count += 1
+                        except Exception as e:
+                            break
+                    break
+
+
+            # keeps on removing a dictionary in the start then in the end (alternating) if the length is longer than 55
+            remove_dict_type = "end"
+            while True:
+                first_start_time = shortened_transcript[0]["start"]
+                last_start_time = shortened_transcript[-1]["start"]
+                end_time = last_start_time + shortened_transcript[-1]["duration"]
+                if end_time - first_start_time > 55:
+                    shortened_transcript = shortened_transcript[1:] if remove_dict_type == "start" else shortened_transcript[:-1]
+                else:
+                    break
+
+            # Keeps on removing the last dictionary if it doesn't end with as full stop
+            regex = r"[.!?]"
+            max_remove_count = 3
+            while not re.match(regex, shortened_transcript[-1]["text"]) and max_remove_count != 3:
+                llama_response = llama_response[:-1]
+                max_remove_count -= 1
+
+            # Keep on removing the first dictionary if it doesn't end with a capital letter (not start of a sentence)
+            while not shortened_transcript[0].isupper() and max_remove_count != 3:
+                llama_response = llama_response[1:]
+                max_remove_count -= 1
 
             append_dict = {
-                "transcript": json.loads(llama_response)["transcript"],
+                "transcript": shortened_transcript,
                 "stats": short["stats"]
             }
+
             final_transcripts.append(append_dict)
+
+            if self.debugging:
+                with open("shorts_final_transcripts.json", "w") as f:
+                    f.write(json.dumps(final_transcripts, indent=4))
+                    print("saved shorts final transcripts to shorts_final_transcripts.json")
 
         return final_transcripts
 
