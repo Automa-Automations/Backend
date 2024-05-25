@@ -1,21 +1,17 @@
-from requests import options
 from youtube_transcript_api import YouTubeTranscriptApi
-from typing import Optional, List 
-from ollama import Client, Options
+from typing import  List 
+from ollama import Client
 from dotenv import load_dotenv
 from pytube import YouTube
 import os
 import json
-
+import math
 load_dotenv()
 
 OLLAMA_HOST_URL=os.getenv("OLLAMA_HOST_URL")
 
 # import dataclass
 from dataclasses import dataclass
-
-
-
 
 llama_client = Client(OLLAMA_HOST_URL)
 
@@ -27,6 +23,7 @@ class PodcastToShorts:
     def __post_init__(self):
         self.__validate_env_variables()
         self.yt = YouTube(self.podcast_url)
+        self.debugging = True
 
     def get_shorts(self):
         """
@@ -34,26 +31,30 @@ class PodcastToShorts:
         """
         transcript = self.__get_video_transcript(self.podcast_url)
         print(f"Transcript: (length: {len(transcript)}): {transcript}")
-
+        #
         podcast_length = round((transcript[-1]["start"] + transcript[-1]["duration"]) / 60)
         print(f"Podcast Length: {podcast_length} minutes")
 
-        transcriptions_feedback = self.__get_transcripts_feedback(transcript)
-        print(f"Transcriptions With Feedback: (length: {len(transcriptions_feedback)}): {transcriptions_feedback}")
+        if self.debugging:
+            with open("shorts_transcripts.json", "r") as f:
+                shorts_transcripts = json.load(f)
+        else:
+            transcriptions_feedback = self.__get_transcripts_feedback(transcript)
+            print(f"Transcriptions With Feedback: (length: {len(transcriptions_feedback)}): {transcriptions_feedback}")
 
-        shorts_transcripts = self.__filter_transcripts(transcriptions_feedback)
-        print(f"Shorts Transcripts: (length: {len(shorts_transcripts)}): {shorts_transcripts}")
+            shorts_transcripts = self.__filter_transcripts(transcriptions_feedback)
+            print(f"Shorts Transcripts: (length: {len(shorts_transcripts)}): {shorts_transcripts}")
 
-        if len(shorts_transcripts) < round(podcast_length / 10):
-            # get all the shorts that is "should_make_short" false. We need to get the best of them, so that there is enough shorts.
-            other_shorts = self.__filter_transcripts(transcriptions_feedback, should_make_short=False)
-            extra_shorts = self.__get_best_shorts(shorts_transcripts=other_shorts, total_shorts=round(podcast_length / 10) - len(shorts_transcripts))
-            shorts_transcripts.extend(extra_shorts)
+            if len(shorts_transcripts) < round(podcast_length / 10):
+                # get all the shorts that is "should_make_short" false. We need to get the best of them, so that there is enough shorts.
+                other_shorts = self.__filter_transcripts(transcriptions_feedback, should_make_short=False)
+                extra_shorts = self.__get_best_shorts(shorts_transcripts=other_shorts, total_shorts=round(podcast_length / 10) - len(shorts_transcripts))
+                shorts_transcripts.extend(extra_shorts)
 
-        elif len(shorts_transcripts) > round(podcast_length / 10):
-            # Make a new list by putting only the highest scores in there, so that it is the length of round(podcast_length / 10)
-            highest_score_list = sorted(shorts_transcripts, key=lambda x: x["stats"]["score"], reverse=True)[:round(podcast_length / 10)]
-            shorts_transcripts = highest_score_list
+            elif len(shorts_transcripts) > round(podcast_length / 10):
+                # Make a new list by putting only the highest scores in there, so that it is the length of round(podcast_length / 10)
+                highest_score_list = sorted(shorts_transcripts, key=lambda x: x["stats"]["score"], reverse=True)[:round(podcast_length / 10)]
+                shorts_transcripts = highest_score_list
 
         # take each short, use OpenAI to remove all unnecessary content in the start, so that it is just the short. 
         shorts_final_transcripts = self.__get_shorts_final_transcripts(shorts_transcripts)
@@ -78,7 +79,7 @@ class PodcastToShorts:
         current_chunk = []
 
         for short_dict in shorts_transcripts:
-            if len(current_chunk) < total_shorts:
+            if len(current_chunk) < math.floor(len(shorts_transcripts) / total_shorts):
                 current_chunk.append(short_dict)
             else:
                 chunked_shorts_transcripts.append(current_chunk)
@@ -113,7 +114,11 @@ class PodcastToShorts:
         - list: The list of the final transcripts of the shorts
         """
         prompt = f"""
-        Here are the transcripts: {json.dumps(shorts_transcripts, indent=4)} Remove the start and end of each transcript, so that each transcript only have the part that will be fitting for a short. Make it 100 - 150 words max for each transcript, and take in the total length into account, as the total length of all sentences dictionaries combined may be at max 55 seconds. The final transcript for each of the transcripts should be in a great format for a social media short, so the primary goal is to make the short get as much views as possible. Here is an example input and output formats:
+        Here are the transcripts: {json.dumps(shorts_transcripts, indent=4)} Remove the start and end of each transcript, so that each transcript only have the part that will be fitting for a short. Make it 100 - 150 words max for each transcript, and take in the total length into account, as the total length of all sentences dictionaries combined may be at max 55 seconds. For refernce, this is what I mean by a sentence (one dictionary): {json.dumps({
+            "start": 0.0,
+            "end": 2.0,
+            "text": "This is a sentence"
+        })}. The final transcript for each of the transcripts should be in a great format for a social media short, so the primary goal is to make the short get as much views as possible. Here is an example input and output formats:
         ###
         Input (the input will be provided to you by the user): 
         {json.dumps({
@@ -125,6 +130,10 @@ class PodcastToShorts:
             }
         }, indent=4)}
         Your goal is to trim (remove start and end objects of the transcript), so that the thing that is left is only part that will go viral.
+        Output (the output should be returned by you): 
+        {json.dumps({
+            "transcript": [{'start': 0.0, 'duration': 2.0, 'text': '...sentence 1 of transcript that has removed the start and end partt'}, "...continue to the end of the enhanced transcript with removed sentences in start and end..."],
+        }, indent=4)}
         """
         final_transcripts = []
         for short in shorts_transcripts:
