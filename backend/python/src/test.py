@@ -1,15 +1,14 @@
 from src.tests.Classes import Bots
 import unittest
 
-# TODO: refactor this so that it takes in a dictionary for each class. The user can select a class, and choose to run a specific test for that class, or run all tests for that class. Another option is to run all tests for all classes.
 all_tests = [
     {
         "PodcastToShorts": {
             "all_tests": [
-                Bots.PodcastToShorts.full_run,
-                Bots.PodcastToShorts.clip_shorts,
-                Bots.PodcastToShorts.download_video,
-                Bots.PodcastToShorts.get_video_transcript,
+                {"name": "full_run", "test": Bots.PodcastToShorts.FullRun},
+                {"name": "clip_shorts", "test": Bots.PodcastToShorts.ClipShorts},
+                {"name": "download_video", "test": Bots.PodcastToShorts.DownloadVideo},
+                {"name": "get_full_transcript", "test": Bots.PodcastToShorts.GetFullTranscript},
             ],
         },
     }
