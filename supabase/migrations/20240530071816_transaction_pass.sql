@@ -61,3 +61,4 @@ grant truncate on table "public"."transactions" to "service_role";
 grant update on table "public"."transactions" to "service_role";
 
 
+
