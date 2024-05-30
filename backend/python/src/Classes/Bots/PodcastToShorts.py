@@ -30,7 +30,7 @@ class PodcastToShorts:
         """
         Method to generate the shorts from the podcast
         """
-        transcript = self.__get_video_transcript(self.podcast_url)
+        transcript = self._get_video_transcript(self.podcast_url)
         print(f"Transcript: (length: {len(transcript)}): {transcript}")
         #
         podcast_length = round((transcript[-1]["start"] + transcript[-1]["duration"]) / 60)
@@ -38,24 +38,24 @@ class PodcastToShorts:
 
         if self.debugging:
             with open("./src/Classes/Bots/transcripts_feedback.json", "r") as f:
-                shorts_transcripts = json.load(f)
+                transcriptions_feedback = json.load(f)
         else:
             transcriptions_feedback = self.__get_transcripts_feedback(transcript)
             print(f"Transcriptions With Feedback: (length: {len(transcriptions_feedback)}): {transcriptions_feedback}")
 
-            shorts_transcripts = self.__filter_transcripts(transcriptions_feedback)
-            print(f"Shorts Transcripts: (length: {len(shorts_transcripts)}): {shorts_transcripts}")
+        shorts_transcripts = self.__filter_transcripts(transcriptions_feedback)
+        print(f"Shorts Transcripts: (length: {len(shorts_transcripts)}): {shorts_transcripts}")
 
-            if len(shorts_transcripts) < round(podcast_length / 10):
-                # get all the shorts that is "should_make_short" false. We need to get the best of them, so that there is enough shorts.
-                other_shorts = self.__filter_transcripts(transcriptions_feedback, should_make_short=False)
-                extra_shorts = self.__get_best_shorts(shorts_transcripts=other_shorts, total_shorts=round(podcast_length / 10) - len(shorts_transcripts))
-                shorts_transcripts.extend(extra_shorts)
+        if len(shorts_transcripts) < round(podcast_length / 10):
+            # get all the shorts that is "should_make_short" false. We need to get the best of them, so that there is enough shorts.
+            other_shorts = self.__filter_transcripts(transcriptions_feedback, should_make_short=False)
+            extra_shorts = self.__get_best_shorts(shorts_transcripts=other_shorts, total_shorts=round(podcast_length / 10) - len(shorts_transcripts))
+            shorts_transcripts.extend(extra_shorts)
 
-            elif len(shorts_transcripts) > round(podcast_length / 10):
-                # Make a new list by putting only the highest scores in there, so that it is the length of round(podcast_length / 10)
-                highest_score_list = sorted(shorts_transcripts, key=lambda x: x["stats"]["score"], reverse=True)[:round(podcast_length / 10)]
-                shorts_transcripts = highest_score_list
+        elif len(shorts_transcripts) > round(podcast_length / 10):
+            # Make a new list by putting only the highest scores in there, so that it is the length of round(podcast_length / 10)
+            highest_score_list = sorted(shorts_transcripts, key=lambda x: x["stats"]["score"], reverse=True)[:round(podcast_length / 10)]
+            shorts_transcripts = highest_score_list
 
         # take each short, use OpenAI to remove all unnecessary content in the start, so that it is just the short. 
         shorts_final_transcripts = self.__get_shorts_final_transcripts(shorts_transcripts)
@@ -189,7 +189,7 @@ class PodcastToShorts:
 
     def _generate_shorts(self, shorts_transcripts: List[dict], shorts_final_transcripts: List):
         # for now, just download the podcast and get shorts, unedited.
-        download_response = self.__download_podcast();
+        download_response = self._download_podcast();
         if download_response["status"] == "success":
             clip_shorts_data = []
             for short in shorts_final_transcripts:
@@ -205,7 +205,7 @@ class PodcastToShorts:
         print(short)
         return
 
-    def __download_podcast(self, output_path: str = "downloads/", filename: str = ""):
+    def _download_podcast(self, output_path: str = "downloads/", filename: str = ""):
         try:
             if filename == "":
                 filename = self.yt.title
@@ -294,7 +294,7 @@ class PodcastToShorts:
 
         return transcripts_feedback
 
-    def __get_video_transcript(self, video_url: str):
+    def _get_video_transcript(self, video_url: str):
         """
         Method to get the video transcript from the video url
         Parameters:
