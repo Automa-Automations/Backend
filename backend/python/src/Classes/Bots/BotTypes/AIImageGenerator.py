@@ -1,13 +1,17 @@
 import uuid
 from dataclasses import dataclass
+import datetime
 from typing import Tuple, List
 
-from src.Classes.Bot import client
 from src.Classes.ContentGenerationBotHandler import ContentGenerationBotHandler
+from src.Classes.CreditTransaction import CreditTransaction
 from src.Classes.Enums import PostPublicity
 from src.Classes.User import DatabaseSyncedProfile
 from src.ai.ImageApi import ImageApi
+from ollama import Client
+import os
 
+client = Client(host=os.environ['OLLAMA_BASE_URL'])
 
 @dataclass
 class AiImageGenerationBotMetadata():
@@ -84,15 +88,17 @@ class AIImageGenerationBotHandler(ContentGenerationBotHandler):
             prompt, negative_prompt, model, size[0], size[1]
         )
 
+    def _calculate_generation_cost(self):
+        total_width_credits = self.metadata.size[0] / 512 * 0.5
+        total_height_credits = self.metadata.size[1] / 512 * 0.5
+        return round(total_width_credits + total_height_credits) * self.metadata.total_images
+
     def generate(self, owner: DatabaseSyncedProfile) -> List['Post']:
         posts = []
+        transaction = CreditTransaction(id=str(uuid.uuid4()), created_at=datetime.datetime.now(), credits=self._calculate_generation_cost(), head="AI Image Generation", user_id=owner.id, metadata={})
+        transaction.add()
+        owner.credits -= transaction.credits
         for i in range(self.metadata.total_images):
-            # It costs 1 credit per image
-            if  owner.credits < 1:
-                raise Exception("Not enough credits to generate images!")
-
-            owner.credits -= 1
-
             print("Generating topic...")
             topic = self._generate_topic_item(self.metadata.base_topic).split('\n')[0].strip()
             print("Generated topic: ", topic)
