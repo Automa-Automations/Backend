@@ -3,7 +3,6 @@ import aws_cdk as cdk
 
 from backend.backend_stack import BackendStack
 
-
 app = cdk.App()
 BackendStack(app, "BackendStack",
     # If you don't specify 'env', this stack will be environment-agnostic.
