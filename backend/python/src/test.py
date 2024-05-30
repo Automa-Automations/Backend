@@ -1,10 +1,19 @@
-import tests
+from src.tests.Classes import Bots
 import unittest
 
 # TODO: refactor this so that it takes in a dictionary for each class. The user can select a class, and choose to run a specific test for that class, or run all tests for that class. Another option is to run all tests for all classes.
-all_tests = {
-    # "test_create_channel": tests.TestCreateChannel,
-}
+all_tests = [
+    {
+        "PodcastToShorts": {
+            "all_tests": [
+                Bots.PodcastToShorts.full_run,
+                Bots.PodcastToShorts.clip_shorts,
+                Bots.PodcastToShorts.download_video,
+                Bots.PodcastToShorts.get_video_transcript,
+            ],
+        },
+    }
+]
 
 def main():
     # Option 0: Run all tests
