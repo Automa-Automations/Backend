@@ -11,6 +11,7 @@ from src.utils import get_value
 
 client = Client(host="http://localhost:11434")
 
+
 @dataclasses.dataclass
 class Proxy:
     id: int
@@ -32,9 +33,6 @@ class Proxy:
         table = "proxies"
         value = get_value(table=table, line=id)
         cls.from_dict(value)
-
-
-
 
 
 @dataclasses.dataclass
@@ -69,9 +67,7 @@ class AiImageGenerator:
             prompt=f'{base_title} The topic for the image should be: {topic}. And the stile reference should be {style}. Give us a descriptive image title that will allow the AI image generator to generate a high quality image! Limit your title to 2 sentences, and only respond with the image title, No extra context before or after, for example: MY INPUT, your output: "Cute orange cat smile wearing sweater avatar, rim lighting, adorable big eyes, small, By greg rutkowski, chibi, Perfect lighting, Sharp focus"',
         )["response"]
 
-    def _generate_image_description(
-        self, base_title: str, topic: str, style: str
-    ):
+    def _generate_image_description(self, base_title: str, topic: str, style: str):
         return client.generate(
             model="llama3",
             prompt=f'{base_title} The topic for the image should be: {topic}. And the stile reference should be {style}. Give us a descriptive image description that will allow the AI image generator to generate a high quality image! Limit your description to 10 sentences, max, and 1 sentence min, only respond with the image description, No extra context before or after, for example: MY INPUT, your output: "Cute orange cat smile wearing sweater avatar, rim lighting, adorable big eyes, small, By greg rutkowski, chibi, Perfect lighting, Sharp focus... REST OF RESPONSE ... Check out my socials ... #something, something something!"',
@@ -81,9 +77,7 @@ class AiImageGenerator:
         self, prompt: str, negative_prompt: str, model: str, size: tuple
     ):
         api = ImageApi()
-        return api.generate_image(
-            prompt, negative_prompt, model, size[0], size[1]
-        )
+        return api.generate_image(prompt, negative_prompt, model, size[0], size[1])
 
     def generate(self):
         print("Generating topic...")
@@ -95,7 +89,7 @@ class AiImageGenerator:
             self.metadata["base_prompt"], topic, self.metadata["style"]
         )
         print("Generated prompt: ", prompt)
-    
+
         print("Generating title...")
         title = self._generate_image_title(
             self.metadata["base_title"]
@@ -106,7 +100,7 @@ class AiImageGenerator:
             self.metadata["style"],
         )
         print("Generated title: ", title)
-    
+
         print("Generating description...")
         description = self._generate_image_description(
             title,
@@ -150,8 +144,6 @@ class AiImageGenerator:
         value = get_value(table=table, line=id)
         return cls.from_dict(value, type_)
 
-        
-
 
 class Instagram(AiImageGenerator):
     _client: Optional[instagrapi.Client]
@@ -180,18 +172,13 @@ class Instagram(AiImageGenerator):
         for image in images:
             import tempfile
 
-            with tempfile.NamedTemporaryFile(
-                delete=False, suffix=".jpg"
-            ) as temp:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp:
                 temp.write(image)
                 temp.flush()
                 temp.seek(0)
 
                 media = cl.photo_upload(
                     temp.name,
-                    title
-                    + "\n\n{description}".format(description=description),
+                    title + "\n\n{description}".format(description=description),
                 )
                 print(media)
-            
-

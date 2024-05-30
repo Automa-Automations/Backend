@@ -1,20 +1,22 @@
 from youtube_transcript_api import YouTubeTranscriptApi
-from typing import  List 
+from typing import List
 from ollama import Client
 from dotenv import load_dotenv
 from pytube import YouTube
 import os
 import json
 import math
+
 load_dotenv()
 import re
 
-OLLAMA_HOST_URL=os.getenv("OLLAMA_HOST_URL")
+OLLAMA_HOST_URL = os.getenv("OLLAMA_HOST_URL")
 
 # import dataclass
 from dataclasses import dataclass
 
 llama_client = Client(OLLAMA_HOST_URL)
+
 
 @dataclass
 class PodcastToShorts:
@@ -33,7 +35,9 @@ class PodcastToShorts:
         transcript = self._get_video_transcript(self.podcast_url)
         print(f"Transcript: (length: {len(transcript)}): {transcript}")
         #
-        podcast_length = round((transcript[-1]["start"] + transcript[-1]["duration"]) / 60)
+        podcast_length = round(
+            (transcript[-1]["start"] + transcript[-1]["duration"]) / 60
+        )
         print(f"Podcast Length: {podcast_length} minutes")
 
         if self.debugging:
@@ -41,28 +45,47 @@ class PodcastToShorts:
                 transcriptions_feedback = json.load(f)
         else:
             transcriptions_feedback = self.__get_transcripts_feedback(transcript)
-            print(f"Transcriptions With Feedback: (length: {len(transcriptions_feedback)}): {transcriptions_feedback}")
+            print(
+                f"Transcriptions With Feedback: (length: {len(transcriptions_feedback)}): {transcriptions_feedback}"
+            )
 
         shorts_transcripts = self.__filter_transcripts(transcriptions_feedback)
-        print(f"Shorts Transcripts: (length: {len(shorts_transcripts)}): {shorts_transcripts}")
+        print(
+            f"Shorts Transcripts: (length: {len(shorts_transcripts)}): {shorts_transcripts}"
+        )
 
         if len(shorts_transcripts) < round(podcast_length / 10):
             # get all the shorts that is "should_make_short" false. We need to get the best of them, so that there is enough shorts.
-            other_shorts = self.__filter_transcripts(transcriptions_feedback, should_make_short=False)
-            extra_shorts = self.__get_best_shorts(shorts_transcripts=other_shorts, total_shorts=round(podcast_length / 10) - len(shorts_transcripts))
+            other_shorts = self.__filter_transcripts(
+                transcriptions_feedback, should_make_short=False
+            )
+            extra_shorts = self.__get_best_shorts(
+                shorts_transcripts=other_shorts,
+                total_shorts=round(podcast_length / 10) - len(shorts_transcripts),
+            )
             shorts_transcripts.extend(extra_shorts)
 
         elif len(shorts_transcripts) > round(podcast_length / 10):
             # Make a new list by putting only the highest scores in there, so that it is the length of round(podcast_length / 10)
-            highest_score_list = sorted(shorts_transcripts, key=lambda x: x["stats"]["score"], reverse=True)[:round(podcast_length / 10)]
+            highest_score_list = sorted(
+                shorts_transcripts, key=lambda x: x["stats"]["score"], reverse=True
+            )[: round(podcast_length / 10)]
             shorts_transcripts = highest_score_list
 
-        # take each short, use OpenAI to remove all unnecessary content in the start, so that it is just the short. 
-        shorts_final_transcripts = self.__get_shorts_final_transcripts(shorts_transcripts)
-        print(f"Shorts Final Transcripts: (length: {len(shorts_final_transcripts)}): {shorts_final_transcripts}")
+        # take each short, use OpenAI to remove all unnecessary content in the start, so that it is just the short.
+        shorts_final_transcripts = self.__get_shorts_final_transcripts(
+            shorts_transcripts
+        )
+        print(
+            f"Shorts Final Transcripts: (length: {len(shorts_final_transcripts)}): {shorts_final_transcripts}"
+        )
 
-        clip_shorts_data = self._generate_shorts(shorts_transcripts, shorts_final_transcripts)
-        print(f"Clip Shorts Data: (length: {len(clip_shorts_data)}): {clip_shorts_data}")
+        clip_shorts_data = self._generate_shorts(
+            shorts_transcripts, shorts_final_transcripts
+        )
+        print(
+            f"Clip Shorts Data: (length: {len(clip_shorts_data)}): {clip_shorts_data}"
+        )
 
         return clip_shorts_data
 
@@ -97,21 +120,20 @@ class PodcastToShorts:
         prompt = f"""
         Here are the shorts transcripts: {json.dumps(chunk_list, indent=4)}. Decide which one is the best for a short (you must only chooose 1). Return that short dictionary in the exact same format as it was given to you. 
         """
-        best_short = json.loads(llama_client.generate(
-            model=self.llama_model,
-            prompt=prompt,
-            format="json",
-            keep_alive="1m"
-        )["response"])
+        best_short = json.loads(
+            llama_client.generate(
+                model=self.llama_model, prompt=prompt, format="json", keep_alive="1m"
+            )["response"]
+        )
 
-        return best_short 
+        return best_short
 
     def __get_shorts_final_transcripts(self, shorts_transcripts: List[dict]):
         """
         Method to get the final transcripts of the shorts, by removing the start and end sentences, to get the optimized short.
         Parameters:
         - shorts_transcripts: list: The list of the shorts transcripts
-        Returns: 
+        Returns:
         - list: The list of the final transcripts of the shorts
         """
         final_transcripts = []
@@ -122,25 +144,31 @@ class PodcastToShorts:
                 "start_text": "the exact start text",
                 "end_text": "the exact end text"
             }, indent=4)}"""
-            llama_response = json.loads(llama_client.generate(
-                model=self.llama_model,
-                prompt=prompt,
-                format="json",
-                keep_alive="1m"
-            )["response"])
+            llama_response = json.loads(
+                llama_client.generate(
+                    model=self.llama_model,
+                    prompt=prompt,
+                    format="json",
+                    keep_alive="1m",
+                )["response"]
+            )
 
             shortened_transcript = []
             for idx, dict in enumerate(short["transcript"]):
                 if dict["text"] == llama_response["start_text"]:
                     count = 0
-                    while dict["text"] != llama_response["end_text"] and len(shortened_transcript) < len(short["transcript"]) - (idx + 1):
+                    while dict["text"] != llama_response["end_text"] and len(
+                        shortened_transcript
+                    ) < len(short["transcript"]) - (idx + 1):
                         try:
                             # regex to match [any character in here, with as much of them as possible]
                             regex = r"[a-zA-Z0-9\s]"
-                            cleaned_text = short["transcript"][idx+count]["text"].replace("\n", " ")
+                            cleaned_text = short["transcript"][idx + count][
+                                "text"
+                            ].replace("\n", " ")
                             # replace cleaned_text matched of regex with ""
                             cleaned_text = re.sub(regex, "", cleaned_text)
-                            append_dict = short["transcript"][idx+count]
+                            append_dict = short["transcript"][idx + count]
                             append_dict["text"] = cleaned_text
 
                             shortened_transcript.append(append_dict)
@@ -149,7 +177,6 @@ class PodcastToShorts:
                             break
                     break
 
-
             # keeps on removing a dictionary in the start then in the end (alternating) if the length is longer than 55
             remove_dict_type = "end"
             while True:
@@ -157,14 +184,21 @@ class PodcastToShorts:
                 last_start_time = shortened_transcript[-1]["start"]
                 end_time = last_start_time + shortened_transcript[-1]["duration"]
                 if end_time - first_start_time > 55:
-                    shortened_transcript = shortened_transcript[1:] if remove_dict_type == "start" else shortened_transcript[:-1]
+                    shortened_transcript = (
+                        shortened_transcript[1:]
+                        if remove_dict_type == "start"
+                        else shortened_transcript[:-1]
+                    )
                 else:
                     break
 
             # Keeps on removing the last dictionary if it doesn't end with as full stop
             regex = r"[.!?]"
             max_remove_count = 3
-            while not re.match(regex, shortened_transcript[-1]["text"]) and max_remove_count != 3:
+            while (
+                not re.match(regex, shortened_transcript[-1]["text"])
+                and max_remove_count != 3
+            ):
                 llama_response = llama_response[:-1]
                 max_remove_count -= 1
 
@@ -173,34 +207,44 @@ class PodcastToShorts:
                 llama_response = llama_response[1:]
                 max_remove_count -= 1
 
-            append_dict = {
-                "transcript": shortened_transcript,
-                "stats": short["stats"]
-            }
+            append_dict = {"transcript": shortened_transcript, "stats": short["stats"]}
 
             final_transcripts.append(append_dict)
 
             if self.debugging:
                 with open("./src/Classes/Bots/shorts_final_transcripts.json", "w") as f:
                     f.write(json.dumps(final_transcripts, indent=4))
-                    print("saved shorts final transcripts to shorts_final_transcripts.json")
+                    print(
+                        "saved shorts final transcripts to shorts_final_transcripts.json"
+                    )
 
         return final_transcripts
 
-    def _generate_shorts(self, shorts_transcripts: List[dict], shorts_final_transcripts: List):
+    def _generate_shorts(
+        self, shorts_transcripts: List[dict], shorts_final_transcripts: List
+    ):
         # for now, just download the podcast and get shorts, unedited.
-        download_response = self._download_podcast();
+        download_response = self._download_podcast()
         if download_response["status"] == "success":
             clip_shorts_data = []
             for short in shorts_final_transcripts:
-                clipped_short_data = self._clip_short(short, download_response["output_path"], download_response["filename"], short)
+                clipped_short_data = self._clip_short(
+                    short,
+                    download_response["output_path"],
+                    download_response["filename"],
+                    short,
+                )
                 clip_shorts_data.append(clipped_short_data)
 
             return clip_shorts_data
         else:
-            raise ValueError(f"Error while downloading the podcast: {download_response['error']}")
+            raise ValueError(
+                f"Error while downloading the podcast: {download_response['error']}"
+            )
 
-    def _clip_short(self, short: dict, output_path: str, filename: str, short_transcript):
+    def _clip_short(
+        self, short: dict, output_path: str, filename: str, short_transcript
+    ):
         print("Clipping short")
         print(short)
         return
@@ -210,10 +254,12 @@ class PodcastToShorts:
             if filename == "":
                 filename = self.yt.title
 
-            self.yt.streams.get_highest_resolution().download(output_path=output_path, filename=filename)
+            self.yt.streams.get_highest_resolution().download(
+                output_path=output_path, filename=filename
+            )
             return {
-                "output_path": output_path, 
-                "filename": filename, 
+                "output_path": output_path,
+                "filename": filename,
                 "status": "success",
             }
         except Exception as e:
@@ -222,7 +268,9 @@ class PodcastToShorts:
                 "status": "error",
             }
 
-    def __filter_transcripts(self, transcriptions_feedback: List[dict], should_make_short : bool = True):
+    def __filter_transcripts(
+        self, transcriptions_feedback: List[dict], should_make_short: bool = True
+    ):
         """
         Method to filter the transcriptions based on the should_make_short value
         Parameters:
@@ -231,14 +279,18 @@ class PodcastToShorts:
         Returns:
         - list: The list of the transcriptions that have the should_make_short value
         """
-        return [transcription for transcription in transcriptions_feedback if transcription["stats"]["should_make_short"] == should_make_short]
+        return [
+            transcription
+            for transcription in transcriptions_feedback
+            if transcription["stats"]["should_make_short"] == should_make_short
+        ]
 
-    def __get_transcripts_feedback(self, full_sentences_transcript): 
+    def __get_transcripts_feedback(self, full_sentences_transcript):
         """
         Method to get the feedback of the transcriptions
         Parameters:
         - full_sentences_transcript: list: The list of the full sentences of the transcriptions
-        Returns: 
+        Returns:
         - list: The list of the feedback of the transcriptions
         """
         chunked_transcript = self.__chunk_transcript(full_sentences_transcript)
@@ -268,12 +320,14 @@ class PodcastToShorts:
             }}
             """
 
-            response = json.loads(llama_client.generate(
-                model=self.llama_model,
-                prompt=prompt,
-                format="json",
-                keep_alive="1m"
-            )["response"])
+            response = json.loads(
+                llama_client.generate(
+                    model=self.llama_model,
+                    prompt=prompt,
+                    format="json",
+                    keep_alive="1m",
+                )["response"]
+            )
 
             feedback_chunk = {
                 "transcript": chunk,
@@ -281,15 +335,24 @@ class PodcastToShorts:
             }
 
             print(f"{idx+1}. Formatted Chunk: {chunk}")
-            print(f"{idx+1}. Feedback Chunk Stats Length: {len(feedback_chunk["stats"])}")
+            print(
+                f"{idx+1}. Feedback Chunk Stats Length: {len(feedback_chunk["stats"])}"
+            )
 
             transcripts_feedback.append(feedback_chunk)
             with open("./src/Classes/Bots/transcripts_feedback.json", "w") as f:
                 f.write(json.dumps(transcripts_feedback, indent=4))
-                print("saved transcripts feedback for this chunk to transcripts_feedback.json")
+                print(
+                    "saved transcripts feedback for this chunk to transcripts_feedback.json"
+                )
 
             with open("./src/Classes/Bots/transcripts_score.json", "w") as f:
-                f.write(json.dumps([transcript["stats"] for transcript in transcripts_feedback], indent=4))
+                f.write(
+                    json.dumps(
+                        [transcript["stats"] for transcript in transcripts_feedback],
+                        indent=4,
+                    )
+                )
                 print("saved scores to transcripts_score.json")
 
         return transcripts_feedback
@@ -331,7 +394,10 @@ class PodcastToShorts:
 
         for transcript_dict in video_transcript:
             # the chunk can take in another transcription dictionary
-            if len(json.dumps(current_chunk)) + len(json.dumps(transcript_dict)) < chunk_length - 100:
+            if (
+                len(json.dumps(current_chunk)) + len(json.dumps(transcript_dict))
+                < chunk_length - 100
+            ):
                 current_chunk.append(transcript_dict)
             # the chunk cannot take in another transcription dictionary
             else:
@@ -343,7 +409,7 @@ class PodcastToShorts:
 
     def __validate_env_variables(self):
         """
-        Method to evaluate the environment variables, and raise error if needed 
+        Method to evaluate the environment variables, and raise error if needed
         """
         if not OLLAMA_HOST_URL:
             raise ValueError("OLLAMA_HOST_URL is not set in the environment variables")

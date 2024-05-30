@@ -1,7 +1,8 @@
 import unittest
-from  src.Classes.Bots import PodcastToShorts
+from src.Classes.Bots import PodcastToShorts
 
 podcast_url = "https://youtu.be/nDLb8_wgX50?si=d8jgLM_KO68OZHZI"
+
 
 class FullRun(unittest.TestCase):
     def full_run(self):
@@ -12,11 +13,13 @@ class FullRun(unittest.TestCase):
         self.assertIsNotNone(shorts[0])
         self.assertEqual(isinstance(shorts[0], dict), True)
 
+
 class ClipShorts(unittest.TestCase):
     def clip_shorts(self):
         podcast_to_shorts = PodcastToShorts(podcast_url=podcast_url)
         # skip this test since clipping functionality isn't made yet.
         self.assertEqual(True, True)
+
 
 class DownloadVideo(unittest.TestCase):
     def download_video(self):
@@ -26,6 +29,7 @@ class DownloadVideo(unittest.TestCase):
         self.assertEqual(isinstance(output["output_path"], str), True)
         self.assertEqual(isinstance(output["filename"], str), True)
         self.assertEqual(output["status"], "success")
+
 
 class GetFullTranscript(unittest.TestCase):
     def get_full_transcript(self):

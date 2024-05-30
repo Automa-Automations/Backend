@@ -1,1 +1,1 @@
-from src.Classes.Bots.PodcastToShorts import PodcastToShorts 
+from src.Classes.Bots.PodcastToShorts import PodcastToShorts
