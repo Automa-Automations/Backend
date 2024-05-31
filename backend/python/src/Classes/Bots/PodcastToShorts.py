@@ -99,33 +99,10 @@ class PodcastToShorts:
         Returns:
         - list: The list of the best shorts
         """
-        # chunk shorts_transcripts into lists, each list being the length of shorts_transcripts / total_shorts. It should select the best one from each list.
-        chunked_shorts_transcripts = []
-        current_chunk = []
 
-        for short_dict in shorts_transcripts:
-            if len(current_chunk) < math.floor(len(shorts_transcripts) / total_shorts):
-                current_chunk.append(short_dict)
-            else:
-                chunked_shorts_transcripts.append(current_chunk)
-                current_chunk = [short_dict]
-
-        best_shorts = []
-        for chunk_list in chunked_shorts_transcripts:
-            best_short = self.__get_best_short(chunk_list)
-            best_shorts.append(best_short)
-
-        return best_shorts
-
-    def __get_best_short(self, chunk_list: List[dict]):
-        highest_score = 0
-        best_short = {}
-        for short in chunk_list:
-            if short["stats"]["score"] > highest_score:
-                best_short = short
-                highest_score = short["stats"]["score"]
-
-        return best_short
+        # sort the shorts_transcripts by the score, in descending order
+        descending_sorted_shorts = sorted(shorts_transcripts, key=lambda x: x["stats"]["score"], reverse=True)
+        return descending_sorted_shorts[:total_shorts]
 
     def __get_shorts_final_transcripts(self, shorts_transcripts: List[dict]):
         """
