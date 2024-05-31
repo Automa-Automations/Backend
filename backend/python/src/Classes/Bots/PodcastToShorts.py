@@ -8,6 +8,8 @@ import json
 import base64
 from moviepy.editor import VideoFileClip
 
+from src.utils import validate_similarity
+
 load_dotenv()
 import re
 
@@ -132,24 +134,28 @@ class PodcastToShorts:
                 )["response"]
             )
 
+            llama_response = llama_response["start_text"].replace("\n", " ")
+            llama_response = llama_response["end_text"].replace("\n", " ")
+
             shortened_transcript = []
 
             for idx, dict in enumerate(short["transcript"]):
-                if dict["text"] == llama_response["start_text"]:
+                dict["text"] = dict["text"].replace("\n", " ")
+
+                current_text = dict["text"]
+                if validate_similarity(current_text, llama_response["start_text"], 80):
                     count = 0
-                    while dict["text"] != llama_response["end_text"] and len(
+                    while current_text != llama_response["end_text"] and len(
                         shortened_transcript
                     ) < len(short["transcript"]) - (idx + 1):
                         try:
                             # regex to match [any character in here, with as much of them as possible]
                             regex = r"[a-zA-Z0-9\s]"
-                            cleaned_text = short["transcript"][idx + count][
-                                "text"
-                            ].replace("\n", " ")
+                            current_text = short["transcript"][idx + count]["text"]
                             # replace cleaned_text matched of regex with ""
-                            cleaned_text = re.sub(regex, "", cleaned_text)
+                            current_text = re.sub(regex, "", current_text)
                             append_dict = short["transcript"][idx + count]
-                            append_dict["text"] = cleaned_text
+                            append_dict["text"] = current_text
 
                             shortened_transcript.append(append_dict)
                             count = count + 1
