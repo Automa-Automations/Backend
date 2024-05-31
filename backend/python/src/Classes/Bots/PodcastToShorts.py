@@ -6,6 +6,8 @@ from pytube import YouTube
 import os
 import json
 import math
+import base64
+from moviepy.editor import VideoFileClip
 
 load_dotenv()
 import re
@@ -16,7 +18,6 @@ OLLAMA_HOST_URL = os.getenv("OLLAMA_HOST_URL")
 from dataclasses import dataclass
 
 llama_client = Client(OLLAMA_HOST_URL)
-
 
 @dataclass
 class PodcastToShorts:
@@ -33,7 +34,7 @@ class PodcastToShorts:
         Method to generate the shorts from the podcast
         """
         transcript = self._get_video_transcript(self.podcast_url)
-        print(f"Transcript: (length: {len(transcript)}): {transcript}")
+        print(f"Transcript: (length: {len(transcript)})")
         #
         podcast_length = round(
             (transcript[-1]["start"] + transcript[-1]["duration"]) / 60
@@ -72,7 +73,7 @@ class PodcastToShorts:
             )[: round(podcast_length / 10)]
             shorts_transcripts = highest_score_list
 
-        # take each short, use OpenAI to remove all unnecessary content in the start, so that it is just the short.
+        # take each short, use OpenAI to remove all unnecessary content in the start and end, only getting the juicy part, so that it is just the short.
         shorts_final_transcripts = self.__get_shorts_final_transcripts(
             shorts_transcripts
         )
@@ -81,7 +82,7 @@ class PodcastToShorts:
         )
 
         clip_shorts_data = self._generate_shorts(
-            shorts_transcripts, shorts_final_transcripts
+            shorts_final_transcripts
         )
         print(
             f"Clip Shorts Data: (length: {len(clip_shorts_data)}): {clip_shorts_data}"
@@ -144,6 +145,7 @@ class PodcastToShorts:
                 "start_text": "the exact start text",
                 "end_text": "the exact end text"
             }, indent=4)}"""
+
             llama_response = json.loads(
                 llama_client.generate(
                     model=self.llama_model,
@@ -154,6 +156,7 @@ class PodcastToShorts:
             )
 
             shortened_transcript = []
+
             for idx, dict in enumerate(short["transcript"]):
                 if dict["text"] == llama_response["start_text"]:
                     count = 0
@@ -172,8 +175,9 @@ class PodcastToShorts:
                             append_dict["text"] = cleaned_text
 
                             shortened_transcript.append(append_dict)
-                            count += 1
+                            count = count + 1
                         except Exception as e:
+                            print("Exception occured: ", e)
                             break
                     break
 
@@ -221,18 +225,17 @@ class PodcastToShorts:
         return final_transcripts
 
     def _generate_shorts(
-        self, shorts_transcripts: List[dict], shorts_final_transcripts: List
+        self, shorts_final_transcripts: List
     ):
         # for now, just download the podcast and get shorts, unedited.
         download_response = self._download_podcast()
         if download_response["status"] == "success":
             clip_shorts_data = []
-            for short in shorts_final_transcripts:
+            for short_transcript in shorts_final_transcripts:
                 clipped_short_data = self._clip_short(
-                    short,
                     download_response["output_path"],
                     download_response["filename"],
-                    short,
+                    short_transcript,
                 )
                 clip_shorts_data.append(clipped_short_data)
 
@@ -243,11 +246,29 @@ class PodcastToShorts:
             )
 
     def _clip_short(
-        self, short: dict, output_path: str, filename: str, short_transcript
+        self, output_path: str, filename: str, short_transcript
     ):
         print("Clipping short")
-        print(short)
-        return
+        podcast_path = os.path.join(output_path, filename)
+        short_start_time = short_transcript[0]["start"]
+        short_end_time = short_transcript[-1]["start"] + short_transcript[-1]["duration"]
+
+        short_filename = f"{filename}_short_{short_start_time}_{short_end_time}.mp4"
+        # use moviepy to clip the video 
+        clipped_video = VideoFileClip(podcast_path).subclip(short_start_time, short_end_time)
+        clipped_video_path = os.path.join(output_path, short_filename)
+        # save video
+        clipped_video.write_videofile(clipped_video_path)
+
+        with open(clipped_video_path, "rb") as video_file:
+            base64_clipped_video = base64.b64encode(video_file.read()).decode('utf-8')
+
+        return {
+            short_transcript,
+            clipped_video_path,
+            base64_clipped_video,
+            short_filename,
+        }
 
     def _download_podcast(self, output_path: str = "downloads/", filename: str = ""):
         try:

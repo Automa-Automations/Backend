@@ -6,12 +6,12 @@ podcast_url = "https://youtu.be/nDLb8_wgX50?si=d8jgLM_KO68OZHZI"
 class FullRun(unittest.TestCase):
     def test_full_run(self):
         self.assertEqual(True, True)
-        # podcast_to_shorts = PodcastToShorts(podcast_url=podcast_url)
-        # shorts = podcast_to_shorts.get_shorts()
-        # 
-        # self.assertEqual(isinstance(shorts, list), True)
-        # self.assertIsNotNone(shorts[0])
-        # self.assertEqual(isinstance(shorts[0], dict), True)
+        podcast_to_shorts = PodcastToShorts(podcast_url=podcast_url)
+        shorts = podcast_to_shorts.get_shorts()
+
+        self.assertEqual(isinstance(shorts, list), True)
+        self.assertIsNotNone(shorts[0])
+        self.assertEqual(isinstance(shorts[0], dict), True)
 
 class ClipShorts(unittest.TestCase):
     def test_clip_shorts(self):

@@ -82,3 +82,4 @@ wikipedia==1.4.0
 zope.event==5.0
 zope.interface==6.4
 black
+moviepy
