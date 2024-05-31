@@ -182,20 +182,22 @@ class PodcastToShorts:
             # Keeps on removing the last dictionary if it doesn't end with as full stop
             regex = r"[.!?]"
             max_remove_count = 3
-            while (
-                not re.match(regex, shortened_transcript[-1]["text"])
-                and max_remove_count != 3
-            ):
-                llama_response = llama_response[:-1]
+            while True:
+                if re.match(regex, shortened_transcript[-1]["text"][-1]) or not max_remove_count:
+                    break
+
+                shortened_transcript = shortened_transcript[:-1]
                 max_remove_count -= 1
 
             # Keep on removing the first dictionary if it doesn't end with a capital letter (not start of a sentence)
-            while not shortened_transcript[0].isupper() and max_remove_count != 3:
-                llama_response = llama_response[1:]
+            while True:
+                if shortened_transcript[0]["text"][0].isupper() or not max_remove_count:
+                    break
+
+                shortened_transcript = shortened_transcript[1:]
                 max_remove_count -= 1
 
             append_dict = {"transcript": shortened_transcript, "stats": short["stats"]}
-
             final_transcripts.append(append_dict)
 
             if self.debugging:

@@ -1,9 +1,7 @@
 import sys
 from src.supabase import supabase
-from typing import Any, BinaryIO, Optional, Any
+from typing import Any
 import datetime
-import json
-from io import BytesIO
 import traceback
 import uuid
 import requests
