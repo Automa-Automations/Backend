@@ -118,14 +118,12 @@ class PodcastToShorts:
         return best_shorts
 
     def __get_best_short(self, chunk_list: List[dict]):
-        prompt = f"""
-        Here are the shorts transcripts: {json.dumps(chunk_list, indent=4)}. Decide which one is the best for a short (you must only chooose 1). Return that short dictionary in the exact same format as it was given to you. 
-        """
-        best_short = json.loads(
-            llama_client.generate(
-                model=self.llama_model, prompt=prompt, format="json", keep_alive="1m"
-            )["response"]
-        )
+        highest_score = 0
+        best_short = {}
+        for short in chunk_list:
+            if short["stats"]["score"] > highest_score:
+                best_short = short
+                highest_score = short["stats"]["score"]
 
         return best_short
 
@@ -263,12 +261,14 @@ class PodcastToShorts:
         with open(clipped_video_path, "rb") as video_file:
             base64_clipped_video = base64.b64encode(video_file.read()).decode('utf-8')
 
-        return {
+        return_dict = {
             short_transcript,
             clipped_video_path,
             base64_clipped_video,
             short_filename,
         }
+
+        return return_dict
 
     def _download_podcast(self, output_path: str = "downloads/", filename: str = ""):
         try:
