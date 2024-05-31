@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 from pytube import YouTube
 import os
 import json
-import math
 import base64
 from moviepy.editor import VideoFileClip
 
@@ -102,7 +101,8 @@ class PodcastToShorts:
 
         # sort the shorts_transcripts by the score, in descending order
         descending_sorted_shorts = sorted(shorts_transcripts, key=lambda x: x["stats"]["score"], reverse=True)
-        return descending_sorted_shorts[:total_shorts]
+        best_shorts = descending_sorted_shorts[:total_shorts]
+        return best_shorts
 
     def __get_shorts_final_transcripts(self, shorts_transcripts: List[dict]):
         """
@@ -114,7 +114,9 @@ class PodcastToShorts:
         """
         final_transcripts = []
         for short in shorts_transcripts:
-            prompt = f"""I want to make a great short of 15 - 55 seconds long from the following transcript: {json.dumps(short["transcript"])}. Give me the perfect start text and end text for the short that will make it the most engaging from the transcript. Note, the start and end text must be from the transcript. The start text must be before the end text. The start text must be engaging, and the end text must be a good ending to the short. The start text must be the beginning of a sentence, and the end text must end a sentence.
+            prompt = f"""I want to make a great short of 15 - 55 seconds long from the following transcript: {json.dumps(short["transcript"])}. Give me the perfect start text and end text from the transcript that will be the perfect start and end for making an engaging short (DON'T USE THE FIRST TEXT AND THE LAST TEXT FROM THE TRANSCRIPT I GAVE YOU, IT MUST START A LITTLE BIT LATER ON.) Note, the start and end text must be from the transcript. The start text must be before the end text. The start text must be the best starting sentence from the transcript for a short, and the end text must be a the best ending sentence from the transcript for a short. The start text must be the beginning of a sentence, and the end text must end a sentence (meaning first character for start text must be a capital letter, indicating it is the start of a sentence, and the end sentence should be ending with an ending character - "?.!". Keep the start and end text and end text the exact same as what it was from the transcript, don't modify it at all.
+
+            The start text may not be "{short["transcript"][0]["text"]}", and the end text may not be {short["transcript"][-1]["text"]}.
             Your output in the following format (ignore the values):
             {json.dumps({
                 "start_text": "the exact start text",
