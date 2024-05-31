@@ -7,8 +7,7 @@ import os
 import json
 import base64
 from moviepy.editor import VideoFileClip
-
-from src.utils import validate_similarity
+from fuzzywuzzy import fuzz
 
 load_dotenv()
 import re
@@ -134,26 +133,29 @@ class PodcastToShorts:
                 )["response"]
             )
 
-            llama_response = llama_response["start_text"].replace("\n", " ")
-            llama_response = llama_response["end_text"].replace("\n", " ")
+            llama_response["start_text"] = llama_response["start_text"].replace("\n", " ")
+            llama_response["end_text"] = llama_response["end_text"].replace("\n", " ")
 
             shortened_transcript = []
-
+            print("\n")
             for idx, dict in enumerate(short["transcript"]):
                 dict["text"] = dict["text"].replace("\n", " ")
 
                 current_text = dict["text"]
-                if validate_similarity(current_text, llama_response["start_text"], 80):
+                is_similar = validate_similarity(current_text, llama_response["start_text"], 80)
+                print(f'{idx+1}. "{current_text}" == "{llama_response["start_text"]}": {is_similar}')
+                if is_similar:
                     count = 0
-                    while current_text != llama_response["end_text"] and len(
+                    while not validate_similarity(current_text, llama_response["end_text"]) and len(
                         shortened_transcript
                     ) < len(short["transcript"]) - (idx + 1):
                         try:
                             # regex to match [any character in here, with as much of them as possible]
-                            regex = r"[a-zA-Z0-9\s]"
+                            regex = r"\[.*?\]"
                             current_text = short["transcript"][idx + count]["text"]
-                            # replace cleaned_text matched of regex with ""
-                            current_text = re.sub(regex, "", current_text)
+                            print(f"Current Text: {current_text}")
+
+                            current_text = re.sub(regex, "", current_text).replace("\n", " ")
                             append_dict = short["transcript"][idx + count]
                             append_dict["text"] = current_text
 
@@ -421,3 +423,19 @@ class PodcastToShorts:
         """
         if not OLLAMA_HOST_URL:
             raise ValueError("OLLAMA_HOST_URL is not set in the environment variables")
+
+# TODO: PUT THIS IN UTILS LATER 
+def validate_similarity(string1, string2, percentage = 80):
+    """
+    Method to validate the similarity between two strings
+    Parameters:
+    - string1: str: The first string
+    - string2: str: The second string
+    - percentage: int: The percentage of similarity
+    Returns:
+    - bool: The value of the similarity
+    """
+    # check if strings are above 80% similar
+    similarity_score = fuzz.token_sort_ratio(string1, string2)
+    return similarity_score >= percentage
+

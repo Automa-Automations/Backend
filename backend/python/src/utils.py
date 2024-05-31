@@ -5,7 +5,6 @@ import datetime
 import traceback
 import uuid
 import requests
-from fuzzywuzzy import fuzz
 
 def update_value(
     table: str, line: str, val: str, new_value: Any, line_name: str = "id"
@@ -132,17 +131,3 @@ def download_file_url(from_: str) -> bytes:
     file_object = response_bytes
 
     return file_object
-
-def validate_similarity(string1, string2, percentage = 80):
-    """
-    Method to validate the similarity between two strings
-    Parameters:
-    - string1: str: The first string
-    - string2: str: The second string
-    - percentage: int: The percentage of similarity
-    Returns:
-    - bool: The value of the similarity
-    """
-    # check if strings are above 80% similar
-    similarity_score = fuzz.token_sort_ratio(string1, string2) > percentage
-    return similarity_score >= percentage
