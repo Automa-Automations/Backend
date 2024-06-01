@@ -120,9 +120,9 @@ class PodcastToShorts:
         """
         final_transcripts = []
         for short in shorts_transcripts:
-            prompt = f"""I want to make a great short of 15 - 55 seconds long from the following transcript: {json.dumps(short["transcript"])}. Give me the perfect start text and end text from the transcript that will be the perfect start and end for making an engaging short (DON'T USE THE FIRST TEXT AND THE LAST TEXT FROM THE TRANSCRIPT I GAVE YOU, IT MUST START A LITTLE BIT LATER ON.) Note, the start and end text must be from the transcript. The start text must be before the end text. The start text must be the best starting sentence from the transcript for a short, and the end text must be a the best ending sentence from the transcript for a short. The start text must be the beginning of a sentence, and the end text must end a sentence (meaning first character for start text must be a capital letter, indicating it is the start of a sentence, and the end sentence should be ending with an ending character - "?.!". Keep the start and end text and end text the exact same as what it was from the transcript, don't modify it at all.
+            prompt = f"""I want to make a great short of 15 - 55 seconds long from the following transcript: {json.dumps(short["transcript"])}. Give me the perfect start text and end text from the transcript that will be the perfect start and end for making an engaging short (DON'T USE THE FIRST TEXT AND THE LAST TEXT FROM THE TRANSCRIPT I GAVE YOU, IT MUST START A LITTLE BIT LATER ON.) Note, the start and end text must be from the transcript. The start text must be before the end text. The start text must be the best starting sentence from the transcript for a short, and the end text must be a the best ending sentence from the transcript for a short. The start text must be the beginning of a sentence, and the end text must end a sentence (meaning first character for start text must be a capital letter, indicating it is the start of a sentence, and the end sentence should be ending with an ending character - "?.!". Keep the start and end text the exact same as what it was from the transcript.
 
-            The start text may not be "{short["transcript"][0]["text"]}", and the end text may not be {short["transcript"][-1]["text"]}.
+            The start text may not be "{short["transcript"][0]["text"]}", and the end text may not be "{short["transcript"][-1]["text"]}".
             Your output in the following format (ignore the values):
             {json.dumps({
                 "start_text": "the exact start text",
@@ -171,26 +171,21 @@ class PodcastToShorts:
                             break
                     break
 
-            # keeps on removing a dictionary in the start then in the end (alternating) if the length is longer than 55
 
-            remove_dict_type = "end"
             try:
                 while True:
                     total_transcript_duration = self.__get_total_transcript_duration(shortened_transcript)
 
-                    if total_transcript_duration and total_transcript_duration > 55:
+                    if total_transcript_duration and total_transcript_duration > 60:
                         shortened_transcript = (
-                            shortened_transcript[1:]
-                            if remove_dict_type == "start"
-                            else shortened_transcript[:-1]
+                            shortened_transcript[:-1]
                         )
-                        remove_dict_type = "start" if remove_dict_type == "end" else "end"
                     else:
                         break
 
                 # Keeps on removing the last dictionary if it doesn't end with as full stop
                 regex = r"[.!?]"
-                max_remove_count = 3
+                max_remove_count = 1
                 while True:
                     if re.match(regex, shortened_transcript[-1]["text"][-1]) or not max_remove_count:
                         break
@@ -199,6 +194,7 @@ class PodcastToShorts:
                     max_remove_count -= 1
 
                 # Keep on removing the first dictionary if it doesn't end with a capital letter (not start of a sentence)
+                max_remove_count = 3
                 while True:
                     if shortened_transcript[0]["text"][0].isupper() or not max_remove_count:
                         break
@@ -213,6 +209,8 @@ class PodcastToShorts:
                     continue
 
                 append_dict = {"transcript": shortened_transcript, "stats": short["stats"]}
+                append_dict["stats"]["transcript_duration"] = transcript_duration
+
                 final_transcripts.append(append_dict)
             except Exception as e:
                 print("Error occured: ", e)
@@ -226,7 +224,6 @@ class PodcastToShorts:
                     )
 
         return final_transcripts
-
 
     def _generate_shorts(
         self, shorts_final_transcripts: List
@@ -458,6 +455,31 @@ def validate_similarity(string1, string2, percentage = 80):
     Returns:
     - bool: The value of the similarity
     """
+
+    def get_similarity_score(string1, string2):
+        return fuzz.token_sort_ratio(string1, string2)
+
     # check if strings are above 80% similar
-    similarity_score = fuzz.token_sort_ratio(string1, string2)
+    similarity_score = get_similarity_score(string1, string2)
+
+    if len(string1) > 10 and string1 in string2 or len(string2) > 10 and string2 in string1:
+        similarity_score = 100
+
+    is_similar_1 = get_similarity_score(string1[:10], string2) >= percentage
+    is_similar_2 = get_similarity_score(string2[:10], string1) >= percentage
+
+    if len(string1) > 10 and is_similar_1:
+        return True
+
+    if len(string2) > 10 and is_similar_2:
+        return True
+
+    if len(string1) > 20:
+        if string1[:20] in string2:
+            similarity_score = 100
+
+    if len(string2) > 20:
+        if string2[:20] in string1:
+            similarity_score = 100
+
     return similarity_score >= percentage

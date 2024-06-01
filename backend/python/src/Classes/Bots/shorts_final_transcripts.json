@@ -2,6 +2,11 @@
     {
         "transcript": [
             {
+                "text": "Let me read these paragraphs first.",
+                "start": 5091.42,
+                "duration": 3.037
+            },
+            {
                 "text": "And then before I read the paragraphs,",
                 "start": 5094.457,
                 "duration": 1.583
@@ -115,12 +120,18 @@
                 "text": "to gain confidence.",
                 "start": 5146.73,
                 "duration": 1.62
+            },
+            {
+                "text": "And along the way, the stutter went away.",
+                "start": 5148.35,
+                "duration": 2.67
             }
         ],
         "stats": {
             "score": 80,
             "should_make_short": true,
-            "feedback": "The transcript has a strong narrative that flows well. The speaker shares their personal experience in an engaging way. However, some parts of the transcript could be tightened up for better pacing and impact. For example, the phrase 'something's got to give' is repeated multiple times - it might be more effective to rephrase or use different language to convey this idea. Additionally, the transcript could benefit from a clearer structure and more defined sections to keep the listener engaged."
+            "feedback": "The transcript has a strong narrative that flows well. The speaker shares their personal experience in an engaging way. However, some parts of the transcript could be tightened up for better pacing and impact. For example, the phrase 'something's got to give' is repeated multiple times - it might be more effective to rephrase or use different language to convey this idea. Additionally, the transcript could benefit from a clearer structure and more defined sections to keep the listener engaged.",
+            "transcript_duration": 59.600000000000364
         }
     }
 ]
