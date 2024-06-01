@@ -8,6 +8,7 @@ import json
 import base64
 from moviepy.editor import VideoFileClip
 from fuzzywuzzy import fuzz
+import random
 
 load_dotenv()
 import re
@@ -78,10 +79,14 @@ class PodcastToShorts:
             )[: round(podcast_length / 10)]
             shorts_transcripts = highest_score_list
 
-        # take each short, use OpenAI to remove all unnecessary content in the start and end, only getting the juicy part, so that it is just the short.
-        shorts_final_transcripts = self.__get_shorts_final_transcripts(
-            shorts_transcripts
-        )
+        if self.debugging:
+            with open("./src/Classes/Bots/shorts_final_transcripts.json", "r") as f:
+                shorts_final_transcripts = json.load(f)
+        else:
+            # take each short, use OpenAI to remove all unnecessary content in the start and end, only getting the juicy part, so that it is just the short.
+            shorts_final_transcripts = self.__get_shorts_final_transcripts(
+                shorts_transcripts
+            )
         print(
             f"Shorts Final Transcripts: (length: {len(shorts_final_transcripts)}): {shorts_final_transcripts}"
         )
@@ -155,9 +160,13 @@ class PodcastToShorts:
                         shortened_transcript
                     ) < len(short["transcript"]) - (idx + 1):
                         try:
-                            # regex to match [any character in here, with as much of them as possible]
                             regex = r"\[.*?\]"
+                            pattern = r'\b[A-Z]{4,}\b(:\s*)?'
+
                             current_text = short["transcript"][idx + count]["text"]
+                            current_text = re.sub(pattern, "", current_text)
+                            current_text = re.sub(r'\s+', ' ', current_text).strip()
+
                             print(f"Current Text: {current_text}")
 
                             current_text = re.sub(regex, "", current_text).replace("\n", " ")
@@ -173,10 +182,11 @@ class PodcastToShorts:
 
 
             try:
+                random_duration = random.randint(50, 60)
                 while True:
                     total_transcript_duration = self.__get_total_transcript_duration(shortened_transcript)
 
-                    if total_transcript_duration and total_transcript_duration > 60:
+                    if total_transcript_duration and total_transcript_duration > random_duration:
                         shortened_transcript = (
                             shortened_transcript[:-1]
                         )
@@ -185,7 +195,7 @@ class PodcastToShorts:
 
                 # Keeps on removing the last dictionary if it doesn't end with as full stop
                 regex = r"[.!?]"
-                max_remove_count = 1
+                max_remove_count = 3
                 while True:
                     if re.match(regex, shortened_transcript[-1]["text"][-1]) or not max_remove_count:
                         break
@@ -194,7 +204,7 @@ class PodcastToShorts:
                     max_remove_count -= 1
 
                 # Keep on removing the first dictionary if it doesn't end with a capital letter (not start of a sentence)
-                max_remove_count = 3
+                max_remove_count = 1
                 while True:
                     if shortened_transcript[0]["text"][0].isupper() or not max_remove_count:
                         break
@@ -251,8 +261,8 @@ class PodcastToShorts:
     ):
         print("Clipping short")
         podcast_path = os.path.join(output_path, filename)
-        short_start_time = short_transcript[0]["start"]
-        short_end_time = short_transcript[-1]["start"] + short_transcript[-1]["duration"]
+        short_start_time = short_transcript["transcript"][0]["start"]
+        short_end_time = short_transcript["transcript"][-1]["start"] + short_transcript["transcript"][-1]["duration"]
 
         short_filename = f"{filename}_short_{short_start_time}_{short_end_time}.mp4"
         # use moviepy to clip the video 
@@ -265,10 +275,10 @@ class PodcastToShorts:
             base64_clipped_video = base64.b64encode(video_file.read()).decode('utf-8')
 
         return_dict = {
-            short_transcript,
-            clipped_video_path,
-            base64_clipped_video,
-            short_filename,
+            "short_transcript": short_transcript,
+            "clipped_video_path": clipped_video_path,
+            "base64_clipped_video": base64_clipped_video,
+            "short_filename": short_filename,
         }
 
         return return_dict
