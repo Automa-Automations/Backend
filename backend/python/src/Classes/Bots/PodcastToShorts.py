@@ -1,5 +1,5 @@
 from youtube_transcript_api import YouTubeTranscriptApi
-from typing import List
+from typing import List, TypedDict, Union
 from ollama import Client
 from dotenv import load_dotenv
 from pytube import YouTube
@@ -18,6 +18,11 @@ OLLAMA_HOST_URL = os.getenv("OLLAMA_HOST_URL")
 from dataclasses import dataclass
 
 llama_client = Client(OLLAMA_HOST_URL)
+
+class TranscriptDict(TypedDict):
+    text: str
+    start: float
+    duration: float
 
 @dataclass
 class PodcastToShorts:
@@ -167,40 +172,51 @@ class PodcastToShorts:
                     break
 
             # keeps on removing a dictionary in the start then in the end (alternating) if the length is longer than 55
+
             remove_dict_type = "end"
-            while True:
-                first_start_time = shortened_transcript[0]["start"]
-                last_start_time = shortened_transcript[-1]["start"]
-                end_time = last_start_time + shortened_transcript[-1]["duration"]
-                if end_time - first_start_time > 55:
-                    shortened_transcript = (
-                        shortened_transcript[1:]
-                        if remove_dict_type == "start"
-                        else shortened_transcript[:-1]
-                    )
-                else:
-                    break
+            try:
+                while True:
+                    total_transcript_duration = self.__get_total_transcript_duration(shortened_transcript)
 
-            # Keeps on removing the last dictionary if it doesn't end with as full stop
-            regex = r"[.!?]"
-            max_remove_count = 3
-            while True:
-                if re.match(regex, shortened_transcript[-1]["text"][-1]) or not max_remove_count:
-                    break
+                    if total_transcript_duration and total_transcript_duration > 55:
+                        shortened_transcript = (
+                            shortened_transcript[1:]
+                            if remove_dict_type == "start"
+                            else shortened_transcript[:-1]
+                        )
+                        remove_dict_type = "start" if remove_dict_type == "end" else "end"
+                    else:
+                        break
 
-                shortened_transcript = shortened_transcript[:-1]
-                max_remove_count -= 1
+                # Keeps on removing the last dictionary if it doesn't end with as full stop
+                regex = r"[.!?]"
+                max_remove_count = 3
+                while True:
+                    if re.match(regex, shortened_transcript[-1]["text"][-1]) or not max_remove_count:
+                        break
 
-            # Keep on removing the first dictionary if it doesn't end with a capital letter (not start of a sentence)
-            while True:
-                if shortened_transcript[0]["text"][0].isupper() or not max_remove_count:
-                    break
+                    shortened_transcript = shortened_transcript[:-1]
+                    max_remove_count -= 1
 
-                shortened_transcript = shortened_transcript[1:]
-                max_remove_count -= 1
+                # Keep on removing the first dictionary if it doesn't end with a capital letter (not start of a sentence)
+                while True:
+                    if shortened_transcript[0]["text"][0].isupper() or not max_remove_count:
+                        break
 
-            append_dict = {"transcript": shortened_transcript, "stats": short["stats"]}
-            final_transcripts.append(append_dict)
+                    shortened_transcript = shortened_transcript[1:]
+                    max_remove_count -= 1
+
+                transcript_duration = self.__get_total_transcript_duration(shortened_transcript)
+                if transcript_duration and transcript_duration < 15:
+                    continue
+                if not transcript_duration: 
+                    continue
+
+                append_dict = {"transcript": shortened_transcript, "stats": short["stats"]}
+                final_transcripts.append(append_dict)
+            except Exception as e:
+                print("Error occured: ", e)
+                continue
 
             if self.debugging:
                 with open("./src/Classes/Bots/shorts_final_transcripts.json", "w") as f:
@@ -210,6 +226,7 @@ class PodcastToShorts:
                     )
 
         return final_transcripts
+
 
     def _generate_shorts(
         self, shorts_final_transcripts: List
@@ -424,6 +441,12 @@ class PodcastToShorts:
         if not OLLAMA_HOST_URL:
             raise ValueError("OLLAMA_HOST_URL is not set in the environment variables")
 
+    def __get_total_transcript_duration(self, transcript: List[TranscriptDict]) -> Union[float, None]:
+        if len(transcript) == 0:
+            return
+
+        return transcript[-1]["start"] + transcript[-1]["duration"] - transcript[0]["start"]
+
 # TODO: PUT THIS IN UTILS LATER 
 def validate_similarity(string1, string2, percentage = 80):
     """
@@ -438,4 +461,3 @@ def validate_similarity(string1, string2, percentage = 80):
     # check if strings are above 80% similar
     similarity_score = fuzz.token_sort_ratio(string1, string2)
     return similarity_score >= percentage
-

@@ -29,7 +29,6 @@ def main():
     for index, test in enumerate(all_tests):
         print(f"{index+1}. {test['type']}")
     choice = input("Enter the number of the test you want to run: ")
-    print("\n")
     choice = int(choice)
     if choice == 0:
         all_units_list = []
@@ -47,7 +46,6 @@ def main():
         print(f"{idx+1}. {child['name']}")
 
     choice = input("Enter the number of the test you want to run: ")
-    print("\n")
     choice = int(choice)
     if choice == 0:
         all_units_list = []
@@ -59,12 +57,10 @@ def main():
         return
 
     selected_child = test_type_dict["children"][choice - 1]
-    print("0. Run all tests")
     for idx, child in enumerate(selected_child["units"]):
         print(f"{idx+1}. {child['name']}")
 
     choice = input("Enter the number of the test you want to run: ")
-    print("\n")
     choice = int(choice)
     if choice == 0:
         all_units_list = []
@@ -81,7 +77,7 @@ def main():
 
 
 def run_suite(all_units_list):
-    print(f"Running tests: {all_units_list}")
+    print(f"Runing tests: {all_units_list}")
     suite = unittest.TestSuite()
 
     suite.addTests(
