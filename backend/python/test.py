@@ -60,6 +60,7 @@ def main():
         run_suite(all_units_list)
         return
 
+    print("0. Run all tests")
     selected_child = test_type_dict["children"][choice - 1]
     for idx, child in enumerate(selected_child["units"]):
         print(f"{idx+1}. {child['name']}")

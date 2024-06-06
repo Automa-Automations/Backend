@@ -279,43 +279,41 @@ class PodcastToShorts:
         short_end_time = short_transcript["transcript"][-1]["start"] + short_transcript["transcript"][-1]["duration"]
 
         short_filename = f"{filename}_short_{short_start_time}_{short_end_time}.mp4"
+        clipped_video_path = os.path.join(output_path, f"mobile_ratio_{short_filename}")
+
         # use moviepy to clip the video 
         clipped_video = VideoFileClip(podcast_path).subclip(short_start_time, short_end_time)
-
         try:
-            # clip video to mobile aspect ratio (16:9), along with following faces smoothly
+            # clip video to mobile aspect ratio (9:16), along with following faces smoothly
             print("Clipping short to mobile aspect ratio, along with following faces smoothly...")
             mobile_ratio_follow_faces_short = self._clip_and_follow_faces_mobile_ratio(clipped_video)
-            
-            clipped_video_path = os.path.join(output_path, short_filename)
-            # save video
+
             mobile_ratio_follow_faces_short.write_videofile(clipped_video_path)
+
+            with open(clipped_video_path, "rb") as video_file:
+                base64_clipped_video = base64.b64encode(video_file.read()).decode('utf-8')
+
+            return_dict = {
+                "short_transcript": short_transcript,
+                "clipped_video_path": clipped_video_path,
+                "base64_clipped_video": base64_clipped_video,
+                "short_filename": short_filename,
+            }
+            return return_dict
+
         except Exception as e:
             print(f"Error while clipping short to right aspect ratio and adding in face detection: {e}")
             return {}
-        
-        clipped_video_path = os.path.join(output_path, short_filename)
-        # save video
-        clipped_video.write_videofile(mobile_ratio_follow_faces_short)
-
-        with open(clipped_video_path, "rb") as video_file:
-            base64_clipped_video = base64.b64encode(video_file.read()).decode('utf-8')
-
-        return_dict = {
-            "short_transcript": short_transcript,
-            "clipped_video_path": clipped_video_path,
-            "base64_clipped_video": base64_clipped_video,
-            "short_filename": short_filename,
-        }
-
-        return return_dict
 
     def _clip_and_follow_faces_mobile_ratio(self, video_clip: VideoFileClip) -> VideoFileClip:
         try:
-            # Define the target aspect ratio
-            target_aspect_ratio = 16 / 9
-            target_width = video_clip.size[0]
-            target_height = int(target_width / target_aspect_ratio)
+            # Define the target aspect ratio for mobile (9:16)
+            target_aspect_ratio = 9 / 16
+            original_width, original_height = video_clip.size
+            
+            # Calculate the target height based on the original width
+            target_height = original_height
+            target_width = int(target_height * target_aspect_ratio)
 
             def process_frame(frame):
                 face_locations = face_recognition.face_locations(frame)
@@ -332,8 +330,14 @@ class PodcastToShorts:
                     crop_y = max(0, face_center_y - target_height // 2)
 
                     # Ensure the crop box is within the frame bounds
-                    crop_x = min(crop_x, frame.shape[1] - target_width)
-                    crop_y = min(crop_y, frame.shape[0] - target_height)
+                    if crop_x + target_width > frame.shape[1]:
+                        crop_x = frame.shape[1] - target_width
+                    if crop_y + target_height > frame.shape[0]:
+                        crop_y = frame.shape[0] - target_height
+
+                    # Ensure the crop coordinates are non-negative
+                    crop_x = max(0, crop_x)
+                    crop_y = max(0, crop_y)
 
                     # Crop the frame to the target aspect ratio
                     cropped_frame = frame[crop_y:crop_y + target_height, crop_x:crop_x + target_width]
@@ -347,6 +351,8 @@ class PodcastToShorts:
 
             # Apply the process_frame function to each frame of the video clip
             processed_clip = video_clip.fl_image(process_frame)
+            # Remove the original video clip from memory
+            video_clip.close()
 
             return processed_clip
         except Exception as e:
