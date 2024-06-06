@@ -84,3 +84,4 @@ zope.interface==6.4
 black
 moviepy
 fuzzywuzzy
+face_recognition

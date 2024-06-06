@@ -18,6 +18,10 @@ all_tests = [
                         "name": "get_full_transcript",
                         "test": Bots.PodcastToShorts.GetFullTranscript,
                     },
+                    {
+                        "name": "clip_and_follow_faces_mobile_ratio",
+                        "test": Bots.PodcastToShorts.ClipAndFollowFacesMobileRatio,
+                    },
                 ],
             },
         ],

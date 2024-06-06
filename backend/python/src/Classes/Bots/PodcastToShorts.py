@@ -1,5 +1,6 @@
 from youtube_transcript_api import YouTubeTranscriptApi
 from typing import List, TypedDict, Union
+import face_recognition
 from ollama import Client
 from dotenv import load_dotenv
 from pytube import YouTube
@@ -35,7 +36,7 @@ class PodcastToShorts:
         self.yt = YouTube(self.podcast_url)
         self.debugging = True
 
-    def get_shorts(self):
+    def get_shorts(self, debugging=False):
         """
         Method to generate the shorts from the podcast
         """
@@ -47,14 +48,14 @@ class PodcastToShorts:
         )
         print(f"Podcast Length: {podcast_length} minutes")
 
-        if self.debugging:
+        if self.debugging or debugging:
             with open("./src/Classes/Bots/transcripts_feedback.json", "r") as f:
                 transcriptions_feedback = json.load(f)
         else:
             transcriptions_feedback = self.__get_transcripts_feedback(transcript)
-            print(
-                f"Transcriptions With Feedback: (length: {len(transcriptions_feedback)}): {transcriptions_feedback}"
-            )
+        print(
+            f"Transcriptions With Feedback: (length: {len(transcriptions_feedback)}): {transcriptions_feedback}"
+        )
 
         shorts_transcripts = self.__filter_transcripts(transcriptions_feedback)
         print(
@@ -63,6 +64,7 @@ class PodcastToShorts:
 
         if len(shorts_transcripts) < round(podcast_length / 10):
             # get all the shorts that is "should_make_short" false. We need to get the best of them, so that there is enough shorts.
+            print("length of shorts transcripts not enough. Getting extra shorts...")
             other_shorts = self.__filter_transcripts(
                 transcriptions_feedback, should_make_short=False
             )
@@ -71,19 +73,25 @@ class PodcastToShorts:
                 total_shorts=round(podcast_length / 10) - len(shorts_transcripts),
             )
             shorts_transcripts.extend(extra_shorts)
+            print(f"New shorts transcripts length: {len(shorts_transcripts)}")
 
         elif len(shorts_transcripts) > round(podcast_length / 10):
             # Make a new list by putting only the highest scores in there, so that it is the length of round(podcast_length / 10)
+            print("Shorts transcripts length is too long...")
             highest_score_list = sorted(
                 shorts_transcripts, key=lambda x: x["stats"]["score"], reverse=True
             )[: round(podcast_length / 10)]
+
+            print(f"New shorts transcripts length: {len(highest_score_list)}. Before, it was a length of {len(shorts_transcripts)}")
             shorts_transcripts = highest_score_list
 
-        if self.debugging:
+        if self.debugging or debugging:
+            print("Loading from shorts_final_transcripts.json...")
             with open("./src/Classes/Bots/shorts_final_transcripts.json", "r") as f:
                 shorts_final_transcripts = json.load(f)
         else:
             # take each short, use OpenAI to remove all unnecessary content in the start and end, only getting the juicy part, so that it is just the short.
+            print("Getting shorts final transcripts...")
             shorts_final_transcripts = self.__get_shorts_final_transcripts(
                 shorts_transcripts
             )
@@ -91,6 +99,7 @@ class PodcastToShorts:
             f"Shorts Final Transcripts: (length: {len(shorts_final_transcripts)}): {shorts_final_transcripts}"
         )
 
+        print("Generating shorts...")
         clip_shorts_data = self._generate_shorts(
             shorts_final_transcripts
         )
@@ -113,6 +122,7 @@ class PodcastToShorts:
         # sort the shorts_transcripts by the score, in descending order
         descending_sorted_shorts = sorted(shorts_transcripts, key=lambda x: x["stats"]["score"], reverse=True)
         best_shorts = descending_sorted_shorts[:total_shorts]
+        print(f"Got an extra {len(best_shorts)} shorts.")
         return best_shorts
 
     def __get_shorts_final_transcripts(self, shorts_transcripts: List[dict]):
@@ -241,6 +251,7 @@ class PodcastToShorts:
         # for now, just download the podcast and get shorts, unedited.
         download_response = self._download_podcast()
         if download_response["status"] == "success":
+            print("Podcast downloaded successfully")
             clip_shorts_data = []
             for short_transcript in shorts_final_transcripts:
                 clipped_short_data = self._clip_short(
@@ -248,7 +259,10 @@ class PodcastToShorts:
                     download_response["filename"],
                     short_transcript,
                 )
-                clip_shorts_data.append(clipped_short_data)
+                if not "short_transcript" in clipped_short_data:
+                    continue
+                else:
+                    clip_shorts_data.append(clipped_short_data)
 
             return clip_shorts_data
         else:
@@ -258,8 +272,8 @@ class PodcastToShorts:
 
     def _clip_short(
         self, output_path: str, filename: str, short_transcript
-    ):
-        print("Clipping short")
+    ) -> dict:
+        print("Clipping short...")
         podcast_path = os.path.join(output_path, filename)
         short_start_time = short_transcript["transcript"][0]["start"]
         short_end_time = short_transcript["transcript"][-1]["start"] + short_transcript["transcript"][-1]["duration"]
@@ -267,9 +281,22 @@ class PodcastToShorts:
         short_filename = f"{filename}_short_{short_start_time}_{short_end_time}.mp4"
         # use moviepy to clip the video 
         clipped_video = VideoFileClip(podcast_path).subclip(short_start_time, short_end_time)
+
+        try:
+            # clip video to mobile aspect ratio (16:9), along with following faces smoothly
+            print("Clipping short to mobile aspect ratio, along with following faces smoothly...")
+            mobile_ratio_follow_faces_short = self._clip_and_follow_faces_mobile_ratio(clipped_video)
+            
+            clipped_video_path = os.path.join(output_path, short_filename)
+            # save video
+            mobile_ratio_follow_faces_short.write_videofile(clipped_video_path)
+        except Exception as e:
+            print(f"Error while clipping short to right aspect ratio and adding in face detection: {e}")
+            return {}
+        
         clipped_video_path = os.path.join(output_path, short_filename)
         # save video
-        clipped_video.write_videofile(clipped_video_path)
+        clipped_video.write_videofile(mobile_ratio_follow_faces_short)
 
         with open(clipped_video_path, "rb") as video_file:
             base64_clipped_video = base64.b64encode(video_file.read()).decode('utf-8')
@@ -282,6 +309,49 @@ class PodcastToShorts:
         }
 
         return return_dict
+
+    def _clip_and_follow_faces_mobile_ratio(self, video_clip: VideoFileClip) -> VideoFileClip:
+        try:
+            # Define the target aspect ratio
+            target_aspect_ratio = 16 / 9
+            target_width = video_clip.size[0]
+            target_height = int(target_width / target_aspect_ratio)
+
+            def process_frame(frame):
+                face_locations = face_recognition.face_locations(frame)
+
+                if face_locations:
+                    # Choose the first face detected
+                    top, right, bottom, left = face_locations[0]
+
+                    face_center_x = (left + right) // 2
+                    face_center_y = (top + bottom) // 2
+
+                    # Calculate the top-left corner of the crop box
+                    crop_x = max(0, face_center_x - target_width // 2)
+                    crop_y = max(0, face_center_y - target_height // 2)
+
+                    # Ensure the crop box is within the frame bounds
+                    crop_x = min(crop_x, frame.shape[1] - target_width)
+                    crop_y = min(crop_y, frame.shape[0] - target_height)
+
+                    # Crop the frame to the target aspect ratio
+                    cropped_frame = frame[crop_y:crop_y + target_height, crop_x:crop_x + target_width]
+                else:
+                    # If no face is detected, center the frame
+                    crop_x = (frame.shape[1] - target_width) // 2
+                    crop_y = (frame.shape[0] - target_height) // 2
+                    cropped_frame = frame[crop_y:crop_y + target_height, crop_x:crop_x + target_width]
+
+                return cropped_frame
+
+            # Apply the process_frame function to each frame of the video clip
+            processed_clip = video_clip.fl_image(process_frame)
+
+            return processed_clip
+        except Exception as e:
+            print(f"Error in _clip_and_follow_faces_mobile_ratio: {e}")
+            raise e
 
     def _download_podcast(self, output_path: str = "downloads/", filename: str = ""):
         try:
