@@ -28,6 +28,7 @@ all_tests = [
     }
 ]
 
+
 def main():
     print("0. Run all tests")
     for index, test in enumerate(all_tests):

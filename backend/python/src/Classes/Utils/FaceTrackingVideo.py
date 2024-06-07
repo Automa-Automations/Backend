@@ -5,6 +5,7 @@ import numpy as np
 import face_recognition
 from scipy.interpolate import interp1d
 
+
 @dataclass
 class FaceTrackingVideo:
     frame_index: int = 0
@@ -76,7 +77,9 @@ class FaceTrackingVideo:
         cropped_frame = frame[y_start:y_end, x_start:x_end]
 
         # Resize the cropped frame to the desired size (maintaining original height)
-        resized_frame = cv2.resize(cropped_frame, (int(frame.shape[0] * target_aspect_ratio), frame.shape[0]))
+        resized_frame = cv2.resize(
+            cropped_frame, (int(frame.shape[0] * target_aspect_ratio), frame.shape[0])
+        )
 
         self.frame_index += 1
 
@@ -138,9 +141,15 @@ class FaceTrackingVideo:
         # Create an interpolation function
         imode = "linear"
 
-        self.interp_fcx_func = interp1d(np.array(self.frame_indices), np.array(self.face_pos_x), kind=imode)
-        self.interp_fcy_func = interp1d(np.array(self.frame_indices), np.array(self.face_pos_y), kind=imode)
-        self.interp_fsize_func = interp1d(np.array(self.frame_indices), np.array(self.face_sizes), kind=imode)
+        self.interp_fcx_func = interp1d(
+            np.array(self.frame_indices), np.array(self.face_pos_x), kind=imode
+        )
+        self.interp_fcy_func = interp1d(
+            np.array(self.frame_indices), np.array(self.face_pos_y), kind=imode
+        )
+        self.interp_fsize_func = interp1d(
+            np.array(self.frame_indices), np.array(self.face_sizes), kind=imode
+        )
 
         processed_clip = video_clip.fl_image(self.process_frame)
 

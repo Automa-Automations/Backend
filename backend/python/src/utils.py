@@ -6,6 +6,7 @@ import traceback
 import uuid
 import requests
 
+
 def update_value(
     table: str, line: str, val: str, new_value: Any, line_name: str = "id"
 ):

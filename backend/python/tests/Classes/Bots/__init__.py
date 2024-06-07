@@ -1,1 +1,1 @@
-from tests.Classes.Bots import PodcastToShorts 
+from tests.Classes.Bots import PodcastToShorts

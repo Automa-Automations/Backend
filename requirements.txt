@@ -24,3 +24,4 @@ stripe==9.6.0
 typeguard==2.13.3
 typing_extensions==4.11.0
 urllib3==2.2.1
+black

@@ -54,7 +54,7 @@ class BackendStack(Stack):
             handler="handler",
             index="lambdas/config/auto_config_mobile_app.py",
             bundling=python.BundlingOptions(asset_excludes=["venv"]),
-            environment=environment_variables
+            environment=environment_variables,
         )
 
         # In our requests we will add this to the headers
@@ -74,7 +74,7 @@ class BackendStack(Stack):
             stripe_payment_sheet
         )
         payment_sheet.add_method("POST", payment_sheet_integration)
-        
+
         # Success webhook endpoint
         stripe_event_webhook_integration = aws_apigateway.LambdaIntegration(
             stripe_event_webhook
@@ -89,7 +89,3 @@ class BackendStack(Stack):
         )
         auto_configure_app_resource = config_endpoint.add_resource("config_mobile_app")
         auto_configure_app_resource.add_method("GET", auto_configure_app_integration)
-
-
-        
-

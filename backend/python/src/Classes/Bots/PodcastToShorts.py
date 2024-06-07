@@ -23,10 +23,12 @@ OLLAMA_HOST_URL = os.getenv(f"{env_type}OLLAMA_HOST_URL")
 
 llama_client = Client(OLLAMA_HOST_URL)
 
+
 class TranscriptDict(TypedDict):
     text: str
     start: float
     duration: float
+
 
 @dataclass
 class PodcastToShorts:
@@ -84,7 +86,9 @@ class PodcastToShorts:
                 shorts_transcripts, key=lambda x: x["stats"]["score"], reverse=True
             )[: round(podcast_length / 10)]
 
-            print(f"New shorts transcripts length: {len(highest_score_list)}. Before, it was a length of {len(shorts_transcripts)}")
+            print(
+                f"New shorts transcripts length: {len(highest_score_list)}. Before, it was a length of {len(shorts_transcripts)}"
+            )
             shorts_transcripts = highest_score_list
 
         if self.debugging or debugging:
@@ -102,9 +106,7 @@ class PodcastToShorts:
         )
 
         print("Generating shorts...")
-        clip_shorts_data = self._generate_shorts(
-            shorts_final_transcripts
-        )
+        clip_shorts_data = self._generate_shorts(shorts_final_transcripts)
         print(
             f"Clip Shorts Data: (length: {len(clip_shorts_data)}): {clip_shorts_data}"
         )
@@ -122,7 +124,9 @@ class PodcastToShorts:
         """
 
         # sort the shorts_transcripts by the score, in descending order
-        descending_sorted_shorts = sorted(shorts_transcripts, key=lambda x: x["stats"]["score"], reverse=True)
+        descending_sorted_shorts = sorted(
+            shorts_transcripts, key=lambda x: x["stats"]["score"], reverse=True
+        )
         best_shorts = descending_sorted_shorts[:total_shorts]
         print(f"Got an extra {len(best_shorts)} shorts.")
         return best_shorts
@@ -155,7 +159,9 @@ class PodcastToShorts:
                 )["response"]
             )
 
-            llama_response["start_text"] = llama_response["start_text"].replace("\n", " ")
+            llama_response["start_text"] = llama_response["start_text"].replace(
+                "\n", " "
+            )
             llama_response["end_text"] = llama_response["end_text"].replace("\n", " ")
 
             shortened_transcript = []
@@ -164,24 +170,32 @@ class PodcastToShorts:
                 dict["text"] = dict["text"].replace("\n", " ")
 
                 current_text = dict["text"]
-                is_similar = validate_similarity(current_text, llama_response["start_text"], 80)
-                print(f'{idx+1}. "{current_text}" == "{llama_response["start_text"]}": {is_similar}')
+                is_similar = validate_similarity(
+                    current_text, llama_response["start_text"], 80
+                )
+                print(
+                    f'{idx+1}. "{current_text}" == "{llama_response["start_text"]}": {is_similar}'
+                )
                 if is_similar:
                     count = 0
-                    while not validate_similarity(current_text, llama_response["end_text"]) and len(
-                        shortened_transcript
-                    ) < len(short["transcript"]) - (idx + 1):
+                    while not validate_similarity(
+                        current_text, llama_response["end_text"]
+                    ) and len(shortened_transcript) < len(short["transcript"]) - (
+                        idx + 1
+                    ):
                         try:
                             regex = r"\[.*?\]"
-                            pattern = r'\b[A-Z]{4,}\b(:\s*)?'
+                            pattern = r"\b[A-Z]{4,}\b(:\s*)?"
 
                             current_text = short["transcript"][idx + count]["text"]
                             current_text = re.sub(pattern, "", current_text)
-                            current_text = re.sub(r'\s+', ' ', current_text).strip()
+                            current_text = re.sub(r"\s+", " ", current_text).strip()
 
                             print(f"Current Text: {current_text}")
 
-                            current_text = re.sub(regex, "", current_text).replace("\n", " ")
+                            current_text = re.sub(regex, "", current_text).replace(
+                                "\n", " "
+                            )
                             append_dict = short["transcript"][idx + count]
                             append_dict["text"] = current_text
 
@@ -192,16 +206,18 @@ class PodcastToShorts:
                             break
                     break
 
-
             try:
                 random_duration = random.randint(50, 60)
                 while True:
-                    total_transcript_duration = self.__get_total_transcript_duration(shortened_transcript)
+                    total_transcript_duration = self.__get_total_transcript_duration(
+                        shortened_transcript
+                    )
 
-                    if total_transcript_duration and total_transcript_duration > random_duration:
-                        shortened_transcript = (
-                            shortened_transcript[:-1]
-                        )
+                    if (
+                        total_transcript_duration
+                        and total_transcript_duration > random_duration
+                    ):
+                        shortened_transcript = shortened_transcript[:-1]
                     else:
                         break
 
@@ -209,7 +225,10 @@ class PodcastToShorts:
                 regex = r"[.!?]"
                 max_remove_count = 3
                 while True:
-                    if re.match(regex, shortened_transcript[-1]["text"][-1]) or not max_remove_count:
+                    if (
+                        re.match(regex, shortened_transcript[-1]["text"][-1])
+                        or not max_remove_count
+                    ):
                         break
 
                     shortened_transcript = shortened_transcript[:-1]
@@ -218,19 +237,27 @@ class PodcastToShorts:
                 # Keep on removing the first dictionary if it doesn't end with a capital letter (not start of a sentence)
                 max_remove_count = 1
                 while True:
-                    if shortened_transcript[0]["text"][0].isupper() or not max_remove_count:
+                    if (
+                        shortened_transcript[0]["text"][0].isupper()
+                        or not max_remove_count
+                    ):
                         break
 
                     shortened_transcript = shortened_transcript[1:]
                     max_remove_count -= 1
 
-                transcript_duration = self.__get_total_transcript_duration(shortened_transcript)
+                transcript_duration = self.__get_total_transcript_duration(
+                    shortened_transcript
+                )
                 if transcript_duration and transcript_duration < 15:
                     continue
-                if not transcript_duration: 
+                if not transcript_duration:
                     continue
 
-                append_dict = {"transcript": shortened_transcript, "stats": short["stats"]}
+                append_dict = {
+                    "transcript": shortened_transcript,
+                    "stats": short["stats"],
+                }
                 append_dict["stats"]["transcript_duration"] = transcript_duration
 
                 final_transcripts.append(append_dict)
@@ -247,9 +274,7 @@ class PodcastToShorts:
 
         return final_transcripts
 
-    def _generate_shorts(
-        self, shorts_final_transcripts: List
-    ):
+    def _generate_shorts(self, shorts_final_transcripts: List):
         # for now, just download the podcast and get shorts, unedited.
         download_response = self._download_podcast()
         if download_response["status"] == "success":
@@ -267,7 +292,9 @@ class PodcastToShorts:
                     clip_shorts_data.append(clipped_short_data)
 
             if not self.debugging:
-                os.remove(f"{download_response['output_path']}/{download_response['filename']}")
+                os.remove(
+                    f"{download_response['output_path']}/{download_response['filename']}"
+                )
 
             return clip_shorts_data
         else:
@@ -275,28 +302,39 @@ class PodcastToShorts:
                 f"Error while downloading the podcast: {download_response['error']}"
             )
 
-    def _clip_short(
-        self, output_path: str, filename: str, short_transcript
-    ) -> dict:
+    def _clip_short(self, output_path: str, filename: str, short_transcript) -> dict:
         print("Clipping short...")
         podcast_path = os.path.join(output_path, filename)
         short_start_time = short_transcript["transcript"][0]["start"]
-        short_end_time = short_transcript["transcript"][-1]["start"] + short_transcript["transcript"][-1]["duration"]
+        short_end_time = (
+            short_transcript["transcript"][-1]["start"]
+            + short_transcript["transcript"][-1]["duration"]
+        )
 
         short_filename = f"{filename}_short_{short_start_time}_{short_end_time}.mp4"
         clipped_video_path = os.path.join(output_path, f"mobile_ratio_{short_filename}")
-        original_clip_video_path = os.path.join(output_path, f"original_{short_filename}")
-        # use moviepy to clip the video 
-        clipped_video = VideoFileClip(podcast_path).subclip(short_start_time, short_end_time)
+        original_clip_video_path = os.path.join(
+            output_path, f"original_{short_filename}"
+        )
+        # use moviepy to clip the video
+        clipped_video = VideoFileClip(podcast_path).subclip(
+            short_start_time, short_end_time
+        )
         try:
             # clip video to mobile aspect ratio (9:16), along with following faces smoothly
-            print("Clipping short to mobile aspect ratio, along with following faces smoothly...")
+            print(
+                "Clipping short to mobile aspect ratio, along with following faces smoothly..."
+            )
 
-            mobile_ratio_follow_faces_short = self._clip_and_follow_faces_mobile_ratio(clipped_video)
+            mobile_ratio_follow_faces_short = self._clip_and_follow_faces_mobile_ratio(
+                clipped_video
+            )
             mobile_ratio_follow_faces_short.write_videofile(clipped_video_path)
 
             with open(clipped_video_path, "rb") as video_file:
-                base64_clipped_video = base64.b64encode(video_file.read()).decode('utf-8')
+                base64_clipped_video = base64.b64encode(video_file.read()).decode(
+                    "utf-8"
+                )
 
             if not self.debugging:
                 os.remove(clipped_video_path)
@@ -309,7 +347,9 @@ class PodcastToShorts:
             return return_dict
 
         except Exception as e:
-            print(f"Error while clipping short to right aspect ratio and adding in face detection: {e}")
+            print(
+                f"Error while clipping short to right aspect ratio and adding in face detection: {e}"
+            )
             return {}
 
     def _clip_and_follow_faces_mobile_ratio(self, clipped_video):
@@ -481,14 +521,21 @@ class PodcastToShorts:
         if not OLLAMA_HOST_URL:
             raise ValueError("OLLAMA_HOST_URL is not set in the environment variables")
 
-    def __get_total_transcript_duration(self, transcript: List[TranscriptDict]) -> Union[float, None]:
+    def __get_total_transcript_duration(
+        self, transcript: List[TranscriptDict]
+    ) -> Union[float, None]:
         if len(transcript) == 0:
             return
 
-        return transcript[-1]["start"] + transcript[-1]["duration"] - transcript[0]["start"]
+        return (
+            transcript[-1]["start"]
+            + transcript[-1]["duration"]
+            - transcript[0]["start"]
+        )
 
-# TODO: PUT THIS IN UTILS LATER 
-def validate_similarity(string1, string2, percentage = 80):
+
+# TODO: PUT THIS IN UTILS LATER
+def validate_similarity(string1, string2, percentage=80):
     """
     Method to validate the similarity between two strings
     Parameters:
@@ -505,7 +552,12 @@ def validate_similarity(string1, string2, percentage = 80):
     # check if strings are above 80% similar
     similarity_score = get_similarity_score(string1, string2)
 
-    if len(string1) > 10 and string1 in string2 or len(string2) > 10 and string2 in string1:
+    if (
+        len(string1) > 10
+        and string1 in string2
+        or len(string2) > 10
+        and string2 in string1
+    ):
         similarity_score = 100
 
     is_similar_1 = get_similarity_score(string1[:10], string2) >= percentage

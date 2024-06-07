@@ -4,6 +4,7 @@ from src.Classes.Bots import PodcastToShorts
 
 podcast_url = "https://youtu.be/nDLb8_wgX50?si=d8jgLM_KO68OZHZI"
 
+
 class FullRun(unittest.TestCase):
     def test_full_run(self):
         self.assertEqual(True, True)
@@ -14,12 +15,14 @@ class FullRun(unittest.TestCase):
         self.assertIsNotNone(shorts[0])
         self.assertEqual(isinstance(shorts[0], dict), True)
 
+
 class ClipShorts(unittest.TestCase):
     def test_clip_shorts(self):
         podcast_to_shorts = PodcastToShorts(podcast_url=podcast_url)
-        shorts_data = podcast_to_shorts.get_shorts(debugging=True);
+        shorts_data = podcast_to_shorts.get_shorts(debugging=True)
         # skip this test since clipping functionality isn't made yet.
         self.assertTrue(len(shorts_data), "Shorts clipping works as expected")
+
 
 class DownloadVideo(unittest.TestCase):
     def test_download_video(self):
@@ -43,12 +46,15 @@ class GetFullTranscript(unittest.TestCase):
         self.assertEqual(isinstance(transcript[0]["start"], float), True)
         self.assertEqual(isinstance(transcript[0]["duration"], float), True)
 
+
 class ClipAndFollowFacesMobileRatio(unittest.TestCase):
     def test_clip_and_follow_faces_mobile_ratio(self):
-        test_clip_path = "test_assets/test_clip.mp4" 
+        test_clip_path = "test_assets/test_clip.mp4"
         test_clipped_video = VideoFileClip(test_clip_path)
         podcast_to_shorts = PodcastToShorts(podcast_url=podcast_url)
-        clipped_video_response = podcast_to_shorts._clip_and_follow_faces_mobile_ratio(test_clipped_video)
+        clipped_video_response = podcast_to_shorts._clip_and_follow_faces_mobile_ratio(
+            test_clipped_video
+        )
 
         self.assertTrue("error" not in clipped_video_response)
         self.assertTrue("short_transcript" in clipped_video_response)
