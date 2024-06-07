@@ -84,4 +84,7 @@ zope.interface==6.4
 black
 moviepy
 fuzzywuzzy
+scipy
+dlib
+opencv-python
 face_recognition

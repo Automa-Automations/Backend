@@ -1,0 +1,139 @@
+
+class FaceTrackingVideo:
+def detect_faces(self, frame):
+        """Helper method to detect a face"""
+        if self.face_detector is None:
+            logger.info("Initializing MTCNN detector...")
+            self.face_detector = MTCNN(
+                device="cuda",
+                select_largest=False,
+                post_process=False,
+            )
+            # self.detect_face_func = capture_output(self.face_detector.detect_faces)
+            # self.detect_face_func = capture_output(self.face_detector.detect)
+            self.detect_face_func = self.face_detector.detect
+
+        boxes, _ = self.detect_face_func(frame)
+        # faces = self.detect_face_func(frame)
+
+        # if faces:
+        #     # Return only the first detected face
+        #     return faces[0]["box"]
+        if boxes is not None:
+            return boxes[0]
+        else:
+            return None
+
+    def process_frame(self, frame):
+        """Function to process each frame of the video"""
+        if self.frame_index % self.face_window_len == 0:
+            logger.info("Processing frame %d", self.frame_index)
+
+        # Perform interpolation to get the face x/y position:
+        cx = self.interp_fcx_func(self.frame_index)
+        cy = self.interp_fcy_func(self.frame_index)
+        fsize = self.interp_fsize_func(self.frame_index)
+        # logger.info("source frame size: %f", fsize)
+
+        # Define the region of interest (ROI) around the detected face
+        # hsize = (self.frame_size * 3) // 2
+
+        self.current_fsize += (fsize - self.current_fsize) * 0.003
+
+        hsize = self.current_fsize * 3.0 / 2.0
+        hsize = min(hsize, cx, cy, frame.shape[1] - cx, frame.shape[0] - cy)
+
+        # cx = min(max(fcx, hsize), frame.shape[1] - hsize)
+        # cy = min(max(fcy, hsize), frame.shape[0] - hsize)
+
+        roi_start_x = int(cx - hsize)
+        roi_start_y = int(cy - hsize)
+        roi_end_x = int(cx + hsize)
+        roi_end_y = int(cy + hsize)
+
+        # Crop and resize the video around the detected face
+        cropped_frame = frame[roi_start_y:roi_end_y, roi_start_x:roi_end_x]
+        resized_frame = cv2.resize(cropped_frame, (self.frame_size, self.frame_size))
+
+        self.frame_index += 1
+
+        return resized_frame
+
+    def collect_face_position(self, frame, nframes):
+        """Collect the face position for a given frame"""
+        if self.frame_index % self.face_window_len == 0:
+            logger.info("Collecting face at frame %d/%d", self.frame_index, nframes)
+            face_coordinates = self.detect_faces(frame)
+
+            if face_coordinates is not None:
+                # x, y, w, h = face_coordinates
+                left, top, right, bottom = face_coordinates
+                # center_x, center_y = x + w // 2, y + h // 2
+                center_x, center_y = (left + right) / 2.0, (top + bottom) / 2.0
+                size = max(abs(right - left), abs(top - bottom))
+                # logger.info("Detected frame size: %d", size)
+
+                self.frame_indices.append(self.frame_index)
+                self.face_pos_x.append(center_x)
+                self.face_pos_y.append(center_y)
+                self.face_sizes.append(size)
+
+        self.frame_index += 1
+
+        return frame
+
+    def process_webcam_view(self, input_file):
+        """Method called to process a webcam view in a given video file"""
+        logger.info("Processing webcam view file %s", input_file)
+        output_path = self.set_path_extension(input_file, "_centered.mp4")
+
+        self.face_window_len = 90
+        self.frame_index = 0
+        self.frame_size = 512
+
+        video_clip = VideoFileClip(input_file)
+
+        # First we collect all the required center positions for a given frame index:
+        self.frame_indices = []
+        self.face_pos_x = []
+        self.face_pos_y = []
+        self.face_sizes = []
+
+        logger.info("Collecting face positions...")
+        nframes = int(video_clip.duration * video_clip.fps)
+        # for frame in video_clip.iter_frames(fps=video_clip.fps):
+
+        for fidx in range(0, nframes, self.face_window_len):
+            self.frame_index = fidx
+            frame = video_clip.get_frame(fidx / video_clip.fps)
+
+            self.collect_face_position(frame, nframes)
+
+        # Add a final position:
+        self.frame_indices.append(nframes + 1)
+        self.face_pos_x.append(self.face_pos_x[-1])
+        self.face_pos_y.append(self.face_pos_y[-1])
+        self.face_sizes.append(self.face_sizes[-1])
+
+        self.current_fsize = self.face_sizes[0]
+
+        logger.info("Done collecting %d face positions", len(self.frame_indices))
+
+        # Process each frame of the video:
+        self.frame_index = 0
+
+        # Create an interpolation function
+        # imode = "cubic"
+        imode = "linear"
+
+        self.interp_fcx_func = interp1d(np.array(self.frame_indices), np.array(self.face_pos_x), kind=imode)
+        self.interp_fcy_func = interp1d(np.array(self.frame_indices), np.array(self.face_pos_y), kind=imode)
+        self.interp_fsize_func = interp1d(np.array(self.frame_indices), np.array(self.face_sizes), kind=imode)
+
+        processed_clip = video_clip.fl_image(self.process_frame)
+
+        # Save the processed video
+        processed_clip.write_videofile(output_path, audio=True)
+
+        logger.info("Processing done.")
+        return True

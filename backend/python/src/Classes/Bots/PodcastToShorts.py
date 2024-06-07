@@ -1,6 +1,6 @@
 from youtube_transcript_api import YouTubeTranscriptApi
 from typing import List, TypedDict, Union
-import face_recognition
+from src.Classes.Utils.FaceTrackingVideo import FaceTrackingVideo
 from ollama import Client
 from dotenv import load_dotenv
 from pytube import YouTube
@@ -280,14 +280,16 @@ class PodcastToShorts:
 
         short_filename = f"{filename}_short_{short_start_time}_{short_end_time}.mp4"
         clipped_video_path = os.path.join(output_path, f"mobile_ratio_{short_filename}")
-
+        original_clip_video_path = os.path.join(output_path, f"original_{short_filename}")
         # use moviepy to clip the video 
         clipped_video = VideoFileClip(podcast_path).subclip(short_start_time, short_end_time)
+        clipped_video.write_videofile(original_clip_video_path)
+
         try:
             # clip video to mobile aspect ratio (9:16), along with following faces smoothly
             print("Clipping short to mobile aspect ratio, along with following faces smoothly...")
-            mobile_ratio_follow_faces_short = self._clip_and_follow_faces_mobile_ratio(clipped_video)
 
+            mobile_ratio_follow_faces_short = self._clip_and_follow_faces_mobile_ratio(clipped_video)
             mobile_ratio_follow_faces_short.write_videofile(clipped_video_path)
 
             with open(clipped_video_path, "rb") as video_file:
@@ -305,61 +307,11 @@ class PodcastToShorts:
             print(f"Error while clipping short to right aspect ratio and adding in face detection: {e}")
             return {}
 
-    def _clip_and_follow_faces_mobile_ratio(self, video_clip: VideoFileClip) -> VideoFileClip:
-        try:
-            # Define the target aspect ratio for mobile (9:16)
-            target_aspect_ratio = 9 / 16
-            original_width, original_height = video_clip.size
-            
-            # Calculate the target height based on the original width
-            target_height = original_height
-            target_width = int(target_height * target_aspect_ratio)
-
-            def process_frame(frame):
-                face_locations = face_recognition.face_locations(frame)
-
-                if face_locations:
-                    # Choose the first face detected
-                    top, right, bottom, left = face_locations[0]
-
-                    face_center_x = (left + right) // 2
-                    face_center_y = (top + bottom) // 2
-
-                    # Calculate the top-left corner of the crop box
-                    crop_x = max(0, face_center_x - target_width // 2)
-                    crop_y = max(0, face_center_y - target_height // 2)
-
-                    # Ensure the crop box is within the frame bounds
-                    if crop_x + target_width > frame.shape[1]:
-                        crop_x = frame.shape[1] - target_width
-                    if crop_y + target_height > frame.shape[0]:
-                        crop_y = frame.shape[0] - target_height
-
-                    # Ensure the crop coordinates are non-negative
-                    crop_x = max(0, crop_x)
-                    crop_y = max(0, crop_y)
-
-                    # Crop the frame to the target aspect ratio
-                    cropped_frame = frame[crop_y:crop_y + target_height, crop_x:crop_x + target_width]
-                else:
-                    # If no face is detected, center the frame
-                    crop_x = (frame.shape[1] - target_width) // 2
-                    crop_y = (frame.shape[0] - target_height) // 2
-                    cropped_frame = frame[crop_y:crop_y + target_height, crop_x:crop_x + target_width]
-
-                return cropped_frame
-
-            # Apply the process_frame function to each frame of the video clip
-            processed_clip = video_clip.fl_image(process_frame)
-            # Remove the original video clip from memory
-            video_clip.close()
-
-            return processed_clip
-        except Exception as e:
-            print(f"Error in _clip_and_follow_faces_mobile_ratio: {e}")
-            raise e
+    def _clip_and_follow_faces_mobile_ratio(self, clipped_video):
+        return FaceTrackingVideo().process_short(clipped_video)
 
     def _download_podcast(self, output_path: str = "downloads/", filename: str = ""):
+        print("Downloading podcast...")
         try:
             if filename == "":
                 filename = self.yt.title
