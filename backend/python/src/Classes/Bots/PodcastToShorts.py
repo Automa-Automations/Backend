@@ -10,14 +10,16 @@ import base64
 from moviepy.editor import VideoFileClip
 from fuzzywuzzy import fuzz
 import random
+from dataclasses import dataclass
 
 load_dotenv()
 import re
 
-OLLAMA_HOST_URL = os.getenv("OLLAMA_HOST_URL")
+env_type = "LOCAL_"
+if os.environ.get("CURRENT_ENVIRONMENT", "local") == "prod":
+    env_type = "HOSTED_"
 
-# import dataclass
-from dataclasses import dataclass
+OLLAMA_HOST_URL = os.getenv(f"{env_type}OLLAMA_HOST_URL")
 
 llama_client = Client(OLLAMA_HOST_URL)
 
@@ -34,7 +36,7 @@ class PodcastToShorts:
     def __post_init__(self):
         self.__validate_env_variables()
         self.yt = YouTube(self.podcast_url)
-        self.debugging = True
+        self.debugging = False
 
     def get_shorts(self, debugging=False):
         """
@@ -264,6 +266,9 @@ class PodcastToShorts:
                 else:
                     clip_shorts_data.append(clipped_short_data)
 
+            if not self.debugging:
+                os.remove(f"{download_response['output_path']}/{download_response['filename']}")
+
             return clip_shorts_data
         else:
             raise ValueError(
@@ -283,8 +288,6 @@ class PodcastToShorts:
         original_clip_video_path = os.path.join(output_path, f"original_{short_filename}")
         # use moviepy to clip the video 
         clipped_video = VideoFileClip(podcast_path).subclip(short_start_time, short_end_time)
-        clipped_video.write_videofile(original_clip_video_path)
-
         try:
             # clip video to mobile aspect ratio (9:16), along with following faces smoothly
             print("Clipping short to mobile aspect ratio, along with following faces smoothly...")
@@ -295,9 +298,11 @@ class PodcastToShorts:
             with open(clipped_video_path, "rb") as video_file:
                 base64_clipped_video = base64.b64encode(video_file.read()).decode('utf-8')
 
+            if not self.debugging:
+                os.remove(clipped_video_path)
+
             return_dict = {
                 "short_transcript": short_transcript,
-                "clipped_video_path": clipped_video_path,
                 "base64_clipped_video": base64_clipped_video,
                 "short_filename": short_filename,
             }
