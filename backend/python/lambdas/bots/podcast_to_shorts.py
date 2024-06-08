@@ -1,14 +1,21 @@
 import json
-import os
 from src.Classes.Bots import PodcastToShorts
 
-
 def handler(event, context):
-    env_type = "LOCAL_"
-    if os.environ.get("CURRENT_ENVIRONMENT", "local") == "prod":
-        env_type = "HOSTED_"
+    try:
+        body = json.loads(event["body"])
+        podcast_url = body["podcast_url"]
 
-    return {
-        "statusCode": 200,
-        "body": json.dumps({"hello": "123"}),
-    }
+        podcast_to_shorts = PodcastToShorts(podcast_url=podcast_url);
+        shorts_result = podcast_to_shorts.get_shorts()
+
+        return {
+            "statusCode": 200,
+            "body": json.dumps(shorts_result),
+        }
+
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": e}),
+        }

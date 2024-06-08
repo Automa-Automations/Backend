@@ -9,7 +9,6 @@ import os
 stripe.api_key = os.environ["STRIPE_API_KEY"]
 STRIPE_PUBLISHABLE_KEY = os.environ["STRIPE_PUBLISHABLE_KEY"]
 
-
 def handler(event, context):
     print(event)
     body = json.loads(event["body"])
