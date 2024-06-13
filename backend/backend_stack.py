@@ -13,6 +13,7 @@ import os
 
 environment_variables = dict(dotenv_values(".env"))
 
+
 class BackendStack(Stack):
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
@@ -22,7 +23,7 @@ class BackendStack(Stack):
         subprocess.run(["./install_packages.sh"], check=True)
 
         stripe_payment_sheet = python.PythonFunction(
-           self,
+            self,
             "stripe-payment-sheet",
             entry="./backend/python",
             runtime=aws_lambda.Runtime.PYTHON_3_11,
@@ -67,12 +68,23 @@ class BackendStack(Stack):
             environment=environment_variables,
         )
 
-
         # add new python environment
-        stripe_payment_sheet.add_environment("PYTHONPATH", "/var/task/lambdas/packages:" + os.environ.get("PYTHONPATH", ""))
-        stripe_event_webhook.add_environment("PYTHONPATH", "/var/task/lambdas/packages:" + os.environ.get("PYTHONPATH", ""))
-        auto_configure_app.add_environment("PYTHONPATH", "/var/task/lambdas/packages:" + os.environ.get("PYTHONPATH", ""))
-        podcast_to_shorts_lambda.add_environment("PYTHONPATH", "/var/task/lambdas/packages:" + os.environ.get("PYTHONPATH", ""))
+        stripe_payment_sheet.add_environment(
+            "PYTHONPATH",
+            "/var/task/lambdas/packages:" + os.environ.get("PYTHONPATH", ""),
+        )
+        stripe_event_webhook.add_environment(
+            "PYTHONPATH",
+            "/var/task/lambdas/packages:" + os.environ.get("PYTHONPATH", ""),
+        )
+        auto_configure_app.add_environment(
+            "PYTHONPATH",
+            "/var/task/lambdas/packages:" + os.environ.get("PYTHONPATH", ""),
+        )
+        podcast_to_shorts_lambda.add_environment(
+            "PYTHONPATH",
+            "/var/task/lambdas/packages:" + os.environ.get("PYTHONPATH", ""),
+        )
 
         # In our requests we will add this to the headers
         api = aws_apigateway.RestApi(

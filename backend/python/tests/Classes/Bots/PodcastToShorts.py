@@ -2,7 +2,8 @@ import unittest
 from moviepy.editor import VideoFileClip
 from src.Classes.Bots import PodcastToShorts
 
-podcast_url = "https://youtu.be/nDLb8_wgX50?si=d8jgLM_KO68OZHZI"
+# podcast_url = "https://youtu.be/nDLb8_wgX50?si=d8jgLM_KO68OZHZI"
+podcast_url = "https://youtu.be/dIzAPAIRuXQ?si=ioGADbliDtD6yZ7h"
 
 
 class FullRun(unittest.TestCase):

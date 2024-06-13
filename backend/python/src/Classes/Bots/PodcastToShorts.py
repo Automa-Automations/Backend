@@ -38,14 +38,14 @@ class PodcastToShorts:
     def __post_init__(self):
         self.__validate_env_variables()
         self.yt = YouTube(self.podcast_url)
-        self.debugging = False
+        self.debugging = True
 
     def get_shorts(self, debugging=False):
         """
         Method to generate the shorts from the podcast
         """
         transcript = self._get_video_transcript(self.podcast_url)
-        print(f"Transcript: (length: {len(transcript)})")
+        print(f"Transcript length: {len(transcript)})")
         #
         podcast_length = round(
             (transcript[-1]["start"] + transcript[-1]["duration"]) / 60
@@ -58,7 +58,7 @@ class PodcastToShorts:
         else:
             transcriptions_feedback = self.__get_transcripts_feedback(transcript)
         print(
-            f"Transcriptions With Feedback: (length: {len(transcriptions_feedback)}): {transcriptions_feedback}"
+            f"Transcriptions With Feedback length: {len(transcriptions_feedback)}): {transcriptions_feedback}"
         )
 
         shorts_transcripts = self.__filter_transcripts(transcriptions_feedback)
@@ -91,7 +91,8 @@ class PodcastToShorts:
             )
             shorts_transcripts = highest_score_list
 
-        if self.debugging or debugging:
+        # if self.debugging or debugging:
+        if debugging:
             print("Loading from shorts_final_transcripts.json...")
             with open("./src/Classes/Bots/shorts_final_transcripts.json", "r") as f:
                 shorts_final_transcripts = json.load(f)
@@ -150,19 +151,27 @@ class PodcastToShorts:
                 "end_text": "the exact end text"
             }, indent=4)}"""
 
-            llama_response = json.loads(
-                llama_client.generate(
-                    model=self.llama_model,
-                    prompt=prompt,
-                    format="json",
-                    keep_alive="1m",
-                )["response"]
-            )
-
-            llama_response["start_text"] = llama_response["start_text"].replace(
-                "\n", " "
-            )
-            llama_response["end_text"] = llama_response["end_text"].replace("\n", " ")
+            while True:
+                try:
+                    llama_response = json.loads(
+                        llama_client.generate(
+                            model=self.llama_model,
+                            prompt=prompt,
+                            format="json",
+                            keep_alive="1m",
+                        )["response"]
+                    )
+                    llama_response["start_text"] = llama_response["start_text"].replace(
+                        "\n", " "
+                    )
+                    llama_response["end_text"] = llama_response["end_text"].replace(
+                        "\n", " "
+                    )
+                    print("Successfully got response")
+                    break
+                except Exception as e:
+                    print("Error occured: ", e)
+                    print("Trying again...")
 
             shortened_transcript = []
             print("\n")
@@ -265,12 +274,9 @@ class PodcastToShorts:
                 print("Error occured: ", e)
                 continue
 
-            if self.debugging:
-                with open("./src/Classes/Bots/shorts_final_transcripts.json", "w") as f:
-                    f.write(json.dumps(final_transcripts, indent=4))
-                    print(
-                        "saved shorts final transcripts to shorts_final_transcripts.json"
-                    )
+            with open("./src/Classes/Bots/shorts_final_transcripts.json", "w") as f:
+                f.write(json.dumps(final_transcripts, indent=4))
+                print("saved shorts final transcripts to shorts_final_transcripts.json")
 
         return final_transcripts
 
@@ -426,15 +432,21 @@ class PodcastToShorts:
                 "feedback": "Any feedback on the short, what is good and bad about the transcript, how to make it better."
             }}
             """
+            while True:
+                try:
+                    response = json.loads(
+                        llama_client.generate(
+                            model=self.llama_model,
+                            prompt=prompt,
+                            format="json",
+                            keep_alive="1m",
+                        )["response"]
+                    )
+                    print("Successfully got response")
+                    break
 
-            response = json.loads(
-                llama_client.generate(
-                    model=self.llama_model,
-                    prompt=prompt,
-                    format="json",
-                    keep_alive="1m",
-                )["response"]
-            )
+                except:  # If there is an error, just skip this chunk
+                    print("Error occurred. Trying again.")
 
             feedback_chunk = {
                 "transcript": chunk,
