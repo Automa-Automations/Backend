@@ -15,23 +15,14 @@ class BackendStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        # Path to your face_recognition.zip file
-        moviepy_zip = "./backend/layers/moviepy_layer.zip"
-        face_recognition_zip = "./backend/layers/face_recognition_layer.zip"
+        backend_stack_zip = "./backend/layers/backend_layer.zip"
 
-        face_recognition_layer = aws_lambda.LayerVersion(
+        backend_stack_layer  = aws_lambda.LayerVersion(
             self,
-            "FaceRecognitionLayer",
-            code=aws_lambda.Code.from_asset(face_recognition_zip),
+            "BackendStackLayer",
+            code=aws_lambda.Code.from_asset(backend_stack_zip),
             compatible_runtimes=[aws_lambda.Runtime.PYTHON_3_11],
-            description="Layer with dlib and face_recognition libraries",
-        )
-        moviepy_layer = aws_lambda.LayerVersion(
-            self,
-            "MoviepyLayer",
-            code=aws_lambda.Code.from_asset(moviepy_zip),
-            compatible_runtimes=[aws_lambda.Runtime.PYTHON_3_11],
-            description="Layer with moviepy library",
+            description="Layer with all python packages required for all lambdas to work.",
         )
 
         bundlingOptions = python.BundlingOptions(
@@ -47,6 +38,7 @@ class BackendStack(Stack):
             index="lambdas/stripe/payment_sheet.py",
             bundling=bundlingOptions,
             environment=environment_variables,
+            layers=[backend_stack_layer],
         )
 
         stripe_event_webhook = python.PythonFunction(
@@ -58,6 +50,7 @@ class BackendStack(Stack):
             index="lambdas/stripe/webhook.py",
             bundling=bundlingOptions,
             environment=environment_variables,
+            layers=[backend_stack_layer],
         )
 
         auto_configure_app = python.PythonFunction(
@@ -69,6 +62,7 @@ class BackendStack(Stack):
             index="lambdas/config/auto_config_mobile_app.py",
             bundling=bundlingOptions,
             environment=environment_variables,
+            layers=[backend_stack_layer],
         )
 
         podcast_to_shorts_lambda = python.PythonFunction(
