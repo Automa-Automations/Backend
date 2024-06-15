@@ -8,19 +8,24 @@ all: help
 .PHONY: install
 install:
 	@echo "Installing dependencies..."
-	pip install -r requirements.txt
+	python3 -m pip install -r requirements.txt
+
+.PHONY: bootstrap_backend
+bootstrap_backend:
+	@echo "Bootstrapping backend..."
+	make install ; python3 ./scripts/bootstrap-backend.py
 
 # Run tests
 .PHONY: test
 test:
 	@echo "Running tests..."
-	python3 backend/python/test.py
+	cd ./backend/python/ ; pip install -r requirements.dev.txt ; python3 test.py
 
 # Run formatter
 .PHONY: format
 format:
 	@echo "Running code formatter..."
-	pip install -r requirements.txt ; black .
+	make install ; black .
 
 # Clean up
 .PHONY: clean
@@ -33,6 +38,7 @@ clean:
 .PHONY: help
 help:
 	@echo "Available targets:"
+	@echo "  bootstrap_backend - Bootstrap backend"
 	@echo "  install    - Install dependencies"
 	@echo "  test       - Run tests"
 	@echo "  format     - Run formatter"
