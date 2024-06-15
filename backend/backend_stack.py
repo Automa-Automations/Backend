@@ -1,15 +1,11 @@
 from aws_cdk import (
-    # Duration,
     Stack,
     aws_lambda_python_alpha as python,
     aws_lambda,
-    # aws_sqs as sqs,
 )
 from aws_cdk import aws_apigateway
 from constructs import Construct
 from dotenv import dotenv_values
-import subprocess
-import os
 
 environment_variables = dict(dotenv_values(".env"))
 
@@ -19,8 +15,28 @@ class BackendStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        # Execute the script to install dependencies
-        subprocess.run(["./install_packages.sh"], check=True)
+        # Path to your face_recognition.zip file
+        moviepy_zip = "./backend/layers/moviepy_layer.zip"
+        face_recognition_zip = "./backend/layers/face_recognition_layer.zip"
+
+        face_recognition_layer = aws_lambda.LayerVersion(
+            self,
+            "FaceRecognitionLayer",
+            code=aws_lambda.Code.from_asset(face_recognition_zip),
+            compatible_runtimes=[aws_lambda.Runtime.PYTHON_3_11],
+            description="Layer with dlib and face_recognition libraries",
+        )
+        moviepy_layer = aws_lambda.LayerVersion(
+            self,
+            "MoviepyLayer",
+            code=aws_lambda.Code.from_asset(moviepy_zip),
+            compatible_runtimes=[aws_lambda.Runtime.PYTHON_3_11],
+            description="Layer with moviepy library",
+        )
+
+        bundlingOptions = python.BundlingOptions(
+            asset_excludes=["venv", "__pycache__", "test_assets", "tests", "downloads"],
+        )
 
         stripe_payment_sheet = python.PythonFunction(
             self,
@@ -29,9 +45,7 @@ class BackendStack(Stack):
             runtime=aws_lambda.Runtime.PYTHON_3_11,
             handler="handler",
             index="lambdas/stripe/payment_sheet.py",
-            bundling=python.BundlingOptions(
-                asset_excludes=["venv"],
-            ),
+            bundling=bundlingOptions,
             environment=environment_variables,
         )
 
@@ -42,7 +56,7 @@ class BackendStack(Stack):
             runtime=aws_lambda.Runtime.PYTHON_3_11,
             handler="handler",
             index="lambdas/stripe/webhook.py",
-            bundling=python.BundlingOptions(asset_excludes=["venv"]),
+            bundling=bundlingOptions,
             environment=environment_variables,
         )
 
@@ -53,7 +67,7 @@ class BackendStack(Stack):
             runtime=aws_lambda.Runtime.PYTHON_3_11,
             handler="handler",
             index="lambdas/config/auto_config_mobile_app.py",
-            bundling=python.BundlingOptions(asset_excludes=["venv"]),
+            bundling=bundlingOptions,
             environment=environment_variables,
         )
 
@@ -64,26 +78,9 @@ class BackendStack(Stack):
             runtime=aws_lambda.Runtime.PYTHON_3_11,
             handler="handler",
             index="lambdas/bots/podcast_to_shorts.py",
-            bundling=python.BundlingOptions(asset_excludes=["venv"]),
+            bundling=bundlingOptions,
             environment=environment_variables,
-        )
-
-        # add new python environment
-        stripe_payment_sheet.add_environment(
-            "PYTHONPATH",
-            "/var/task/lambdas/packages:" + os.environ.get("PYTHONPATH", ""),
-        )
-        stripe_event_webhook.add_environment(
-            "PYTHONPATH",
-            "/var/task/lambdas/packages:" + os.environ.get("PYTHONPATH", ""),
-        )
-        auto_configure_app.add_environment(
-            "PYTHONPATH",
-            "/var/task/lambdas/packages:" + os.environ.get("PYTHONPATH", ""),
-        )
-        podcast_to_shorts_lambda.add_environment(
-            "PYTHONPATH",
-            "/var/task/lambdas/packages:" + os.environ.get("PYTHONPATH", ""),
+            layers=[face_recognition_layer, moviepy_layer],
         )
 
         # In our requests we will add this to the headers
