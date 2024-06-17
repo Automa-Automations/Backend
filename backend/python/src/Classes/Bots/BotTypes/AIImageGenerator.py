@@ -4,6 +4,7 @@ import datetime
 from typing import Tuple, List
 
 from src.Classes.ContentGenerationBotHandler import ContentGenerationBotHandler
+from src.Classes.Post import Post
 from src.Classes.CreditTransaction import CreditTransaction
 from src.Classes.Enums import PostPublicity
 from src.Classes.User import DatabaseSyncedProfile
@@ -95,9 +96,8 @@ class AIImageGenerationBotHandler(ContentGenerationBotHandler):
 
     def generate(self, owner: DatabaseSyncedProfile) -> List['Post']:
         posts = []
-        transaction = CreditTransaction(id=str(uuid.uuid4()), created_at=datetime.datetime.now(), credits=self._calculate_generation_cost(), head="AI Image Generation", user_id=owner.id, metadata={})
-        transaction.add()
-        owner.credits -= transaction.credits
+
+        owner.credits -= self._calculate_generation_cost()
         for i in range(self.metadata.total_images):
             print("Generating topic...")
             topic = self._generate_topic_item(self.metadata.base_topic).split('\n')[0].strip()
@@ -141,5 +141,16 @@ class AIImageGenerationBotHandler(ContentGenerationBotHandler):
                 f.write(images[0])
 
             posts.append(Post(title=title, description=description, tags=[], publicity=PostPublicity.PUBLIC, content=image_filepath))
+            transaction = CreditTransaction(id=str(uuid.uuid4()), created_at=datetime.datetime.now(), credits=self._calculate_generation_cost(), head="AI Image Generation", user_id=owner.id, metadata={
+                "model": self.metadata.model,
+                "style": self.metadata.style,
+                "title": title,
+                "description": description,
+                "topic": topic,
+                "prompt": prompt, 
+                "image": image_filepath, # TODO: Save the image to the database
+                "size": f"{self.metadata.size[0]}x{self.metadata.size[1]}"
+            })
+            transaction.add()
 
         return posts

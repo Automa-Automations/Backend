@@ -3,6 +3,7 @@ from src.Classes.Plan import Plan
 from src.Classes.User import DatabaseSyncedProfile
 import stripe
 import traceback
+from src.Classes.CreditTransaction import CreditTransaction
 from typing import Optional
 import os
 
@@ -34,9 +35,9 @@ def handler(event, context):
         customer=customer['id'],
         stripe_version='2024-04-10',
     )
-    
+    price = int(Plan.from_id(price_id).price * 100) if "plan_" in price_id else int(price_id.split("_")[1]) # 1 credit = 1 cent
     payment_intent = stripe.PaymentIntent.create(
-        amount=int(Plan.from_id(price_id).price * 100),
+        amount=price,
         currency='usd',
         customer=customer['id'],
         automatic_payment_methods={
