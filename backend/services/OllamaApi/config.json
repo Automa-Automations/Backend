@@ -1,0 +1,11 @@
+{
+  "base_image": "ollama/ollama:latest",
+  "mounts": {
+    "ollama": "/root/.ollama"
+  },
+  "networking": {
+    "http": {
+      "11434": 11435 
+    }
+  }
+}
