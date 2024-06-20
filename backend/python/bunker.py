@@ -9,7 +9,10 @@ import docker
 import os
 import json
 from typing import Any
+import re
 
+from colorama import Fore, Style, init
+init(autoreset=True)
 
 def ask_config_json_questions(config: dict[str, Any]):
     config = config.copy()
@@ -252,11 +255,101 @@ def create():
         if template == "Flask - An Http Restful API":
             flask_quickstart(name, service_path)
 
+
+
+def build_container(service, dockerfile_path, path, should_stream_output=False) -> str:
+    client = docker.APIClient()
+    try:
+        stream = client.build(path=path, tag=service.lower(), dockerfile=dockerfile_path, decode=True,)
+        spinner = None
+        for line in stream:
+            if 'stream' in line:
+                if "--->" in line['stream']:
+                    continue
+
+                if "Successfully tagged" in line['stream']:
+                    if spinner:
+                        spinner.stop()
+                        spinner.ok("✅")
+                    return line['stream'].split(" ")[-1].strip().replace("\n", "")
+                
+                if not should_stream_output:
+                    continue
+
+                if line['stream'].strip() == "":
+                    continue
+
+                pretty_output = line['stream'].encode('utf-8').decode('unicode-escape').strip()
+                pretty_output = pretty_output.replace(
+                    "â", ""
+                ).replace(
+                    "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv", ""
+                )
+
+                # Remove anything that is not ASCII
+                pretty_output = "".join([i if ord(i) < 128 else ' ' for i in pretty_output])
+                
+                if len(":".join(pretty_output.split(":")[1:]).strip()) == 0:
+                    continue
+                
+                if not spinner:
+                    spinner = yaspin(text=f"{pretty_output}")
+                    spinner.start()
+
+                if "Step" in pretty_output:
+                    spinner.stop()
+                    spinner.ok("✅")
+                    spinner = yaspin(text=f"{pretty_output}")
+                    spinner.start()
+                else:
+                    spinner.text = f"{spinner.text.split(':')[0]}: {pretty_output[:50]}..."
+
+            if 'error' in line:
+                if "--->" in line['stream']:
+                    continue
+
+                if line['stream'].strip() == "":
+                    continue
+                click.echo(f"{Fore.RED}Error: {line['error']}", err=True)
+
+        if spinner:
+            spinner.ok("✅")
+            spinner.stop()
+
+    except docker.errors.BuildError as e:
+        click.echo(f"{Fore.RED}BuildError: {e}", err=True)
+    except Exception as e:
+        click.echo(f"Unexpected error: {e}", err=True)
+
+    return ""
+
 @builder.command()
-# Add a command to ask which service to build, it isn't nesseary, because we will show them a dropdown, but it is good to have for faster building & non-interactive shells.
 @click.option("--service", "-s", help="The service to build.", required=False, type=str)
 def build(service):
-    print(service)
+    if not service:
+        service = questionary.select("Select a service to build:", choices=os.listdir('services')).ask()
+
+    service_path = os.path.join("services", service)
+    dockerfile_path = os.path.join(service_path, "Dockerfile")
+
+    if not os.path.exists(dockerfile_path):
+        click.echo(f"{Fore.RED}Error: Dockerfile does not exist at path {dockerfile_path}")
+        return
+
+    click.echo(f"{Fore.GREEN}Building Docker image for service: {service}")
+    click.echo(f"{Fore.GREEN}Dockerfile path: {dockerfile_path}")
+
+    click.echo(f'🎉 Built Image: {build_container(service, dockerfile_path, "./", should_stream_output=True)}')
+
+
+    
+
+@builder.command()
+@click.option("--service", "-s", help="The service to run.", required=False, type=str)
+@click.option("--type", "-t", help="The type of service to run.", required=False, type=str)
+def codegen(service, type):
+    click.echo("Codegen", service, type)
+    click.echo(("Codegen", service, type))
 
 if __name__ == "__main__":
     builder()
