@@ -1,7 +1,0 @@
-{
-    "base_image": null,
-    "name": "stripeapi",
-    "cpu": "0.5",
-    "memory": "512MB",
-    "gpu": "auto",
-    "ports": 

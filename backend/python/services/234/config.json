@@ -1,7 +1,0 @@
-{
-    "base_image": null,
-    "name": "234",
-    "cpu": "0.25",
-    "memory": "128MB",
-    "gpu": "auto",
-    "ports": 
