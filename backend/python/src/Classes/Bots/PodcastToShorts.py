@@ -37,6 +37,9 @@ class PodcastToShorts:
 
     def __post_init__(self):
         self.__validate_env_variables()
+        if "youtu.be" in self.podcast_url:
+            self.podcast_url = f"https://youtube.com/watch?v={self.podcast_url.split("youtu.be/")[1]}"
+
         self.yt = YouTube(self.podcast_url)
         self.debugging = True
 
@@ -361,25 +364,6 @@ class PodcastToShorts:
     def _clip_and_follow_faces_mobile_ratio(self, clipped_video):
         return FaceTrackingVideo().process_short(clipped_video)
 
-    def _download_podcast(self, output_path: str = "downloads/", filename: str = ""):
-        print("Downloading podcast...")
-        try:
-            if filename == "":
-                filename = self.yt.title
-
-            self.yt.streams.get_highest_resolution().download(
-                output_path=output_path, filename=filename
-            )
-            return {
-                "output_path": output_path,
-                "filename": filename,
-                "status": "success",
-            }
-        except Exception as e:
-            return {
-                "error": e,
-                "status": "error",
-            }
 
     def __filter_transcripts(
         self, transcriptions_feedback: List[dict], should_make_short: bool = True
@@ -475,28 +459,6 @@ class PodcastToShorts:
                 print("saved scores to transcripts_score.json")
 
         return transcripts_feedback
-
-    def _get_video_transcript(self, video_url: str):
-        """
-        Method to get the video transcript from the video url
-        Parameters:
-        - video_url: str: The url of the video
-        Returns:
-        - video_transcript: list: The list of the transcript of the video
-        """
-        if "youtu.be" in video_url:
-            # Share url type
-            video_id = video_url.split("?")[0].split("be/")[1]
-            print(f"Video ID: {video_id}")
-        elif "youtube" in video_url:
-            # watch url type
-            video_id = video_url.split("v=")[1]
-            print(f"Video ID: {video_id}")
-        else:
-            raise ValueError(f"Incorrect url format: {video_url}")
-
-        video_transcript = YouTubeTranscriptApi.get_transcript(video_id)
-        return video_transcript
 
     def __chunk_transcript(self, video_transcript: str, chunk_length: int = 4000):
         """
