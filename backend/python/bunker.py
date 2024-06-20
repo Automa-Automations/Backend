@@ -252,6 +252,11 @@ def create():
         if template == "Flask - An Http Restful API":
             flask_quickstart(name, service_path)
 
+@builder.command()
+# Add a command to ask which service to build, it isn't nesseary, because we will show them a dropdown, but it is good to have for faster building & non-interactive shells.
+@click.option("--service", "-s", help="The service to build.", required=False, type=str)
+def build(service):
+    print(service)
 
 if __name__ == "__main__":
     builder()
