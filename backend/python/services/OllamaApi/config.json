@@ -1,0 +1,10 @@
+{
+    "base_image": "ollama/ollama",
+    "name": "OllamaApi",
+    "cpu": "0.25",
+    "memory": "128MB",
+    "gpu": "auto",
+    "ports": {},
+    "mounts": {},
+    "env": {}
+}

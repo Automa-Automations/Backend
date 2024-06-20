@@ -1,0 +1,12 @@
+{
+    "base_image": null,
+    "name": "Ollama",
+    "cpu": "0.25",
+    "memory": 0,
+    "gpu": "",
+    "ports": {
+        "5000": "80"
+    },
+    "mounts": {},
+    "env": []
+}

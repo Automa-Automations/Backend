@@ -1,0 +1,7 @@
+{
+    "base_image": null,
+    "name": "stripesapi",
+    "cpu": "0.25",
+    "memory": "512MB",
+    "gpu": "auto",
+    "ports": 

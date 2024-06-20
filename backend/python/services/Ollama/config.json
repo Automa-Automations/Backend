@@ -1,0 +1,10 @@
+{
+    "base_image": ,
+    "name": ,
+    "cpu": "0.25",
+    "memory": "128MB",
+    "gpu": "auto",
+    "ports": {},
+    "mounts": {},
+    "env": {}
+}
