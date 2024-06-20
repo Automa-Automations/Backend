@@ -1,5 +1,5 @@
 import sys
-from src.supabase import supabase
+# from src.supabase import supabase
 from typing import Any
 import datetime
 import traceback
@@ -132,3 +132,9 @@ def download_file_url(from_: str) -> bytes:
     file_object = response_bytes
 
     return file_object
+
+def format_video_url(video_url: str) -> str:
+    if "youtu.be" in video_url:
+        video_url = f"https://youtube.com/watch?v={video_url.split("youtu.be/")[1].split("?")[0]}"
+
+    return video_url

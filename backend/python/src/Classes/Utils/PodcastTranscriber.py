@@ -1,10 +1,9 @@
-from dotenv import load_dotenv
 import os
 from youtube_transcript_api import YouTubeTranscriptApi
 from pytube import YouTube
+from pydub import AudioSegment
 import assemblyai as aai
-
-load_dotenv()
+import json
 
 class PodcastTranscriber:
     def __init__(self, podcast_url):
@@ -22,38 +21,40 @@ class PodcastTranscriber:
                 output_path=output_path, filename=filename
             )
 
+            # yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution')[-1].download()
+            # yt.streams.get_highest_resolution().download()
             return {
                 "output_path": output_path,
                 "filename": filename,
                 "status": "success",
             } 
-        except Exception as e: 
+
+        except Exception as e:
             return {
                 "error": str(e),
                 "status": "error",
             }
 
+    def _convert_to_mp3(self, file_path: str):
+        mp4_audio = AudioSegment.from_file(file_path, format="mp4")
+        mp3_file_path = file_path.rsplit('.', 1)[0] + '.mp3'
+        mp4_audio.export(mp3_file_path, format="mp3")
+        return mp3_file_path
+
     @classmethod
     def from_assembly(cls, podcast_url: str, api_key: str):
-        # Create an instance of PodcastTranscriber
         podcast_transcriber = cls(podcast_url)
         download_output = podcast_transcriber.download_podcast()
+        print(download_output)
 
-        # Check if the podcast was downloaded successfully
         if download_output['status'] == 'success':
             download_path = os.path.join(download_output['output_path'], download_output['filename'])
-            
-            # Initialize AssemblyAI with the API key
+            podcast_mp3_path = podcast_transcriber._convert_to_mp3(download_path)
             assembly_ai = AssemblyAI(api_key)
-            
-            # Get the transcript using AssemblyAI
-            transcript = assembly_ai.get_yt_podcast_transcription(download_path)
-            
-            # Optionally parse the transcript
+            transcript = assembly_ai.get_yt_podcast_transcription(podcast_mp3_path)
             parsed_transcript = assembly_ai.parse_transcript(transcript)
-            
-            # Set the transcript to the instance
             podcast_transcriber.transcript = parsed_transcript
+            os.remove(podcast_mp3_path)
             
         return podcast_transcriber
 
@@ -72,11 +73,12 @@ class AssemblyAI:
     def get_yt_podcast_transcription(self, podcast_download_path: str):
         transcriber = aai.Transcriber()
         transcript = transcriber.transcribe(podcast_download_path)
-        return transcript
+        transcript = transcript.wait_for_completion()
+        print(f"Transcript (Assembly): {json.dumps(transcript.json_response, indent=4)}")
+        return transcript.json_response
 
-    def parse_transcript(self, transcript: str):
-        """Function to parse transcript"""
-        # Dummy parsing implementation
+    def parse_transcript(self, transcript):
+        """Function to parse transcript into full sentences."""
         return transcript
 
 
@@ -92,7 +94,6 @@ class YoutubeTranscriptionAPITranscriber:
         """
         # watch url type
         video_id = self.podcast_url.split("v=")[1]
-        print(f"Video ID: {video_id}")
 
         video_transcript = YouTubeTranscriptApi.get_transcript(video_id)
         return video_transcript

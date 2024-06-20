@@ -1,6 +1,6 @@
 annotated-types==0.6.0
 openai
-pytube3
+pytube
 ollama
 youtube-transcript-api
 stripe
@@ -13,3 +13,5 @@ face_recognition
 scipy
 python-dotenv
 opencv-python-headless
+pydub
+assemblyai

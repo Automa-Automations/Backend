@@ -1,5 +1,8 @@
-from tests.Classes import Bots
+from tests.Classes import Bots, Utils
 import unittest
+from dotenv import load_dotenv
+
+load_dotenv()
 
 all_tests = [
     {
@@ -22,6 +25,12 @@ all_tests = [
                         "name": "clip_and_follow_faces_mobile_ratio",
                         "test": Bots.PodcastToShorts.ClipAndFollowFacesMobileRatio,
                     },
+                ],
+            },
+            {
+                "name": "PodcastVideoTranscriber",
+                "units": [
+                    {"name": "transcription_test", "test": Utils.PodcastVideoTranscriber.PodcastVideoTranscriber},
                 ],
             },
         ],

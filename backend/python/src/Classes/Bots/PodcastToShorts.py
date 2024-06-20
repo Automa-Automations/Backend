@@ -1,8 +1,6 @@
-from youtube_transcript_api import YouTubeTranscriptApi
 from typing import List, TypedDict, Union
 from src.Classes.Utils.FaceTrackingVideo import FaceTrackingVideo
 from ollama import Client
-from dotenv import load_dotenv
 from pytube import YouTube
 import os
 import json
@@ -12,8 +10,9 @@ from fuzzywuzzy import fuzz
 import random
 from dataclasses import dataclass
 
-load_dotenv()
 import re
+
+from src.utils import format_video_url
 
 env_type = "LOCAL_"
 if os.environ.get("CURRENT_ENVIRONMENT", "local") == "prod":
@@ -22,7 +21,6 @@ if os.environ.get("CURRENT_ENVIRONMENT", "local") == "prod":
 OLLAMA_HOST_URL = os.getenv(f"{env_type}OLLAMA_HOST_URL")
 
 llama_client = Client(OLLAMA_HOST_URL)
-
 
 class TranscriptDict(TypedDict):
     text: str
@@ -37,9 +35,7 @@ class PodcastToShorts:
 
     def __post_init__(self):
         self.__validate_env_variables()
-        if "youtu.be" in self.podcast_url:
-            self.podcast_url = f"https://youtube.com/watch?v={self.podcast_url.split("youtu.be/")[1]}"
-
+        self.podcast_url = format_video_url(self.podcast_url)
         self.yt = YouTube(self.podcast_url)
         self.debugging = True
 
