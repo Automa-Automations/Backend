@@ -183,10 +183,25 @@ def flask_quickstart(name, root_dir):
     click.echo("🚀 Flask service created.")
 
 
+
 @click.group()
 def builder():
     """Bunker's code building CLI."""
     pass
+
+def choose_or_make_dir(type: str, root_dir: str):
+    root_dir_files = os.listdir(root_dir)
+    create_or_choose = questionary.select(
+            f"Would you like to create a new {type} directory or choose an existing one?",
+            choices=["Create", "Choose"]).ask()
+
+    if create_or_choose == "Choose":
+        root_dir = questionary.select("Select a root directory:", choices=root_dir_files).ask()
+    else:
+        root_dir = questionary.text(f"{type.capitalize()} Directory Name:").ask()
+        os.mkdir(root_dir)
+
+    return root_dir
 
 
 @builder.command()
@@ -203,17 +218,7 @@ def create():
     # Ask which will be the root directory
     if not create_config['service_dir']:
         # Ask them if they want to create or choose a root directory
-        create_or_choose = questionary.select(
-            "Would you like to create a new root directory or choose an existing one?",
-            choices=["Create", "Choose"]).ask()
-
-        root_dir = None
-        if create_or_choose == "Choose":
-            root_dir = questionary.select("Select a root directory:", choices=dirs).ask()
-        else:
-            root_dir = questionary.text("Root Directory Name:").ask()
-            os.mkdir(root_dir)
-
+        root_dir = choose_or_make_dir("service", ".")
         save_default = questionary.confirm("Would you like to save this as the default root directory?").ask()
         if save_default:
             create_config['service_dir'] = root_dir
@@ -328,22 +333,33 @@ def build_container(service, dockerfile_path, path, should_stream_output=False) 
 
     return ""
 
-
-@builder.command()
-@click.option("--service", "-s", help="The service to build.", required=False, type=str)
-@click.option("--all", "-a", help="Builds every single service at once.", required=False, type=str, is_flag=True)
-def build(service, all):
+def container_builder(service, all):
     services = []
+    # Get the services directory
+    config = json.load(open("config.json"))
+    services_dir = config.get('create', {}).get('service_dir', {})
+    if not services_dir:
+        services_dir = choose_or_make_dir("services", ".")
+
+    services_in_service_dir = os.listdir(services_dir)
+
     if all:
-        services = os.listdir('services')
+        services = os.listdir(services_dir)
 
     if not service and not all:
-        service = questionary.select("Select a service to build:", choices=os.listdir('services')).ask()
+        service = questionary.select("Select a service to build:", choices=services_in_service_dir).ask()
+        services = [service]
+    elif service:
         services = [service]
 
     for service in services:
+
+        service_path = os.path.join(services_dir, service)
+
+        if not os.path.isdir(service_path):
+            continue
+
         click.echo(f"{Fore.GREEN}Building Docker image for service: {service}")
-        service_path = os.path.join("services", service)
         dockerfile_path = os.path.join(service_path, "Dockerfile")
         config_path = os.path.join(service_path, "config.json")
 
@@ -364,6 +380,89 @@ def build(service, all):
 
         click.echo(
             f'{Fore.GREEN}🎉 Built Image: {build_container(service, dockerfile_path, "./", should_stream_output=True)}')
+
+
+@builder.command()
+@click.option("--service", "-s", help="The service to build.", required=False, type=str)
+@click.option("--all", "-a", help="Builds every single service at once.", required=False, type=str, is_flag=True)
+def build(service, all):
+    container_builder(service, all)
+
+
+def container_runner(service: str, all: bool=False):
+    print("TODO: Start service!")
+
+
+@builder.command()
+@click.option("--service", "-s", help="The service to run.", required=False, type=str)
+@click.option("--all", "-a", help="Runs every single service at once.", required=False, type=str, is_flag=True)
+def run(service, all=False):
+    """Allows you to run a service if it exists, """
+    container_runner(service=service, all=all)
+
+
+@builder.command()
+@click.option("--service", "-s", help="The service to run.", required=False, type=str)
+@click.option("--new", "-n", help="Start a new service.", required=False, type=str, is_flag=True)
+def flask(service, new):
+    "Utility to generate flask templates, routes, files & tests"
+    config = json.load(open("config.json"))
+    services_dir = config.get('create', {}).get('service_dir', {})
+
+    if not services_dir:
+        services_dir = choose_or_make_dir("service", ".")
+       
+    if service and os.path.exists(os.path.join(services_dir, service)):
+        click.echo(f"Service {service} already exists.")
+        return
+    
+    if new and service:
+        services_dir = os.path.join(services_dir, service)
+        os.mkdir(services_dir)
+        new = True   
+        
+    if not new and not service and questionary.confirm("Would you like to create a new service?").ask():
+        service = questionary.text("Service Name:").ask()
+        services_dir = os.path.join(services_dir, service)
+        os.mkdir(services_dir)
+        new = True
+
+    if new and not service:
+        service = questionary.text("Service Name:").ask()
+        services_dir = os.path.join(services_dir, service)
+        os.mkdir(services_dir)
+        new = True
+
+    
+
+    service_files_dir = os.path.join(services_dir, service)
+    if new:
+        click.echo("Creating new Flask service...")
+        flask_quickstart(service, services_dir)
+   
+    # Now we can figure out what the user wants to do
+    flask_tasks = [
+        "Create a new route (Also creates tests)",
+        "Validate test coverage",
+        "Build the service",
+        "Run the service with Docker",
+        "Get public url for testing"
+    ]
+
+    # Ask the user what they want to do
+    task = questionary.select("What action would you like to take?", choices=flask_tasks).ask()
+    if task == "Create a new route (Also creates tests)":
+        print("Creating a new route")
+    elif task == "Validate test coverage":
+        print("Validating test coverage")
+    elif task == "Build the service":
+        print("Building the service")
+    elif task == "Run the service with Docker":
+        container_builder(service=service, all=False)
+        container_runner(service=service, all=False)
+    elif task == "Get public url for testing":
+        print("Getting public url for testing")
+    
 
 
 @builder.command()
