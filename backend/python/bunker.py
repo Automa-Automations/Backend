@@ -12,7 +12,9 @@ from typing import Any
 import re
 
 from colorama import Fore, Style, init
+
 init(autoreset=True)
+
 
 def ask_config_json_questions(config: dict[str, Any]):
     config = config.copy()
@@ -256,11 +258,10 @@ def create():
             flask_quickstart(name, service_path)
 
 
-
 def build_container(service, dockerfile_path, path, should_stream_output=False) -> str:
     client = docker.APIClient()
     try:
-        stream = client.build(path=path, tag=service.lower(), dockerfile=dockerfile_path, decode=True,)
+        stream = client.build(path=path, tag=service.lower(), dockerfile=dockerfile_path, decode=True, )
         spinner = None
         for line in stream:
             if 'stream' in line:
@@ -272,7 +273,7 @@ def build_container(service, dockerfile_path, path, should_stream_output=False) 
                         spinner.stop()
                         spinner.ok("✅")
                     return line['stream'].split(" ")[-1].strip().replace("\n", "")
-                
+
                 if not should_stream_output:
                     continue
 
@@ -283,15 +284,16 @@ def build_container(service, dockerfile_path, path, should_stream_output=False) 
                 pretty_output = pretty_output.replace(
                     "â", ""
                 ).replace(
-                    "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv", ""
+                    "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv",
+                    ""
                 )
 
                 # Remove anything that is not ASCII
                 pretty_output = "".join([i if ord(i) < 128 else ' ' for i in pretty_output])
-                
+
                 if len(":".join(pretty_output.split(":")[1:]).strip()) == 0:
                     continue
-                
+
                 if not spinner:
                     spinner = yaspin(text=f"{pretty_output}")
                     spinner.start()
@@ -310,39 +312,59 @@ def build_container(service, dockerfile_path, path, should_stream_output=False) 
 
                 if line['stream'].strip() == "":
                     continue
-                click.echo(f"{Fore.RED}Error: {line['error']}", err=True)
 
-        if spinner:
-            spinner.ok("✅")
-            spinner.stop()
+                click.echo(f"{Fore.RED}Error: {line['error']}", err=True)
+                break
+
 
     except docker.errors.BuildError as e:
         click.echo(f"{Fore.RED}BuildError: {e}", err=True)
     except Exception as e:
         click.echo(f"Unexpected error: {e}", err=True)
 
+    if spinner:
+        spinner.ok("✅")
+        spinner.stop()
+
     return ""
+
 
 @builder.command()
 @click.option("--service", "-s", help="The service to build.", required=False, type=str)
-def build(service):
-    if not service:
+@click.option("--all", "-a", help="Builds every single service at once.", required=False, type=str, is_flag=True)
+def build(service, all):
+    services = []
+    if all:
+        services = os.listdir('services')
+
+    if not service and not all:
         service = questionary.select("Select a service to build:", choices=os.listdir('services')).ask()
+        services = [service]
 
-    service_path = os.path.join("services", service)
-    dockerfile_path = os.path.join(service_path, "Dockerfile")
+    for service in services:
+        click.echo(f"{Fore.GREEN}Building Docker image for service: {service}")
+        service_path = os.path.join("services", service)
+        dockerfile_path = os.path.join(service_path, "Dockerfile")
+        config_path = os.path.join(service_path, "config.json")
 
-    if not os.path.exists(dockerfile_path):
-        click.echo(f"{Fore.RED}Error: Dockerfile does not exist at path {dockerfile_path}")
-        return
+        df_exists = os.path.exists(dockerfile_path)
+        cf_exists = os.path.exists(config_path)
 
-    click.echo(f"{Fore.GREEN}Building Docker image for service: {service}")
-    click.echo(f"{Fore.GREEN}Dockerfile path: {dockerfile_path}")
+        if not df_exists and not cf_exists:
+            click.echo(f"❌{Fore.RED}Error: Dockerfile and Config does not exist at path {service_path}")
+            return
 
-    click.echo(f'🎉 Built Image: {build_container(service, dockerfile_path, "./", should_stream_output=True)}')
+        if df_exists and not cf_exists:
+            click.echo(f"❌{Fore.RED}Error: Dockerfile but Config file doesn't exist. Deployment isn't possible!")
+            return
 
+        if not df_exists and cf_exists:
+            click.echo(f'🎉 {service} is a "Deploy Only" container!')
+            continue
 
-    
+        click.echo(
+            f'{Fore.GREEN}🎉 Built Image: {build_container(service, dockerfile_path, "./", should_stream_output=True)}')
+
 
 @builder.command()
 @click.option("--service", "-s", help="The service to run.", required=False, type=str)
@@ -350,6 +372,7 @@ def build(service):
 def codegen(service, type):
     click.echo("Codegen", service, type)
     click.echo(("Codegen", service, type))
+
 
 if __name__ == "__main__":
     builder()
