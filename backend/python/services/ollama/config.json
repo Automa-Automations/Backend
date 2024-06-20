@@ -1,0 +1,10 @@
+{
+    "base_image": "ollama/ollama",
+    "name": "ollama_0d74e972426d4229b2c04b21b255653e",
+    "cpu": "2",
+    "memory": "1024MB",
+    "gpu": "auto",
+    "ports": {},
+    "mounts": {},
+    "env": {}
+}

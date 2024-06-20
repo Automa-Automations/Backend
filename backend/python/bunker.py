@@ -10,6 +10,7 @@ import os
 import json
 from typing import Any
 import re
+import uuid
 
 from colorama import Fore, Style, init
 
@@ -121,7 +122,7 @@ def dockerhub_quickstart(name: str, root_dir: str):
     # Create the service
     config = {
         "base_image": image_to_use,
-        "name": name,
+        "name": f"{name.lower()}_{uuid.uuid4().hex}",
         "cpu": 0,
         "memory": 0,
         "gpu": "",
@@ -189,11 +190,14 @@ def builder():
     """Bunker's code building CLI."""
     pass
 
-def choose_or_make_dir(type: str, root_dir: str):
+def choose_or_make_dir(type: str, root_dir: str, make_new=True):
     root_dir_files = os.listdir(root_dir)
-    create_or_choose = questionary.select(
+    if make_new:
+        create_or_choose = questionary.select(
             f"Would you like to create a new {type} directory or choose an existing one?",
             choices=["Create", "Choose"]).ask()
+    else:
+        create_or_choose = "Choose"
 
     if create_or_choose == "Choose":
         root_dir = questionary.select("Select a root directory:", choices=root_dir_files).ask()
@@ -362,6 +366,7 @@ def container_builder(service, all):
         click.echo(f"{Fore.GREEN}Building Docker image for service: {service}")
         dockerfile_path = os.path.join(service_path, "Dockerfile")
         config_path = os.path.join(service_path, "config.json")
+        service_name = json.load(open(config_path)).get("name", uuid.uuid4().hex)
 
         df_exists = os.path.exists(dockerfile_path)
         cf_exists = os.path.exists(config_path)
@@ -379,7 +384,7 @@ def container_builder(service, all):
             continue
 
         click.echo(
-            f'{Fore.GREEN}🎉 Built Image: {build_container(service, dockerfile_path, "./", should_stream_output=True)}')
+            f'{Fore.GREEN}🎉 Built Image: {build_container(service_name, dockerfile_path, "./", should_stream_output=True)}')
 
 
 @builder.command()
@@ -390,8 +395,41 @@ def build(service, all):
 
 
 def container_runner(service: str, all: bool=False):
-    print("TODO: Start service!")
+    config = json.load(open("config.json"))
+    services_dir = config.get('create', {}).get('service_dir', {})
 
+    if not services_dir:
+        services_dir = choose_or_make_dir("services", ".", False)
+    
+    if not service and not all:
+        service = questionary.select("Select a service to run:", choices=os.listdir(services_dir)).ask()
+
+    service_path = os.path.join(services_dir, service)
+    service_config_path = os.path.join(service_path, "config.json")
+
+    service_config = json.load(open(service_config_path))
+    client = docker.from_env()
+
+    ports = service_config.get("ports", {})
+    mounts = service_config.get("mounts", {})
+    env = service_config.get("env", {})
+    base_image = service_config.get("base_image")
+    image = service_config.get("name").lower() if not base_image else base_image
+    ports_transformed = {str(external): str(internal) for internal, external in ports.items()}
+
+    mounts_transformed = []
+    for mount_name, mount_location in mounts.items():
+        mounts_transformed.append(docker.types.Mount(target=mount_location, source=mount_name, type='bind'))
+
+    container = client.containers.run(
+        image=image,
+        ports=ports_transformed,
+        mounts=mounts_transformed,
+        environment=env,
+        detach=True,
+    )
+
+    return container
 
 @builder.command()
 @click.option("--service", "-s", help="The service to run.", required=False, type=str)
