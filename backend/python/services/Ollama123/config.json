@@ -1,14 +1,12 @@
 {
     "base_image": null,
-    "name": "ollama6",
+    "name": "Ollama123",
     "cpu": "0.25",
     "memory": "128MB",
     "gpu": "auto",
     "ports": {
         "5000": "80"
     },
-    "mounts": {
-        "123": "123"
-    },
-    "env": []
+    "mounts": {},
+    "env": {}
 }

@@ -7,9 +7,9 @@ import questionary
 from yaspin import yaspin
 import docker
 import os
-import webbrowser
 import json
 from typing import Any
+
 
 def ask_config_json_questions(config: dict[str, Any]):
     config = config.copy()
@@ -20,28 +20,43 @@ def ask_config_json_questions(config: dict[str, Any]):
     config["cpu"] = cpu
 
     # Memory
-    memory_units = ["MB", "GB"]
-    memory_unit = questionary.select("Select Memory Unit:", choices=memory_units).ask()
- 
-    memory_amounts_mb = ["128", "256", "512", "1024", "2048", "4096", "8192", "16384", "32768", "65536"]
-    memory_amounts_gb = ["1", "2", "4", "8", "16", "32", "64"]
-    if memory_unit == "MB":
-        memory = questionary.select("Select Memory Amount (MB):", choices=memory_amounts_mb).ask()
-    else:
-        memory = questionary.select("Select Memory Amount (GB):", choices=memory_amounts_gb).ask()
+    # If there is already memory specified in config then ask the user if they want to change it
+    should_ask_memory = True
+    if config["memory"] and not questionary.confirm(f"Would you like to change the memory? ({config['memory']})").ask():
+        should_ask_memory = False
 
-    config["memory"] = f"{memory}{memory_unit}"
+    if should_ask_memory:
+        memory_units = ["MB", "GB"]
+        memory_unit = questionary.select("Select Memory Unit:", choices=memory_units).ask()
+
+        memory_amounts_mb = ["128", "256", "512", "1024", "2048", "4096", "8192", "16384", "32768", "65536"]
+        memory_amounts_gb = ["1", "2", "4", "8", "16", "32", "64"]
+        if memory_unit == "MB":
+            memory = questionary.select("Select Memory Amount (MB):", choices=memory_amounts_mb).ask()
+        else:
+            memory = questionary.select("Select Memory Amount (GB):", choices=memory_amounts_gb).ask()
+
+        config["memory"] = f"{memory}{memory_unit}"
 
     # GPU
-    gpus = ["auto", "none", "a10", "l40s", "a100-40gb", "a100-80gb"]
-    gpu = questionary.select("Select GPU:", choices=gpus).ask()
-    config["gpu"] = gpu
+    should_ask_gpu = True
+    if config["gpu"] and not questionary.confirm(f"Would you like to change the GPU? ({config['gpu']})").ask():
+        should_ask_gpu = False
 
-        
-    # Mounts
+    if should_ask_gpu:
+        gpus = ["auto", "none", "a10", "l40s", "a100-40gb", "a100-80gb"]
+        gpu = questionary.select("Select GPU:", choices=gpus).ask()
+        config["gpu"] = gpu
+
     mounts = config.get("mounts", {})
-    has_any_mounts = questionary.confirm("Do you have any mounts?").ask()
-    if has_any_mounts:
+    should_ask_mounts = True
+    if mounts and not questionary.confirm("Would you like to change the mounts?").ask():
+        should_ask_mounts = False
+
+    if should_ask_mounts:
+        should_ask_mounts = questionary.confirm("Would you like to add mounts?").ask()
+
+    if should_ask_mounts:
         while True:
             mount_name = questionary.text("Mount Name:").ask()
             mount_path = questionary.text("Mount Path:").ask()
@@ -53,9 +68,15 @@ def ask_config_json_questions(config: dict[str, Any]):
     config["mounts"] = mounts
 
     # Environment Variables
-    env_vars = config.get("env", {})
-    has_any_env_vars = questionary.confirm("Do you have any environment variables?").ask()
-    if has_any_env_vars:
+    env_vars = config.get("env", {}).copy()
+    should_ask_env_vars = True
+    if env_vars and not questionary.confirm("Would you like to change the environment variables?").ask():
+        should_ask_env_vars = False
+
+    if should_ask_env_vars:
+        should_ask_env_vars = questionary.confirm("Would you like to add environment variables?").ask()
+
+    if should_ask_env_vars:
         while True:
             env_var_name = questionary.text("Environment Variable Name:").ask()
             env_var_value = questionary.text("Environment Variable Value:").ask()
@@ -63,16 +84,15 @@ def ask_config_json_questions(config: dict[str, Any]):
             add_another = questionary.confirm("Add another environment variable?").ask()
             if not add_another:
                 break
-    
+
     config["env"] = env_vars
     return config
-
 
 
 def dockerhub_quickstart(name: str, root_dir: str):
     client = docker.from_env()
     image = questionary.text("Docker Image:").ask()
-    
+
     if not image:
         click.echo("Docker image cannot be empty.")
         return
@@ -90,7 +110,7 @@ def dockerhub_quickstart(name: str, root_dir: str):
         if not image_to_use:
             click.echo("No image selected.")
             return
-        
+
     click.echo(f"🚀 Creating {name} service from {image_to_use}")
 
     # Create the service
@@ -104,6 +124,10 @@ def dockerhub_quickstart(name: str, root_dir: str):
         "mounts": {},
         "env": {},
     }
+    # Save the config
+    click.echo("📝 Saving configuration...")
+
+    # PORTS (Auto Detectable)
     click.echo("🔍 Detecting ports...")
     # TODO: Find a way to detect ports (By inspecting the image dockerfile)
     ports: dict[str, str] = {}
@@ -116,10 +140,7 @@ def dockerhub_quickstart(name: str, root_dir: str):
 
 
 def flask_quickstart(name, root_dir):
-    # We need to ask the same questions as with the config 
-    # Recursively copy the contents from templates/flask to the service folder (root_dir/name)
     os.system(f"cp -r templates/Flask/* {root_dir}")
-
     config = {
         "base_image": None,
         "name": name,
@@ -127,19 +148,34 @@ def flask_quickstart(name, root_dir):
         "memory": 0,
         "gpu": "",
         "ports": {
-            ""
+            "5000": "80"
         },
         "mounts": {},
-        "env": [],
+        "env": {},
     }
 
     config = ask_config_json_questions(config)
-
     click.echo("📝 Saving configuration...")
     json.dump(config, open(os.path.join(root_dir, "config.json"), "w"), indent=4)
 
-    # Build out the Dockerfile from the template
+    dockerfile_path = os.path.join(root_dir, "Dockerfile")
+    if not os.path.exists(dockerfile_path):
+        click.echo("Dockerfile not found. Using default Dockerfile.")
+        os.system(f"cp templates/Flask/Dockerfile {dockerfile_path}")
 
+    click.echo("📝 Modifying Dockerfile...")
+    dockerfile = open(dockerfile_path).read()
+    dockerfile = dockerfile.replace("<<port>>", list(config["ports"].keys())[0])
+    dockerfile = dockerfile.replace("<<app_name>>", os.path.join(root_dir, "main.py"))
+    open(dockerfile_path, "w").write(dockerfile)
+
+    click.echo("📝 Modifying main.py...")
+    main_path = os.path.join(root_dir, "main.py")
+    main = open(main_path).read()
+    main = main.replace("<<port>>", list(config["ports"].keys())[0])
+    open(main_path, "w").write(main)
+
+    click.echo("🚀 Flask service created.")
 
 
 @click.group()
@@ -162,7 +198,9 @@ def create():
     # Ask which will be the root directory
     if not create_config['service_dir']:
         # Ask them if they want to create or choose a root directory
-        create_or_choose = questionary.select("Would you like to create a new root directory or choose an existing one?", choices=["Create", "Choose"]).ask()
+        create_or_choose = questionary.select(
+            "Would you like to create a new root directory or choose an existing one?",
+            choices=["Create", "Choose"]).ask()
 
         root_dir = None
         if create_or_choose == "Choose":
@@ -194,8 +232,6 @@ def create():
     # Ensure it is not empty
     if not name:
         click.echo("Service name cannot be empty.")
-        while True:
-            break
         return
 
     try:
@@ -209,12 +245,13 @@ def create():
         template = questionary.select("Select a template:", choices=[
             "DockerHub - Non-Modified Dockerhub Image",
             "Flask - An Http Restful API",
-            "Cron - A Cron Job Service (Useful for mass data cleaning / processing)", 
+            "Cron - A Cron Job Service (Useful for mass data cleaning / processing)",
         ]).ask()
         if template == "DockerHub - Non-Modified Dockerhub Image":
             dockerhub_quickstart(name, service_path)
         if template == "Flask - An Http Restful API":
             flask_quickstart(name, service_path)
+
 
 if __name__ == "__main__":
     builder()

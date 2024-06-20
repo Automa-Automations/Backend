@@ -8,9 +8,9 @@ COPY ../../ /app
 WORKDIR /app
 
 # Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+pip install --no-cache-dir -r requirements.txt
 
 # Expose the port the app runs on
-EXPOSE <<port>>
+EXPOSE <<PORT>>
 
-CMD python services/<<app_name>>/main.py
+python services/<<SERVICE_NAME>>/main.py
