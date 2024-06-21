@@ -1,5 +1,5 @@
 import sys
-# from src.supabase import supabase
+from src.supabase import supabase
 from typing import Any
 import datetime
 import traceback
