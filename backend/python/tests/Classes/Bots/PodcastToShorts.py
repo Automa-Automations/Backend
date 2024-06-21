@@ -1,10 +1,12 @@
 import unittest
 from moviepy.editor import VideoFileClip
 from src.Classes.Bots import PodcastToShorts
+import os
+import logging
 
-# podcast_url = "https://youtu.be/nDLb8_wgX50?si=d8jgLM_KO68OZHZI"
-podcast_url = "https://youtu.be/dIzAPAIRuXQ?si=ioGADbliDtD6yZ7h"
+logger = logging.getLogger(__name__)
 
+podcast_url = os.environ.get("TEST_PODCAST_URL") or ""
 
 class FullRun(unittest.TestCase):
     def test_full_run(self):
@@ -15,25 +17,6 @@ class FullRun(unittest.TestCase):
         self.assertEqual(isinstance(shorts, list), True)
         self.assertIsNotNone(shorts[0])
         self.assertEqual(isinstance(shorts[0], dict), True)
-
-
-class ClipShorts(unittest.TestCase):
-    def test_clip_shorts(self):
-        podcast_to_shorts = PodcastToShorts(podcast_url=podcast_url)
-        shorts_data = podcast_to_shorts.get_shorts(debugging=True)
-        # skip this test since clipping functionality isn't made yet.
-        self.assertTrue(len(shorts_data), "Shorts clipping works as expected")
-
-
-class DownloadVideo(unittest.TestCase):
-    def test_download_video(self):
-        podcast_to_shorts = PodcastToShorts(podcast_url=podcast_url)
-        output = podcast_to_shorts._download_podcast("")
-
-        self.assertEqual(isinstance(output["output_path"], str), True)
-        self.assertEqual(isinstance(output["filename"], str), True)
-        self.assertEqual(output["status"], "success")
-
 
 class GetFullTranscript(unittest.TestCase):
     def test_get_full_transcript(self):

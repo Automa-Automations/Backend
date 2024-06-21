@@ -5,13 +5,15 @@ import stripe
 import traceback
 from typing import Optional
 import os
+import logging
 
 stripe.api_key = os.environ["STRIPE_API_KEY"]
 STRIPE_PUBLISHABLE_KEY = os.environ["STRIPE_PUBLISHABLE_KEY"]
 
+logger = logging.getLogger(__name__)
+
 
 def handler(event, context):
-    print(event)
     body = json.loads(event["body"])
     print(body)
     user_id = body["userId"]

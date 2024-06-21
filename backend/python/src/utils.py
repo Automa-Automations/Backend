@@ -1,6 +1,7 @@
 import sys
 from src.supabase import supabase
 from typing import Any
+from pytube import YouTube
 import datetime
 import traceback
 import uuid
@@ -138,3 +139,26 @@ def format_video_url(video_url: str) -> str:
         video_url = f"https://youtube.com/watch?v={video_url.split("youtu.be/")[1].split("?")[0]}"
 
     return video_url
+
+def download_podcast(podcast_url, output_path: str = "downloads/", filename: str = ""):
+    print("Downloading podcast...")
+    try:
+        yt = YouTube(podcast_url)
+        if filename == "":
+            filename = yt.title
+
+        yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution')[-1].download(
+            output_path=output_path, filename=filename
+        )
+
+        return {
+            "output_path": output_path,
+            "filename": filename,
+            "status": "success",
+        } 
+
+    except Exception as e:
+        return {
+            "error": str(e),
+            "status": "error",
+        }

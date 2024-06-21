@@ -1,40 +1,17 @@
 import os
 from youtube_transcript_api import YouTubeTranscriptApi
-from pytube import YouTube
 from pydub import AudioSegment
 import assemblyai as aai
 import logging
 import json
+from src.utils import download_podcast
 
 logger = logging.getLogger(__name__)
 
 class PodcastTranscriber:
     def __init__(self, podcast_url):
         self.podcast_url = podcast_url
-        self.transcript = None
-
-    def download_podcast(self, output_path: str = "downloads/", filename: str = ""):
-        print("Downloading podcast...")
-        try:
-            yt = YouTube(self.podcast_url)
-            if filename == "":
-                filename = yt.title
-
-            yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution')[-1].download(
-                output_path=output_path, filename=filename
-            )
-
-            return {
-                "output_path": output_path,
-                "filename": filename,
-                "status": "success",
-            } 
-
-        except Exception as e:
-            return {
-                "error": str(e),
-                "status": "error",
-            }
+        self.transcript = []
 
     def _convert_to_mp3(self, file_path: str):
         mp4_audio = AudioSegment.from_file(file_path, format="mp4")
@@ -45,7 +22,7 @@ class PodcastTranscriber:
     @classmethod
     def from_assembly(cls, podcast_url: str, api_key: str, debugging: bool = False):
         podcast_transcriber = cls(podcast_url)
-        download_output = podcast_transcriber.download_podcast()
+        download_output = download_podcast(podcast_url)
         print(download_output)
 
         if download_output['status'] == 'success':

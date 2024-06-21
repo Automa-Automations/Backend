@@ -1,6 +1,5 @@
-from typing import List, TypedDict, Union
+from typing import List, TypedDict, Union, Literal
 from src.Classes.Utils.FaceTrackingVideo import FaceTrackingVideo
-from ollama import Client
 from pytube import YouTube
 import os
 import json
@@ -8,11 +7,12 @@ import base64
 from moviepy.editor import VideoFileClip
 from fuzzywuzzy import fuzz
 import random
-from dataclasses import dataclass
-
+import logging
 import re
-
+from src.Classes.Utils.PodcastTranscriber import PodcastTranscriber
 from src.utils import format_video_url
+
+logger = logging.getLogger(__name__)
 
 env_type = "LOCAL_"
 if os.environ.get("CURRENT_ENVIRONMENT", "local") == "prod":
@@ -20,54 +20,67 @@ if os.environ.get("CURRENT_ENVIRONMENT", "local") == "prod":
 
 OLLAMA_HOST_URL = os.getenv(f"{env_type}OLLAMA_HOST_URL")
 
-llama_client = Client(OLLAMA_HOST_URL)
-
 class TranscriptDict(TypedDict):
     text: str
     start: float
     duration: float
 
-
-@dataclass
 class PodcastToShorts:
-    podcast_url: str
-    llama_model: str = "llama3"
+    def __init__(self, podcast_url: str, llm_type: Literal["openai", "ollama"], transcriptor_type: Literal["assembly_ai", "yt_transcript_api"] = "assembly_ai", llm_model: str = "gpt-4o"):
+        if llm_type == "openai" and "gpt" not in llm_model:
+            raise ValueError("OpenAI model must be a GPT model")
+        elif llm_type == "ollama" and not OLLAMA_HOST_URL:
+            raise ValueError("OLLAMA_HOST_URL is not set in the environment variables")
+        if llm_type not in ["openai", "ollama"]:
+            raise ValueError("LLM type is not valid")
 
-    def __post_init__(self):
-        self.__validate_env_variables()
+        self.podcast_url = podcast_url
+        self.transcriptor_type = transcriptor_type
+        self.llm_type = llm_type
+        self.llm_model = llm_model
+        self.debugging = True
         self.podcast_url = format_video_url(self.podcast_url)
         self.yt = YouTube(self.podcast_url)
-        self.debugging = True
+
+        self.__validate_env_variables()
 
     def get_shorts(self, debugging=False):
         """
         Method to generate the shorts from the podcast
         """
-        transcript = self._get_video_transcript(self.podcast_url)
-        print(f"Transcript length: {len(transcript)})")
+        if self.transcriptor_type == "assembly_ai":
+            transcriptor = PodcastTranscriber.from_assembly(self.podcast_url, os.getenv("ASSEMBLY_AI_API_KEY") or "", self.debugging)
+        elif self.transcriptor_type == "yt_transcript_api":
+            transcriptor = PodcastTranscriber.from_transcription_api(self.podcast_url, self.debugging)
+        else:
+            logger.error("Transcriptor type is not valid")
+            raise ValueError("Transcriptor type is not valid")
+
+        transcript = transcriptor.transcript
+        logger.info(f"Transcript length: {len(transcript)})")
         #
         podcast_length = round(
             (transcript[-1]["start"] + transcript[-1]["duration"]) / 60
         )
-        print(f"Podcast Length: {podcast_length} minutes")
+        logger.info(f"Podcast Length: {podcast_length} minutes")
 
         if self.debugging or debugging:
             with open("./src/Classes/Bots/transcripts_feedback.json", "r") as f:
                 transcriptions_feedback = json.load(f)
         else:
             transcriptions_feedback = self.__get_transcripts_feedback(transcript)
-        print(
+        logger.info(
             f"Transcriptions With Feedback length: {len(transcriptions_feedback)}): {transcriptions_feedback}"
         )
 
         shorts_transcripts = self.__filter_transcripts(transcriptions_feedback)
-        print(
+        logger.info(
             f"Shorts Transcripts: (length: {len(shorts_transcripts)}): {shorts_transcripts}"
         )
 
         if len(shorts_transcripts) < round(podcast_length / 10):
             # get all the shorts that is "should_make_short" false. We need to get the best of them, so that there is enough shorts.
-            print("length of shorts transcripts not enough. Getting extra shorts...")
+            logger.info("length of shorts transcripts not enough. Getting extra shorts...")
             other_shorts = self.__filter_transcripts(
                 transcriptions_feedback, should_make_short=False
             )
@@ -76,38 +89,38 @@ class PodcastToShorts:
                 total_shorts=round(podcast_length / 10) - len(shorts_transcripts),
             )
             shorts_transcripts.extend(extra_shorts)
-            print(f"New shorts transcripts length: {len(shorts_transcripts)}")
+            logger.info(f"New shorts transcripts length: {len(shorts_transcripts)}")
 
         elif len(shorts_transcripts) > round(podcast_length / 10):
             # Make a new list by putting only the highest scores in there, so that it is the length of round(podcast_length / 10)
-            print("Shorts transcripts length is too long...")
+            logger.info("Shorts transcripts length is too long...")
             highest_score_list = sorted(
                 shorts_transcripts, key=lambda x: x["stats"]["score"], reverse=True
             )[: round(podcast_length / 10)]
 
-            print(
+            logger.info(
                 f"New shorts transcripts length: {len(highest_score_list)}. Before, it was a length of {len(shorts_transcripts)}"
             )
             shorts_transcripts = highest_score_list
 
         # if self.debugging or debugging:
         if debugging:
-            print("Loading from shorts_final_transcripts.json...")
+            logger.info("Loading from shorts_final_transcripts.json...")
             with open("./src/Classes/Bots/shorts_final_transcripts.json", "r") as f:
                 shorts_final_transcripts = json.load(f)
         else:
             # take each short, use OpenAI to remove all unnecessary content in the start and end, only getting the juicy part, so that it is just the short.
-            print("Getting shorts final transcripts...")
+            logger.info("Getting shorts final transcripts...")
             shorts_final_transcripts = self.__get_shorts_final_transcripts(
                 shorts_transcripts
             )
-        print(
+        logger.info(
             f"Shorts Final Transcripts: (length: {len(shorts_final_transcripts)}): {shorts_final_transcripts}"
         )
 
-        print("Generating shorts...")
+        logger.info("Generating shorts...")
         clip_shorts_data = self._generate_shorts(shorts_final_transcripts)
-        print(
+        logger.info(
             f"Clip Shorts Data: (length: {len(clip_shorts_data)}): {clip_shorts_data}"
         )
 
@@ -128,7 +141,7 @@ class PodcastToShorts:
             shorts_transcripts, key=lambda x: x["stats"]["score"], reverse=True
         )
         best_shorts = descending_sorted_shorts[:total_shorts]
-        print(f"Got an extra {len(best_shorts)} shorts.")
+        logger.info(f"Got an extra {len(best_shorts)} shorts.")
         return best_shorts
 
     def __get_shorts_final_transcripts(self, shorts_transcripts: List[dict]):
@@ -166,14 +179,14 @@ class PodcastToShorts:
                     llama_response["end_text"] = llama_response["end_text"].replace(
                         "\n", " "
                     )
-                    print("Successfully got response")
+                    logger.info("Successfully got response")
                     break
                 except Exception as e:
-                    print("Error occured: ", e)
-                    print("Trying again...")
+                    logger.error("Error occured: ", e)
+                    logger.error("Trying again...")
 
             shortened_transcript = []
-            print("\n")
+            logger.info("\n")
             for idx, dict in enumerate(short["transcript"]):
                 dict["text"] = dict["text"].replace("\n", " ")
 
@@ -181,7 +194,7 @@ class PodcastToShorts:
                 is_similar = validate_similarity(
                     current_text, llama_response["start_text"], 80
                 )
-                print(
+                logger.info(
                     f'{idx+1}. "{current_text}" == "{llama_response["start_text"]}": {is_similar}'
                 )
                 if is_similar:
@@ -199,7 +212,7 @@ class PodcastToShorts:
                             current_text = re.sub(pattern, "", current_text)
                             current_text = re.sub(r"\s+", " ", current_text).strip()
 
-                            print(f"Current Text: {current_text}")
+                            logger.info(f"Current Text: {current_text}")
 
                             current_text = re.sub(regex, "", current_text).replace(
                                 "\n", " "
@@ -210,7 +223,7 @@ class PodcastToShorts:
                             shortened_transcript.append(append_dict)
                             count = count + 1
                         except Exception as e:
-                            print("Exception occured: ", e)
+                            logger.info("Exception occured: ", e)
                             break
                     break
 
@@ -270,20 +283,20 @@ class PodcastToShorts:
 
                 final_transcripts.append(append_dict)
             except Exception as e:
-                print("Error occured: ", e)
+                logger.error("Error occured: ", e)
                 continue
 
             with open("./src/Classes/Bots/shorts_final_transcripts.json", "w") as f:
                 f.write(json.dumps(final_transcripts, indent=4))
-                print("saved shorts final transcripts to shorts_final_transcripts.json")
+                logger.info("saved shorts final transcripts to shorts_final_transcripts.json")
 
         return final_transcripts
 
     def _generate_shorts(self, shorts_final_transcripts: List):
         # for now, just download the podcast and get shorts, unedited.
-        download_response = self._download_podcast()
+        download_response = download_podcast()
         if download_response["status"] == "success":
-            print("Podcast downloaded successfully")
+            logger.info("Podcast downloaded successfully")
             clip_shorts_data = []
             for short_transcript in shorts_final_transcripts:
                 clipped_short_data = self._clip_short(
@@ -308,7 +321,7 @@ class PodcastToShorts:
             )
 
     def _clip_short(self, output_path: str, filename: str, short_transcript) -> dict:
-        print("Clipping short...")
+        logger.info("Clipping short...")
         podcast_path = os.path.join(output_path, filename)
         short_start_time = short_transcript["transcript"][0]["start"]
         short_end_time = (
@@ -327,7 +340,7 @@ class PodcastToShorts:
         )
         try:
             # clip video to mobile aspect ratio (9:16), along with following faces smoothly
-            print(
+            logger.info(
                 "Clipping short to mobile aspect ratio, along with following faces smoothly..."
             )
 
@@ -352,7 +365,7 @@ class PodcastToShorts:
             return return_dict
 
         except Exception as e:
-            print(
+            logger.error(
                 f"Error while clipping short to right aspect ratio and adding in face detection: {e}"
             )
             return {}
@@ -422,26 +435,26 @@ class PodcastToShorts:
                             keep_alive="1m",
                         )["response"]
                     )
-                    print("Successfully got response")
+                    logger.info("Successfully got response")
                     break
 
                 except:  # If there is an error, just skip this chunk
-                    print("Error occurred. Trying again.")
+                    logger.error("Error occurred. Trying again.")
 
             feedback_chunk = {
                 "transcript": chunk,
                 "stats": response,
             }
 
-            print(f"{idx+1}. Formatted Chunk: {chunk}")
-            print(
+            logger.info(f"{idx+1}. Formatted Chunk: {chunk}")
+            logger.info(
                 f"{idx+1}. Feedback Chunk Stats Length: {len(feedback_chunk["stats"])}"
             )
 
             transcripts_feedback.append(feedback_chunk)
             with open("./src/Classes/Bots/transcripts_feedback.json", "w") as f:
                 f.write(json.dumps(transcripts_feedback, indent=4))
-                print(
+                logger.info(
                     "saved transcripts feedback for this chunk to transcripts_feedback.json"
                 )
 
@@ -452,7 +465,7 @@ class PodcastToShorts:
                         indent=4,
                     )
                 )
-                print("saved scores to transcripts_score.json")
+                logger.info("saved scores to transcripts_score.json")
 
         return transcripts_feedback
 
