@@ -1,10 +1,8 @@
-from typing import List, Literal, Union
+from typing import Literal
 from ollama import Client
-import os
 from typing import Optional
 import json
 from openai import OpenAI
-from openai.types.chat import ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam
 
 class ChatCompletion:
     """A class to do chat completion using different providers"""
