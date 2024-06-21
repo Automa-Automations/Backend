@@ -3,6 +3,7 @@
 
 
 import click
+import requests
 import questionary
 from yaspin import yaspin
 import docker
@@ -95,6 +96,37 @@ def ask_config_json_questions(config: dict[str, Any]):
     return config
 
 
+def get_exposed_ports(image_name):
+    # Split the image name into repository and tag
+    if ':' in image_name:
+        repository, tag = image_name.split(':')
+    else:
+        repository, tag = image_name, 'latest'
+
+    # Set the registry URL
+    registry_url = 'https://registry-1.docker.io'
+
+    # Get the token for accessing the manifest
+    auth_url = f'https://auth.docker.io/token?service=registry.docker.io&scope=repository:{repository}:pull'
+    token_response = requests.get(auth_url)
+    token = token_response.json()['token']
+
+    # Get the image manifest
+    manifest_url = f'{registry_url}/v2/{repository}/manifests/{tag}'
+    headers = {'Authorization': f'Bearer {token}'}
+    manifest_response = requests.get(manifest_url, headers=headers)
+    manifest = manifest_response.json()
+
+    # Get the configuration blob
+    config = json.loads(manifest['history'][0]['v1Compatibility'])
+
+    # Extract the exposed ports
+    exposed_ports = config.get('config', {}).get('ExposedPorts', {})
+    ports = list(exposed_ports.keys())
+    ports = [port.split('/')[0] for port in ports]
+
+    return ports
+
 def dockerhub_quickstart(name: str, root_dir: str):
     client = docker.from_env()
     image = questionary.text("Docker Image:").ask()
@@ -135,8 +167,12 @@ def dockerhub_quickstart(name: str, root_dir: str):
 
     # PORTS (Auto Detectable)
     click.echo("🔍 Detecting ports...")
-    # TODO: Find a way to detect ports (By inspecting the image dockerfile)
-    ports: dict[str, str] = {}
+    ports_ = get_exposed_ports(image_to_use)
+    ports = {str(port.split("/")[0]): str(port.split("/")[0]) for port in ports_}
+
+    for port in ports_:
+        click.echo(f"   🛶 {Fore.YELLOW} Detected port {port}")
+
     config["ports"] = ports
 
     config = ask_config_json_questions(config)
@@ -419,10 +455,11 @@ def container_runner(service: str, all: bool=False):
 
     mounts_transformed = []
     for mount_name, mount_location in mounts.items():
-        mounts_transformed.append(docker.types.Mount(target=mount_location, source=mount_name, type='bind'))
+        mounts_transformed.append(docker.types.Mount(target=mount_location, source=mount_name, type='volume'))
 
     container = client.containers.run(
         image=image,
+        name=service,
         ports=ports_transformed,
         mounts=mounts_transformed,
         environment=env,
