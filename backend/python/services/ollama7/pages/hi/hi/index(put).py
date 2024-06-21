@@ -1,0 +1,1 @@
+def default(): return "Hello, services/ollama7/pages/hi/hi/index(put).py"

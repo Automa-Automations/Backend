@@ -11,6 +11,6 @@ WORKDIR /app
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Expose the port the app runs on
-EXPOSE <<port>>
+EXPOSE 5000
 
-CMD <<app_run>> python main.py
+CMD python services/ollama-test3/main.py

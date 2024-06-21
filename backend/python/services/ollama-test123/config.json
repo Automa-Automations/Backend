@@ -1,0 +1,12 @@
+{
+    "base_image": null,
+    "name": "ollama-test123",
+    "cpu": "0.25",
+    "memory": "128MB",
+    "gpu": "auto",
+    "ports": {
+        "5000": "1299"
+    },
+    "mounts": {},
+    "env": {}
+}

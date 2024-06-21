@@ -208,7 +208,7 @@ def flask_quickstart(name, root_dir):
     click.echo("📝 Modifying Dockerfile...")
     dockerfile = open(dockerfile_path).read()
     dockerfile = dockerfile.replace("<<port>>", list(config["ports"].keys())[0])
-    dockerfile = dockerfile.replace("<<app_name>>", os.path.join(root_dir, "main.py"))
+    dockerfile = dockerfile.replace("<<app_run>>", "cd " + os.path.join(root_dir) + "; ")
     open(dockerfile_path, "w").write(dockerfile)
 
     click.echo("📝 Modifying main.py...")
@@ -333,6 +333,9 @@ def build_container(service, dockerfile_path, path, should_stream_output=False) 
                     ""
                 )
 
+                if "[notice] A new release of pip" in pretty_output:
+                    continue
+
                 # Remove anything that is not ASCII
                 pretty_output = "".join([i if ord(i) < 128 else ' ' for i in pretty_output])
 
@@ -451,12 +454,13 @@ def container_runner(service: str, all: bool=False):
     env = service_config.get("env", {})
     base_image = service_config.get("base_image")
     image = service_config.get("name").lower() if not base_image else base_image
-    ports_transformed = {str(external): str(internal) for internal, external in ports.items()}
+    ports_transformed = {str(internal)+"/tcp": str(external) for internal, external in ports.items()}
 
     mounts_transformed = []
     for mount_name, mount_location in mounts.items():
         mounts_transformed.append(docker.types.Mount(target=mount_location, source=mount_name, type='volume'))
 
+    # CHeck if container is running & cancel it if it is is.
     container = client.containers.run(
         image=image,
         name=service,
@@ -476,21 +480,57 @@ def run(service, all=False):
     container_runner(service=service, all=all)
 
 
+def ask_flask_route_config():
+    config = {
+        "route": questionary.text("What route would you like to create?").ask()
+    }
+
+    return config
+
+
+def flask_route_builder(service, all):
+    flask_routes_config = ask_flask_route_config()
+    routes = flask_routes_config['route'].split('/')
+
+    if routes[0] != '':
+        routes = [''] + routes
+
+    config = json.load(open("config.json"))
+
+    service_path = os.path.join(config['create']['service_dir'], service)
+
+    routes_path = os.path.join(service_path, "pages")
+    types_of_routes = ["post", "put", "get", "delete"]
+
+
+    with yaspin(text=f"⤵️ Building Routes...") as sp:
+        for route in routes:
+            routes_path = os.path.join(routes_path, route)
+            sp.text = f"Building Route {routes_path}"
+
+            if not os.path.exists(routes_path):
+                os.mkdir(routes_path)
+
+            if not os.listdir(routes_path):
+                files_to_create = [os.path.join(routes_path, f"index({rt}).py") for rt in types_of_routes]
+
+                for file in files_to_create:
+                    file_ = open(file, "w")
+                    file_.write(f'def default(): return "Hello, {file}"')
+
+
+
 @builder.command()
 @click.option("--service", "-s", help="The service to run.", required=False, type=str)
 @click.option("--new", "-n", help="Start a new service.", required=False, type=str, is_flag=True)
 def flask(service, new):
-    "Utility to generate flask templates, routes, files & tests"
+    """Utility to generate flask templates, routes, files & tests"""
     config = json.load(open("config.json"))
     services_dir = config.get('create', {}).get('service_dir', {})
 
     if not services_dir:
         services_dir = choose_or_make_dir("service", ".")
        
-    if service and os.path.exists(os.path.join(services_dir, service)):
-        click.echo(f"Service {service} already exists.")
-        return
-    
     if new and service:
         services_dir = os.path.join(services_dir, service)
         os.mkdir(services_dir)
@@ -501,14 +541,15 @@ def flask(service, new):
         services_dir = os.path.join(services_dir, service)
         os.mkdir(services_dir)
         new = True
+    elif not service:
+        service = questionary.select("Choose a service: ", choices=os.listdir(services_dir)).ask()
+
 
     if new and not service:
         service = questionary.text("Service Name:").ask()
         services_dir = os.path.join(services_dir, service)
         os.mkdir(services_dir)
         new = True
-
-    
 
     service_files_dir = os.path.join(services_dir, service)
     if new:
@@ -527,11 +568,11 @@ def flask(service, new):
     # Ask the user what they want to do
     task = questionary.select("What action would you like to take?", choices=flask_tasks).ask()
     if task == "Create a new route (Also creates tests)":
-        print("Creating a new route")
+        flask_route_builder(service, all=False)
     elif task == "Validate test coverage":
         print("Validating test coverage")
     elif task == "Build the service":
-        print("Building the service")
+        container_builder(service=service, all=False)
     elif task == "Run the service with Docker":
         container_builder(service=service, all=False)
         container_runner(service=service, all=False)
