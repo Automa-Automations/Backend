@@ -6,7 +6,7 @@ import datetime
 import traceback
 import uuid
 import requests
-
+from fuzzywuzzy import fuzz
 
 def update_value(
     table: str, line: str, val: str, new_value: Any, line_name: str = "id"
@@ -162,3 +162,48 @@ def download_podcast(podcast_url, output_path: str = "downloads/", filename: str
             "error": str(e),
             "status": "error",
         }
+
+def validate_string_similarity(string1, string2, percentage=80):
+    """
+    Method to validate the similarity between two strings
+    Parameters:
+    - string1: str: The first string
+    - string2: str: The second string
+    - percentage: int: The percentage of similarity
+    Returns:
+    - bool: The value of the similarity
+    """
+
+    def get_similarity_score(string1, string2):
+        return fuzz.token_sort_ratio(string1, string2)
+
+    # check if strings are above 80% similar
+    similarity_score = get_similarity_score(string1, string2)
+
+    if (
+        len(string1) > 10
+        and string1 in string2
+        or len(string2) > 10
+        and string2 in string1
+    ):
+        similarity_score = 100
+
+    is_similar_1 = get_similarity_score(string1[:10], string2) >= percentage
+    is_similar_2 = get_similarity_score(string2[:10], string1) >= percentage
+
+    if len(string1) > 10 and is_similar_1:
+        return True
+
+    if len(string2) > 10 and is_similar_2:
+        return True
+
+    if len(string1) > 20:
+        if string1[:20] in string2:
+            similarity_score = 100
+
+    if len(string2) > 20:
+        if string2[:20] in string1:
+            similarity_score = 100
+
+    return similarity_score >= percentage
+

@@ -1,24 +1,18 @@
 from typing import List, TypedDict, Union, Literal
+from src.Classes.Utils.ChatCompletion import ChatCompletion
 from src.Classes.Utils.FaceTrackingVideo import FaceTrackingVideo
 from pytube import YouTube
 import os
 import json
 import base64
 from moviepy.editor import VideoFileClip
-from fuzzywuzzy import fuzz
 import random
 import logging
 import re
 from src.Classes.Utils.PodcastTranscriber import PodcastTranscriber
-from src.utils import format_video_url
+from src.utils import format_video_url, validate_string_similarity
 
 logger = logging.getLogger(__name__)
-
-env_type = "LOCAL_"
-if os.environ.get("CURRENT_ENVIRONMENT", "local") == "prod":
-    env_type = "HOSTED_"
-
-OLLAMA_HOST_URL = os.getenv(f"{env_type}OLLAMA_HOST_URL")
 
 class TranscriptDict(TypedDict):
     text: str
@@ -26,30 +20,35 @@ class TranscriptDict(TypedDict):
     duration: float
 
 class PodcastToShorts:
-    def __init__(self, podcast_url: str, llm_type: Literal["openai", "ollama"], transcriptor_type: Literal["assembly_ai", "yt_transcript_api"] = "assembly_ai", llm_model: str = "gpt-4o"):
-        if llm_type == "openai" and "gpt" not in llm_model:
-            raise ValueError("OpenAI model must be a GPT model")
-        elif llm_type == "ollama" and not OLLAMA_HOST_URL:
-            raise ValueError("OLLAMA_HOST_URL is not set in the environment variables")
-        if llm_type not in ["openai", "ollama"]:
-            raise ValueError("LLM type is not valid")
-
+    def __init__(
+        self,
+        podcast_url: str,
+        llm_type: Literal["openai", "ollama"],
+        transcriptor_type: Literal["assembly_ai", "yt_transcript_api"] = "assembly_ai",
+        assembly_api_key: str = "",
+        llm_model: str = "gpt-4o",
+        ollama_base_url: str = "",
+        llm_api_key: str = "",
+    ):
         self.podcast_url = podcast_url
         self.transcriptor_type = transcriptor_type
-        self.llm_type = llm_type
+        self.assembly_api_key = assembly_api_key
+        self.llm_type : Literal["openai", "ollama"] = llm_type
         self.llm_model = llm_model
         self.debugging = True
         self.podcast_url = format_video_url(self.podcast_url)
         self.yt = YouTube(self.podcast_url)
+        self.ollama_base_url = ollama_base_url
+        self.llm_api_key = llm_api_key
 
-        self.__validate_env_variables()
+        self.__validate_params()
 
     def get_shorts(self, debugging=False):
         """
         Method to generate the shorts from the podcast
         """
         if self.transcriptor_type == "assembly_ai":
-            transcriptor = PodcastTranscriber.from_assembly(self.podcast_url, os.getenv("ASSEMBLY_AI_API_KEY") or "", self.debugging)
+            transcriptor = PodcastTranscriber.from_assembly(self.podcast_url, self.assembly_api_key, self.debugging)
         elif self.transcriptor_type == "yt_transcript_api":
             transcriptor = PodcastTranscriber.from_transcription_api(self.podcast_url, self.debugging)
         else:
@@ -58,7 +57,7 @@ class PodcastToShorts:
 
         transcript = transcriptor.transcript
         logger.info(f"Transcript length: {len(transcript)})")
-        #
+
         podcast_length = round(
             (transcript[-1]["start"] + transcript[-1]["duration"]) / 60
         )
@@ -138,7 +137,7 @@ class PodcastToShorts:
 
         # sort the shorts_transcripts by the score, in descending order
         descending_sorted_shorts = sorted(
-            shorts_transcripts, key=lambda x: x["stats"]["score"], reverse=True
+            shorts_transcripts, key=lambda x: int(x["stats"]["score"]), reverse=True
         )
         best_shorts = descending_sorted_shorts[:total_shorts]
         logger.info(f"Got an extra {len(best_shorts)} shorts.")
@@ -191,7 +190,7 @@ class PodcastToShorts:
                 dict["text"] = dict["text"].replace("\n", " ")
 
                 current_text = dict["text"]
-                is_similar = validate_similarity(
+                is_similar = validate_string_similarity(
                     current_text, llama_response["start_text"], 80
                 )
                 logger.info(
@@ -199,7 +198,7 @@ class PodcastToShorts:
                 )
                 if is_similar:
                     count = 0
-                    while not validate_similarity(
+                    while not validate_string_similarity(
                         current_text, llama_response["end_text"]
                     ) and len(shortened_transcript) < len(short["transcript"]) - (
                         idx + 1
@@ -403,7 +402,7 @@ class PodcastToShorts:
         transcripts_feedback = []
         for idx, chunk in enumerate(chunked_transcript):
             prompt = f"""
-            Here is transcript data from a long-form podcast style video: {chunk}. Decide whether or not a specific part of the transcript or the whole transcript is valid for a short. Evaluate the short based off of this:
+            Your job is to evaluate the following transcript chunk from a long-form podcast style video: {chunk}. Decide whether or not a specific part of the transcript or the whole transcript is valid for a short. Evaluate the short based off of this:
             score: a score out from 0 to 100, on how good this would make for a viral short. Be quite strict here, as the goal is to make the short as engaging as possible. If it is some sort of ad for a product, or introduction for the podcast, then give it a score of 40. NOTE: swearing and cussing shouldn't make the score less or more. The transcript must be one of the following to get a score above 70, anything that is not this should get a score below 70. The transcript should have at least one or a few of the following, to get a score of 70 and above:
             1. Really engaging, or interesting
             2. Really funny, which will make viewers with fried dopamine receptors laugh, meaning it is really funny.
@@ -414,27 +413,29 @@ class PodcastToShorts:
             7. Anything that will envoke strong emotions for the viewer. Whether that is sadness, happiness, really feeling understood, really feeling hyped up and motivated, a "wow" feeling of understanding or learning something new, that will make the viewer want to watch the full video.
             8. Anything that is really unique, and hasn't been done before. That will make the viewer want to watch the full video.
             9. A "badass" moment, or how someone is talking about how badass they are, something that could inspire and motivate people to do hard things, to push themselves. This is a moment that will make people feel like they can do anything, and they are unstoppable.
-            10. Soneone talking about how they went through difficult times, something that could resonate with the audience.
+            10. Someone talking about how they went through difficult times, something that could resonate with the audience.
             should_make_short: True or False. True, if the score is above or equal to 70, false if it is below 70
             feedback: Any feedback on the short, what is good and bad about the transcript, how to make it better. Note: only evaluate it based off of the transcript. Don't give feedback saying that there could be visuals or animations. 
 ###
             Please output in the following format (ignore the values, just use the structure):
-            {{
-                "score": a score out of 100, on how good this would make for a short. Be quite strict here, as the goal is to make the short as engaging as possible. Use an integer here. Don't surround this value with "",
-                "should_make_short": True or False. True, if the score is above or equal to 70, false if it is below 70. Don't surround this value with "",
+            {json.dumps(
+            {
+                "score": "a score out of 100, on how good this would make for a short. Be quite strict here, as the goal is to make the short as engaging as possible. Use an integer here. The score must be a number, not surrounded with quotation marks at all",
+                "should_make_short": "True or False. True, if the score is above or equal to 70, false if it is below 70. Don't surround this value with quotation marks at all",
                 "feedback": "Any feedback on the short, what is good and bad about the transcript, how to make it better."
-            }}
+            }, indent=4)}
             """
             while True:
                 try:
-                    response = json.loads(
-                        llama_client.generate(
-                            model=self.llama_model,
-                            prompt=prompt,
-                            format="json",
-                            keep_alive="1m",
-                        )["response"]
-                    )
+                    if self.llm_type == "openai":
+                        chat_completion = ChatCompletion(llm_type=self.llm_type, llm_model=self.llm_model, api_key=self.llm_api_key)
+                        response = chat_completion.generate(system_prompt=prompt, user_message=f"Here is the transcript chunk: {chunk}")
+                    elif self.llm_type == "ollama":
+                        chat_completion = ChatCompletion(llm_type=self.llm_type, llm_model=self.llm_model, ollama_base_url=self.ollama_base_url)
+                        response = chat_completion.generate(user_message=prompt)
+                    else:
+                        raise ValueError("LLM type is not valid")
+
                     logger.info("Successfully got response")
                     break
 
@@ -497,13 +498,6 @@ class PodcastToShorts:
 
         return chunk_transcript_list
 
-    def __validate_env_variables(self):
-        """
-        Method to evaluate the environment variables, and raise error if needed
-        """
-        if not OLLAMA_HOST_URL:
-            raise ValueError("OLLAMA_HOST_URL is not set in the environment variables")
-
     def __get_total_transcript_duration(
         self, transcript: List[TranscriptDict]
     ) -> Union[float, None]:
@@ -516,48 +510,17 @@ class PodcastToShorts:
             - transcript[0]["start"]
         )
 
+    def __validate_params(self):
+        if self.transcriptor_type == "assembly_ai" and not self.assembly_api_key:
+            logger.error("Assembly AI API Key must be passed in class initialization when using assembly_ai")
+        if self.llm_type == "openai" and self.llm_model and "gpt" not in self.llm_model:
+            logger.error("OpenAI model must be a GPT model")
+        if self.llm_type == "openai" and not self.llm_api_key:
+            logger.error("OpenAI API Key must be passed in class initialization when using openai")
+        if self.llm_type == "ollama" and not self.ollama_base_url:
+            logger.error("ollama_host_url must be passed in class initialization when using ollama")
+        if self.llm_type not in ["openai", "ollama"]:
+            logger.error("LLM type is not valid")
 
-# TODO: PUT THIS IN UTILS LATER
-def validate_similarity(string1, string2, percentage=80):
-    """
-    Method to validate the similarity between two strings
-    Parameters:
-    - string1: str: The first string
-    - string2: str: The second string
-    - percentage: int: The percentage of similarity
-    Returns:
-    - bool: The value of the similarity
-    """
+        raise ValueError("Invalid parameters passed")
 
-    def get_similarity_score(string1, string2):
-        return fuzz.token_sort_ratio(string1, string2)
-
-    # check if strings are above 80% similar
-    similarity_score = get_similarity_score(string1, string2)
-
-    if (
-        len(string1) > 10
-        and string1 in string2
-        or len(string2) > 10
-        and string2 in string1
-    ):
-        similarity_score = 100
-
-    is_similar_1 = get_similarity_score(string1[:10], string2) >= percentage
-    is_similar_2 = get_similarity_score(string2[:10], string1) >= percentage
-
-    if len(string1) > 10 and is_similar_1:
-        return True
-
-    if len(string2) > 10 and is_similar_2:
-        return True
-
-    if len(string1) > 20:
-        if string1[:20] in string2:
-            similarity_score = 100
-
-    if len(string2) > 20:
-        if string2[:20] in string1:
-            similarity_score = 100
-
-    return similarity_score >= percentage

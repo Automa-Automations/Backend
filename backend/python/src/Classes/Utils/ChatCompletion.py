@@ -29,7 +29,7 @@ class ChatCompletion:
         if self.llm_type == "openai":
             return self._openai_generate(user_message, system_prompt, json_format=json_format)
         elif self.llm_type == "ollama":
-            return self._ollama_generate(user_message, system_prompt, json_format=json_format)
+            return self._ollama_generate(user_message, json_format=json_format)
 
     def _openai_generate(self, user_message: str, system_prompt: Optional[str] = None, json_format: bool = False):
         """Generate a completion using OpenAI"""
@@ -39,13 +39,21 @@ class ChatCompletion:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": user_message})
 
-        response = client.chat.completions.create(
-            model=self.llm_model,
-            messages=messages,
-        )
+        if json_format:
+            response = client.chat.completions.create(
+                model=self.llm_model,
+                messages=messages,
+                response_format={"type": "json_object"}
+            )
+        else:
+            response = client.chat.completions.create(
+                model=self.llm_model,
+                messages=messages,
+            )
+
         return response.choices[0].message.content
 
-    def _ollama_generate(self, user_message: str, system_prompt: Optional[str] = None, json_format: bool = False):
+    def _ollama_generate(self, user_message: str, json_format: bool = False):
         """Generate a completion using Ollama"""
         llama_client = Client(self.ollama_base_url)
         if json_format:
