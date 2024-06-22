@@ -1,6 +1,6 @@
 import unittest
 
-class TestServicesOllamaMainHi(unittest.TestCase):
+class TestServicesOllamaMainclassHi(unittest.TestCase):
     def test_no_errors(self):
         """Test for no errors"""
         raise NotImplementedError
