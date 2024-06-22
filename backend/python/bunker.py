@@ -680,6 +680,7 @@ def test_builder(type_, path, dir_path="", tests_path=""):
 
 
 def test_runner(service: str, all=False, test_path=""):
+
     if not test_path:
         config = json.load(open("config.json"))
         services_dir = config.get("create", {}).get('service_dir', {})
@@ -693,44 +694,69 @@ def test_runner(service: str, all=False, test_path=""):
             click.echo(f"😥 There are no tests for service {service}")
             return
 
-        test_path = service_tests_path
-        click.echo(f"ℹ If you want to run this same test again, Use this command \n python bunker.py flask --service {service} --test {test_path}")
+        path_ = service_tests_path
+        while True:
+            files_in_dir = os.listdir(path_) + ["Run All Tests in This Directory"]
 
-    all_tests_passed = True
+            choice = questionary.select("Choose Tests to Run: ", choices=files_in_dir).ask()
+
+            if choice == "Run All Tests in This Directory":
+                test_path = os.path.join(path_)
+                break
+
+            if choice.endswith(".py"):
+                test_path = os.path.join(path_, choice)
+                break
+
+            path_ = os.path.join(path_, choice)
+        click.echo(f"ℹ If you want to run this same test again, Use this command \n python bunker.py flask --test {test_path}")
+
+    all_tests_passed = False
+
+    def run_tests(file_path):
+        tests_passed = False
+        if file_path.endswith(".py"):
+            module_name = os.path.splitext(file_path.split("/")[-1])[0]
+
+            # Run the tests in the specific file
+            try:
+                spec = importlib.util.spec_from_file_location(module_name, file_path)
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+
+                has_test = False
+                for name in dir(module):
+                    obj = getattr(module, name)
+                    if isinstance(obj, type) and issubclass(obj, unittest.TestCase):
+                        has_test = True
+                        # Load tests from the TestCase class
+                        loader = unittest.TestLoader()
+                        suite = loader.loadTestsFromTestCase(obj)
+
+                        runner = unittest.TextTestRunner()
+                        result = runner.run(suite)
+
+                        if not result.wasSuccessful():
+                            tests_passed = False
+                        else:
+                            tests_passed = True
+
+            except Exception as e:
+                click.echo(f"Error loading tests from {file_path}: {e}")
+                tests_passed = False
+
+            return tests_passed
+
+    if test_path.endswith(".py"):
+        all_tests_passed = run_tests(test_path)
 
     for root, _, files in os.walk(test_path):
         for file in files:
-            if file.endswith(".py"):
-                file_path = os.path.join(root, file)
-                module_name = os.path.splitext(file)[0]
+            file_path = os.path.join(root, file)
+            all_tests_passed = run_tests(file_path)
 
-                # Run the tests in the specific file
-                try:
-                    spec = importlib.util.spec_from_file_location(module_name, file_path)
-                    module = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(module)
-
-                    for name in dir(module):
-                        obj = getattr(module, name)
-                        if isinstance(obj, type) and issubclass(obj, unittest.TestCase):
-                            # Load tests from the TestCase class
-                            loader = unittest.TestLoader()
-                            suite = loader.loadTestsFromTestCase(obj)
-
-                            runner = unittest.TextTestRunner()
-                            result = runner.run(suite)
-
-                            if not result.wasSuccessful():
-                                all_tests_passed = False
-
-                    if not result.wasSuccessful():
-                        all_tests_passed = False
-                except Exception as e:
-                    click.echo(f"Error loading tests from {file_path}: {e}")
-                    all_tests_passed = False
-
-    # Exit with status 1 if any test failed
     if not all_tests_passed:
+        click.echo("🥲 Some of your tests failed! Write better code!")
         sys.exit(1)
 
 
@@ -746,36 +772,37 @@ def flask(service, new, test):
     if not services_dir or not os.path.exists(services_dir):
         services_dir = choose_or_make_dir("service", ".")
 
-    if new and service:
-        services_dir = os.path.join(services_dir, service)
-        os.mkdir(services_dir)
-        new = True   
-        
-    if not new and not service and questionary.confirm("Would you like to create a new service?").ask():
-        service = questionary.text("Service Name:").ask()
-        services_dir = os.path.join(services_dir, service)
-        os.mkdir(services_dir)
-        new = True
-    elif not service:
-        service = questionary.select("Choose a service: ", choices=os.listdir(services_dir)).ask()
+    if not test:
+        if new and service:
+            services_dir = os.path.join(services_dir, service)
+            os.mkdir(services_dir)
+            new = True
+
+        if not new and not service and questionary.confirm("Would you like to create a new service?").ask():
+            service = questionary.text("Service Name:").ask()
+            services_dir = os.path.join(services_dir, service)
+            os.mkdir(services_dir)
+            new = True
+        elif not service:
+            service = questionary.select("Choose a service: ", choices=os.listdir(services_dir)).ask()
 
 
-    if new and not service:
-        service = questionary.text("Service Name:").ask()
-        services_dir = os.path.join(services_dir, service)
-        os.mkdir(services_dir)
-        new = True
+        if new and not service:
+            service = questionary.text("Service Name:").ask()
+            services_dir = os.path.join(services_dir, service)
+            os.mkdir(services_dir)
+            new = True
 
-    service_files_dir = os.path.join(services_dir, service)
-    if new:
-        click.echo("Creating new Flask service...")
-        flask_quickstart(service, services_dir)
-   
+        service_files_dir = os.path.join(services_dir, service)
+        if new:
+            click.echo("Creating new Flask service...")
+            flask_quickstart(service, services_dir)
+
     # Now we can figure out what the user wants to do
     flask_tasks = [
         "Create a new route (Also creates tests)", # Done
         "Create Test cases for Missing Tests", # Done
-        "Run All Test Cases",
+        "Run Specific Test Cases",
         "Build the service", # Done
         "Run the service with Docker", # Done
         "Get public url for testing" # Done
@@ -796,7 +823,7 @@ def flask(service, new, test):
         container_runner(service=service, all=False)
     elif task == "Get public url for testing":
         ngrok_container(service=service)
-    elif task == "Run All Test Cases" or test:
+    elif task == "Run Specific Test Cases" or test:
         test_runner(service, all=True, test_path=test)
 
 
