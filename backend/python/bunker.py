@@ -3,6 +3,7 @@
 
 
 import click
+import unittest
 import requests
 import questionary
 from yaspin import yaspin
@@ -13,6 +14,8 @@ from typing import Any
 import time
 import uuid
 from pyngrok import ngrok
+import sys
+import importlib
 
 from colorama import Fore, Style, init
 import ast
@@ -614,7 +617,6 @@ def test_builder(type_, path, dir_path="", tests_path=""):
         if not os.path.exists(tests_path):
             os.mkdir(tests_path)
 
-
     excluded = ["venv", "__pycache__", "__init__.py"]
 
     # List the root dir
@@ -657,11 +659,10 @@ def test_builder(type_, path, dir_path="", tests_path=""):
 
                     if not test_dir.endswith("".join(segments[:2])):
                         class_path = os.path.join(test_dir, "".join(segments[:2]))
-                        item_path += "class"
                         if not os.path.exists(class_path): os.mkdir(class_path)
                         test_dir = class_path
 
-                    function = segments[-1].replace("__", "")
+                    function = segments[-1].replace("__", "").capitalize()
                     if function == "init": function = function.upper()
 
                 function_path = os.path.join(test_dir, f"{function}.py")
@@ -678,10 +679,66 @@ def test_builder(type_, path, dir_path="", tests_path=""):
                     f.write(file_base_content)
 
 
+def test_runner(service: str, all=False, test_path=""):
+    if not test_path:
+        config = json.load(open("config.json"))
+        services_dir = config.get("create", {}).get('service_dir', {})
+
+        if not services_dir:
+            services_dir = choose_or_make_dir("service", ".")
+
+        service_tests_path = os.path.join(services_dir, service, "BunkerTests")
+
+        if not os.path.exists(service_tests_path):
+            click.echo(f"😥 There are no tests for service {service}")
+            return
+
+        test_path = service_tests_path
+        click.echo(f"ℹ If you want to run this same test again, Use this command \n python bunker.py flask --service {service} --test {test_path}")
+
+    all_tests_passed = True
+
+    for root, _, files in os.walk(test_path):
+        for file in files:
+            if file.endswith(".py"):
+                file_path = os.path.join(root, file)
+                module_name = os.path.splitext(file)[0]
+
+                # Run the tests in the specific file
+                try:
+                    spec = importlib.util.spec_from_file_location(module_name, file_path)
+                    module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(module)
+
+                    for name in dir(module):
+                        obj = getattr(module, name)
+                        if isinstance(obj, type) and issubclass(obj, unittest.TestCase):
+                            # Load tests from the TestCase class
+                            loader = unittest.TestLoader()
+                            suite = loader.loadTestsFromTestCase(obj)
+
+                            runner = unittest.TextTestRunner()
+                            result = runner.run(suite)
+
+                            if not result.wasSuccessful():
+                                all_tests_passed = False
+
+                    if not result.wasSuccessful():
+                        all_tests_passed = False
+                except Exception as e:
+                    click.echo(f"Error loading tests from {file_path}: {e}")
+                    all_tests_passed = False
+
+    # Exit with status 1 if any test failed
+    if not all_tests_passed:
+        sys.exit(1)
+
+
 @builder.command()
 @click.option("--service", "-s", help="The service to run.", required=False, type=str)
+@click.option("--test", "-test", help="The specific test to run", required=False, type=str)
 @click.option("--new", "-n", help="Start a new service.", required=False, type=str, is_flag=True)
-def flask(service, new):
+def flask(service, new, test):
     """Utility to generate flask templates, routes, files & tests"""
     config = json.load(open("config.json"))
     services_dir = config.get('create', {}).get('service_dir', {})
@@ -689,7 +746,6 @@ def flask(service, new):
     if not services_dir or not os.path.exists(services_dir):
         services_dir = choose_or_make_dir("service", ".")
 
-       
     if new and service:
         services_dir = os.path.join(services_dir, service)
         os.mkdir(services_dir)
@@ -718,14 +774,17 @@ def flask(service, new):
     # Now we can figure out what the user wants to do
     flask_tasks = [
         "Create a new route (Also creates tests)", # Done
-        "Create Test cases for Missing Tests", 
+        "Create Test cases for Missing Tests", # Done
+        "Run All Test Cases",
         "Build the service", # Done
         "Run the service with Docker", # Done
         "Get public url for testing" # Done
     ]
 
-    # Ask the user what they want to do
-    task = questionary.select("What action would you like to take?", choices=flask_tasks).ask()
+    task = None
+    if not test:
+        task = questionary.select("What action would you like to take?", choices=flask_tasks).ask()
+
     if task == "Create a new route (Also creates tests)":
         flask_route_builder(service, all=False)
     elif task == "Create Test cases for Missing Tests":
@@ -737,6 +796,9 @@ def flask(service, new):
         container_runner(service=service, all=False)
     elif task == "Get public url for testing":
         ngrok_container(service=service)
+    elif task == "Run All Test Cases" or test:
+        test_runner(service, all=True, test_path=test)
+
 
 
 
