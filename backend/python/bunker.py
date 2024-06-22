@@ -15,8 +15,20 @@ import uuid
 from pyngrok import ngrok
 
 from colorama import Fore, Style, init
+import ast
 
 init(autoreset=True)
+
+def get_top_level_function_names(file_path):
+    with open(file_path, "r") as file:
+        tree = ast.parse(file.read(), filename=file_path)
+
+    top_level_function_names = [
+        node.name for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef) and isinstance(node.parent, ast.Module)
+    ]
+
+    return top_level_function_names
 
 def ask_config_json_questions(config: dict[str, Any]):
     config = config.copy()
@@ -439,7 +451,7 @@ def container_runner(service: str, all: bool=False):
 
     if not services_dir:
         services_dir = choose_or_make_dir("services", ".", False)
-    
+
     if not service and not all:
         service = questionary.select("Select a service to run:", choices=os.listdir(services_dir)).ask()
 
@@ -566,6 +578,66 @@ def ngrok_container(service: str):
         click.echo('😥 Killed Ngrok Service.')
 
 
+def test_builder(type_, path, dir_path="", tests_path=""):
+    if not dir_path:
+        config = json.load(open("config.json"))
+        services_dir = config.get('create', {}).get('service_dir', {})
+
+        if not services_dir:
+            services_dir = choose_or_make_dir("services", ".", False)
+
+        match type_:
+            case "service":
+                dir_path = os.path.join(services_dir, path)
+                tests_path = os.path.join(dir_path, "BunkerTests")
+            case "src":
+                dir_path = path
+                tests_path = os.path.join(path, "BunkerTests")
+
+        if not os.path.exists(tests_path):
+            os.mkdir(tests_path)
+
+
+    excluded = ["venv", "__pycache__", "__init__.py"]
+
+    # List the root dir
+    content = os.listdir(dir_path)
+
+    for item in content:
+        if item in excluded:
+            continue
+
+        item_path = os.path.join(dir_path, item)
+        item_type = "file" if os.path.isfile(item_path) else "dir"
+        test_dir = os.path.join(tests_path, item).replace(".py", "")
+
+        # Ensure the filename doesn't have BunkerTest inside of it (Directories included)
+        if "BunkerTest" in item_path:
+            continue
+
+        if item_type == "dir":
+            test_builder(type_=type_, path=path, dir_path=item_path, tests_path=test_dir)
+
+        if item_type == "file" and item_path.split('.')[-1] == "py":
+            if not os.path.exists(test_dir):
+                os.mkdir(test_dir)
+
+            # Get all the functions
+            functions = get_top_level_function_names(item_path)
+
+            # Create a new file for each function
+            for function in functions:
+                function_path = os.path.join(test_dir, f"{function}.py")
+
+                with open(function_path, "w") as f:
+                    file_base_content = open("templates/UnitTestTemplate.py", "r").read()
+                    file_base_content.replace("<<test_name>>", function.capitalize())
+                    f.write(file_base_content)
+
+
+
+
+
 @builder.command()
 @click.option("--service", "-s", help="The service to run.", required=False, type=str)
 @click.option("--new", "-n", help="Start a new service.", required=False, type=str, is_flag=True)
@@ -606,18 +678,18 @@ def flask(service, new):
     # Now we can figure out what the user wants to do
     flask_tasks = [
         "Create a new route (Also creates tests)", # Done
-        "Validate test coverage", 
+        "Create Test cases for Missing Tests", 
         "Build the service", # Done
         "Run the service with Docker", # Done
-        "Get public url for testing"
+        "Get public url for testing" # Done
     ]
 
     # Ask the user what they want to do
     task = questionary.select("What action would you like to take?", choices=flask_tasks).ask()
     if task == "Create a new route (Also creates tests)":
         flask_route_builder(service, all=False)
-    elif task == "Validate test coverage":
-        print("Validating test coverage")
+    elif task == "Create Test cases for Missing Tests":
+        test_builder(type_='service', path=service)
     elif task == "Build the service":
         container_builder(service=service, all=False)
     elif task == "Run the service with Docker":
