@@ -724,11 +724,9 @@ def test_runner(service: str, all=False, test_path=""):
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
 
-                has_test = False
                 for name in dir(module):
                     obj = getattr(module, name)
                     if isinstance(obj, type) and issubclass(obj, unittest.TestCase):
-                        has_test = True
                         # Load tests from the TestCase class
                         loader = unittest.TestLoader()
                         suite = loader.loadTestsFromTestCase(obj)
