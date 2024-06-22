@@ -675,9 +675,6 @@ def test_builder(type_, path, dir_path="", tests_path=""):
                     f.write(file_base_content)
 
 
-
-
-
 @builder.command()
 @click.option("--service", "-s", help="The service to run.", required=False, type=str)
 @click.option("--new", "-n", help="Start a new service.", required=False, type=str, is_flag=True)
