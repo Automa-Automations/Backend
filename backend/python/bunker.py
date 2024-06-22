@@ -25,21 +25,27 @@ def get_top_level_function_names(file_path):
 
     top_level_function_names = [
         node.name for node in ast.walk(tree)
-        if isinstance(node, ast.FunctionDef)
+        if isinstance(node, ast.FunctionDef) and node.col_offset < 1
     ]
 
     return top_level_function_names
 
-def get_top_level_class_names(file_path):
+
+def get_top_level_class_methods(file_path):
     with open(file_path, "r") as file:
         tree = ast.parse(file.read(), filename=file_path)
 
-    top_level_class_names = [
-        node.name for node in ast.walk(tree)
-        if isinstance(node, ast.ClassDef)
-    ]
+    class_methods = []
 
-    return top_level_class_names
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef):
+            class_name = node.name
+            for body_item in node.body:
+                if isinstance(body_item, ast.FunctionDef):
+                    method_name = body_item.name
+                    class_methods.append(f"CLASS/{class_name}/{method_name}")
+
+    return class_methods
 
 def ask_config_json_questions(config: dict[str, Any]):
     config = config.copy()
@@ -638,9 +644,22 @@ def test_builder(type_, path, dir_path="", tests_path=""):
 
             # Get all the functions
             functions = get_top_level_function_names(item_path)
+            class_methods = get_top_level_class_methods(item_path)
+            functions += class_methods
 
             # Create a new file for each function
             for function in functions:
+                if function.startswith("CLASS"):
+                    segments = function.split("/")
+
+                    if not test_dir.endswith("".join(segments[:2])):
+                        class_path = os.path.join(test_dir, "".join(segments[:2]))
+                        os.mkdir(class_path)
+                        test_dir = class_path
+
+                    function = segments[-1].replace("__", "")
+                    if function == "init": function = function.upper()
+
                 function_path = os.path.join(test_dir, f"{function}.py")
 
                 if os.path.exists(function_path):
