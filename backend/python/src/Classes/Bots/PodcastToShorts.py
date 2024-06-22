@@ -23,7 +23,7 @@ class PodcastToShorts:
     def __init__(
         self,
         podcast_url: str,
-        llm_type: Literal["openai", "ollama"],
+        llm_type: Literal["openai", "ollama"] = "openai",
         transcriptor_type: Literal["assembly_ai", "yt_transcript_api"] = "assembly_ai",
         assembly_api_key: str = "",
         llm_model: str = "gpt-4o",

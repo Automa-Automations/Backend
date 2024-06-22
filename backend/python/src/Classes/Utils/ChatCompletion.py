@@ -1,8 +1,11 @@
-from typing import Literal
+from typing import Dict, Literal, Union
 from ollama import Client
 from typing import Optional
 import json
 from openai import OpenAI
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ChatCompletion:
     """A class to do chat completion using different providers"""
@@ -24,14 +27,14 @@ class ChatCompletion:
         self.ollama_base_url= ollama_base_url
 
 
-    def generate(self, user_message: str, system_prompt: Optional[str] = None, json_format: bool = False):
+    def generate(self, user_message: str, system_prompt: Optional[str] = None, json_format: bool = False) -> Union[str, Dict, None]:
         """Generate a completion for a given user message"""
         if self.llm_type == "openai":
             return self._openai_generate(user_message, system_prompt, json_format=json_format)
         elif self.llm_type == "ollama":
             return self._ollama_generate(user_message, json_format=json_format)
 
-    def _openai_generate(self, user_message: str, system_prompt: Optional[str] = None, json_format: bool = False):
+    def _openai_generate(self, user_message: str, system_prompt: Optional[str] = None, json_format: bool = False) -> Union[str, None, Dict]:
         """Generate a completion using OpenAI"""
         client = OpenAI(api_key=self.api_key)
         messages = []
@@ -40,36 +43,54 @@ class ChatCompletion:
         messages.append({"role": "user", "content": user_message})
 
         if json_format:
-            response = client.chat.completions.create(
-                model=self.llm_model,
-                messages=messages,
-                response_format={"type": "json_object"}
-            )
+            while True:
+                response = client.chat.completions.create(
+                    model=self.llm_model,
+                    messages=messages,
+                    response_format={"type": "json_object"}
+                )
+                completion_message = response.choices[0].message.content
+                if not completion_message:
+                    logger.warning("Empty response. Trying again.")
+                else:
+                    try:
+                        completion_mesage = json.loads(completion_message)
+                        break
+                    except:
+                        logger.info("Error parsing json. Trying again.")
+            return completion_message
         else:
             response = client.chat.completions.create(
                 model=self.llm_model,
                 messages=messages,
             )
+            completion_message = response.choices[0].message.content
+            logger.info(f"Completion: {completion_message}")
+            return completion_message
 
-        return response.choices[0].message.content
-
-    def _ollama_generate(self, user_message: str, json_format: bool = False):
+    def _ollama_generate(self, user_message: str, json_format: bool = False) -> Union[str, Dict, None]:
         """Generate a completion using Ollama"""
-        llama_client = Client(self.ollama_base_url)
+        ollama_client = Client(self.ollama_base_url)
+        ollama_response = None
         if json_format:
-            llama_response = json.loads(
-                llama_client.generate(
+            while True:
+                try:
+                    ollama_response = json.loads(
+                        ollama_client.generate(
+                            model=self.llm_model,
+                            prompt=user_message,
+                            format="json",
+                            keep_alive="1m",
+                        )["response"])
+                    break
+                except json.JSONDecodeError:
+                    logger.info("Error parsing response. Trying again...")
+        else:
+            ollama_response = ollama_client.generate(
                     model=self.llm_model,
                     prompt=user_message,
-                    format="json",
                     keep_alive="1m",
                 )["response"]
-            )
-        else:
-            llama_response = llama_client.generate(
-                    model=self.llm_model,
-                    prompt=user_message,
-                    keep_alive="1m",
-                )
 
-        return llama_response
+        logger.info(f"Ollama Response: {ollama_response}")
+        return ollama_response

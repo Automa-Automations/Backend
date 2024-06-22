@@ -1,2 +1,2 @@
-from tests.Classes.Utils import PodcastVideoTranscriber
+from tests.Classes.Utils import PodcastVideoTranscriber, ChatCompletion
 

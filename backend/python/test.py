@@ -14,15 +14,6 @@ all_tests = [
                 "name": "PodcastToShorts",
                 "units": [
                     {"name": "full_run", "test": Bots.PodcastToShorts.FullRun},
-                    {"name": "clip_shorts", "test": Bots.PodcastToShorts.ClipShorts},
-                    {
-                        "name": "download_video",
-                        "test": Bots.PodcastToShorts.DownloadVideo,
-                    },
-                    {
-                        "name": "get_full_transcript",
-                        "test": Bots.PodcastToShorts.GetFullTranscript,
-                    },
                     {
                         "name": "clip_and_follow_faces_mobile_ratio",
                         "test": Bots.PodcastToShorts.ClipAndFollowFacesMobileRatio,
@@ -35,6 +26,19 @@ all_tests = [
                     {"name": "transcription_test", "test": Utils.PodcastVideoTranscriber.PodcastVideoTranscriber},
                 ],
             },
+            {
+                "name": "ChatCompletion",
+                "units": [
+                    {
+                        "name": "ollama_chat_completion",
+                        "test": Utils.ChatCompletion.OllamaChatCompletion,
+                    },
+                    {
+                        "name": "openai_chat_completion",
+                        "test": Utils.ChatCompletion.OpenAIChatCompletion,
+                    }
+                ]
+            }
         ],
     }
 ]
