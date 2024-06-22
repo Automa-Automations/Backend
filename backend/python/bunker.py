@@ -25,10 +25,21 @@ def get_top_level_function_names(file_path):
 
     top_level_function_names = [
         node.name for node in ast.walk(tree)
-        if isinstance(node, ast.FunctionDef) and isinstance(node.parent, ast.Module)
+        if isinstance(node, ast.FunctionDef)
     ]
 
     return top_level_function_names
+
+def get_top_level_class_names(file_path):
+    with open(file_path, "r") as file:
+        tree = ast.parse(file.read(), filename=file_path)
+
+    top_level_class_names = [
+        node.name for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef)
+    ]
+
+    return top_level_class_names
 
 def ask_config_json_questions(config: dict[str, Any]):
     config = config.copy()
@@ -616,6 +627,9 @@ def test_builder(type_, path, dir_path="", tests_path=""):
             continue
 
         if item_type == "dir":
+            if not os.path.exists(test_dir):
+                os.mkdir(test_dir)
+
             test_builder(type_=type_, path=path, dir_path=item_path, tests_path=test_dir)
 
         if item_type == "file" and item_path.split('.')[-1] == "py":
@@ -629,9 +643,15 @@ def test_builder(type_, path, dir_path="", tests_path=""):
             for function in functions:
                 function_path = os.path.join(test_dir, f"{function}.py")
 
+                if os.path.exists(function_path):
+                    continue
+
                 with open(function_path, "w") as f:
                     file_base_content = open("templates/UnitTestTemplate.py", "r").read()
-                    file_base_content.replace("<<test_name>>", function.capitalize())
+                    test_name_ = item_path.replace(".py", "").split("/")
+                    test_name_ += [function]
+                    test_name = "".join([i.replace("(", "").replace(")", "").capitalize() for i in test_name_])
+                    file_base_content = file_base_content.replace("<<test_name>>", test_name)
                     f.write(file_base_content)
 
 
