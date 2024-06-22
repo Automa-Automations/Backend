@@ -36,6 +36,7 @@ class ChatCompletion:
 
     def _openai_generate(self, user_message: str, system_prompt: Optional[str] = None, json_format: bool = False) -> Union[str, None, Dict]:
         """Generate a completion using OpenAI"""
+        logger.info(f"Model: {self.llm_model}")
         client = OpenAI(api_key=self.api_key)
         messages = []
         if system_prompt:

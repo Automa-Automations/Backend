@@ -1,7 +1,6 @@
 import unittest
 import os
 from src.Classes.Utils.ChatCompletion import ChatCompletion
-from typing import Dict
 import json
 
 class OllamaChatCompletion(unittest.TestCase):
