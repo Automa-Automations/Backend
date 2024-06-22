@@ -1,1 +1,0 @@
-def default(): return "Hello, services/ollama-test123/pages/user/auth/index(get).py"

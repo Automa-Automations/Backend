@@ -1,1 +1,0 @@
-def default(): return "Hello, services/ollama7/pages/hi/hi/index(get).py"

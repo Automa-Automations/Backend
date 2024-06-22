@@ -1,14 +1,12 @@
 {
-    "base_image": "ollama/ollama",
-    "name": "ollama_61b965f4229d40c4837db310cb21b4e1",
-    "cpu": "1",
-    "memory": "1GB",
+    "base_image": null,
+    "name": "ollama",
+    "cpu": "0.25",
+    "memory": "128MB",
     "gpu": "auto",
     "ports": {
-        "11434": "11434"
+        "5000": "80"
     },
-    "mounts": {
-        "ollama": "/root/.ollama"
-    },
+    "mounts": {},
     "env": {}
 }

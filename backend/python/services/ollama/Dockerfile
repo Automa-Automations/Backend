@@ -13,4 +13,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Expose the port the app runs on
 EXPOSE 5000
 
-CMD python services/ollama-test3/main.py
+CMD cd services/ollama;  python main.py

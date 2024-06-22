@@ -10,13 +10,13 @@ import docker
 import os
 import json
 from typing import Any
-import re
+import time
 import uuid
+from pyngrok import ngrok
 
 from colorama import Fore, Style, init
 
 init(autoreset=True)
-
 
 def ask_config_json_questions(config: dict[str, Any]):
     config = config.copy()
@@ -518,6 +518,52 @@ def flask_route_builder(service, all):
                     file_ = open(file, "w")
                     file_.write(f'def default(): return "Hello, {file}"')
 
+def is_service_running(service) -> bool:
+    client = docker.from_env()
+    try:
+        container = client.containers.get(service)
+        if not container:
+            return False
+
+        container_state = container.attrs["State"]
+        return container_state["Status"] == "running" 
+    except docker.errors.NotFound:
+        return False
+     
+
+def ngrok_container(service: str):
+    with yaspin(text=f"🚀 Publishing Container via NGROK...") as sp:
+        if not is_service_running(service):
+            sp.text = "🛑 Service is not running. Starting service..."
+            container_runner(service, all=False)
+        
+        # Get the exposed external port
+        sp.text = "🔍 Getting external port..."
+        client = docker.from_env()
+        container = client.containers.get(service)
+        ports = container.attrs["NetworkSettings"]["Ports"]
+        external_port = list(ports.keys())[0].split("/")[0]
+        
+        sp.text = "⇝ Publishing the service..."
+        http_tunnel = ngrok.connect(external_port)
+        sp.text = f"🎉 Service is live at: {http_tunnel.public_url}"
+
+        click.echo(f" Press '^ + C' to stop the service")
+
+        live_text = sp.text
+        try:
+            alive_for = 0
+            while True:
+                alive_for += 0.1
+                time.sleep(0.1)
+                sp.text = f"{live_text} {alive_for:.2f}s"
+
+        except KeyboardInterrupt:
+            sp.stop()
+            ngrok.kill()
+
+        click.echo(f"🎉 Service is live at: {http_tunnel.public_url}")
+        click.echo('😥 Killed Ngrok Service.')
 
 
 @builder.command()
@@ -527,9 +573,10 @@ def flask(service, new):
     """Utility to generate flask templates, routes, files & tests"""
     config = json.load(open("config.json"))
     services_dir = config.get('create', {}).get('service_dir', {})
-
-    if not services_dir:
+    
+    if not services_dir or not os.path.exists(services_dir):
         services_dir = choose_or_make_dir("service", ".")
+
        
     if new and service:
         services_dir = os.path.join(services_dir, service)
@@ -558,10 +605,10 @@ def flask(service, new):
    
     # Now we can figure out what the user wants to do
     flask_tasks = [
-        "Create a new route (Also creates tests)",
-        "Validate test coverage",
-        "Build the service",
-        "Run the service with Docker",
+        "Create a new route (Also creates tests)", # Done
+        "Validate test coverage", 
+        "Build the service", # Done
+        "Run the service with Docker", # Done
         "Get public url for testing"
     ]
 
@@ -577,8 +624,8 @@ def flask(service, new):
         container_builder(service=service, all=False)
         container_runner(service=service, all=False)
     elif task == "Get public url for testing":
-        print("Getting public url for testing")
-    
+        ngrok_container(service=service)
+
 
 
 @builder.command()
