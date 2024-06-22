@@ -15,5 +15,13 @@ class Hi():
     def hi(self):
         print("SAY HI")
 
+class Hi2():
+    def __init__(self):
+        print("THIS IS SOME RANDOM THING")
+
+    def hi(self):
+        print("SAY HI")
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host="0.0.0.0")

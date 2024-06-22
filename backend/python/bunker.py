@@ -652,6 +652,9 @@ def test_builder(type_, path, dir_path="", tests_path=""):
                 if function.startswith("CLASS"):
                     segments = function.split("/")
 
+                    if "/CLASS" in test_dir:
+                        test_dir = "/".join(test_dir.split("/")[:-1])
+
                     if not test_dir.endswith("".join(segments[:2])):
                         class_path = os.path.join(test_dir, "".join(segments[:2]))
                         item_path += "class"
