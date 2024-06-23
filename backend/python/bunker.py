@@ -27,6 +27,7 @@ def global_options(func):
     @click.option('--config', type=click.Path(), help='Path to the config file.')
     def new_func(config, *args, **kwargs):
         global config_path
+
         if not os.path.exists(config):
             click.echo(f"😥 The config path you provide {config} does not exist!")
             exit(1)
@@ -293,7 +294,7 @@ def choose_or_make_dir(type: str, root_dir: str, make_new=True):
 @builder.command()
 def create():
     """Create a new service from template. Or from scratch."""
-    config = json.load(open("config.json"))
+    config = json.load(open(config_path))
     create_config = config['create']
 
     # Service Name
@@ -308,7 +309,7 @@ def create():
         save_default = questionary.confirm("Would you like to save this as the default root directory?").ask()
         if save_default:
             create_config['service_dir'] = root_dir
-            json.dump(config, open("config.json", "w"), indent=4)
+            json.dump(config, open(config_path, "w"), indent=4)
     else:
         root_dir = create_config['service_dir']
         click.echo(f"⇝ Using root directory: {root_dir}")
@@ -423,9 +424,10 @@ def build_container(service, dockerfile_path, path, should_stream_output=False) 
     return ""
 
 def container_builder(service, all):
+    global config_path
     services = []
     # Get the services directory
-    config = json.load(open("config.json"))
+    config = json.load(open(config_path))
     services_dir = config.get('create', {}).get('service_dir', {})
     if not services_dir:
         services_dir = choose_or_make_dir("services", ".")
@@ -480,7 +482,7 @@ def build(service, all):
 
 
 def container_runner(service: str, all: bool=False):
-    config = json.load(open("config.json"))
+    config = json.load(open(config_path))
     services_dir = config.get('create', {}).get('service_dir', {})
 
     if not services_dir:
@@ -541,7 +543,7 @@ def flask_route_builder(service, all):
     if routes[0] != '':
         routes = [''] + routes
 
-    config = json.load(open("config.json"))
+    config = json.load(open(config_path))
 
     service_path = os.path.join(config['create']['service_dir'], service)
 
@@ -614,7 +616,7 @@ def ngrok_container(service: str):
 
 def test_builder(type_, path, dir_path="", tests_path=""):
     if not dir_path:
-        config = json.load(open("config.json"))
+        config = json.load(open(config_path))
         services_dir = config.get('create', {}).get('service_dir', {})
 
         if not services_dir:
@@ -694,7 +696,7 @@ def test_builder(type_, path, dir_path="", tests_path=""):
 
 
 def test_runner(service: str, test_path="", all=False):
-    config = json.load(open("config.json"))
+    config = json.load(open(config_path))
     services_dir = config.get("create", {}).get('service_dir', {})
 
     if not services_dir:
@@ -785,7 +787,7 @@ def test_runner(service: str, test_path="", all=False):
 @click.option("--new", "-n", help="Start a new service.", required=False, type=str, is_flag=True)
 def flask(service, new, test):
     """Utility to generate flask templates, routes, files & tests"""
-    config = json.load(open("config.json"))
+    config = json.load(open(config_path))
     services_dir = config.get('create', {}).get('service_dir', {})
     
     if not services_dir or not os.path.exists(services_dir):
