@@ -444,7 +444,6 @@ def container_builder(service, all):
         services = [service]
 
     for service in services:
-
         service_path = os.path.join(services_dir, service)
 
         if not os.path.isdir(service_path):
@@ -452,11 +451,11 @@ def container_builder(service, all):
 
         click.echo(f"{Fore.GREEN}Building Docker image for service: {service}")
         dockerfile_path = os.path.join(service_path, "Dockerfile")
-        config_path = os.path.join(service_path, "config.json")
-        service_name = json.load(open(config_path)).get("name", uuid.uuid4().hex)
+        config_path_ = os.path.join(service_path, "config.json")
+        service_name = json.load(open(config_path_)).get("name", uuid.uuid4().hex)
 
         df_exists = os.path.exists(dockerfile_path)
-        cf_exists = os.path.exists(config_path)
+        cf_exists = os.path.exists(config_path_)
 
         if not df_exists and not cf_exists:
             click.echo(f"❌{Fore.RED}Error: Dockerfile and Config does not exist at path {service_path}")
@@ -481,14 +480,14 @@ def build(service, all):
     container_builder(service, all)
 
 
-def container_runner(service: str, all: bool=False):
+def container_runner(service: str):
     config = json.load(open(config_path))
     services_dir = config.get('create', {}).get('service_dir', {})
 
     if not services_dir:
         services_dir = choose_or_make_dir("services", ".", False)
 
-    if not service and not all:
+    if not service:
         service = questionary.select("Select a service to run:", choices=os.listdir(services_dir)).ask()
 
     service_path = os.path.join(services_dir, service)
@@ -508,7 +507,12 @@ def container_runner(service: str, all: bool=False):
     for mount_name, mount_location in mounts.items():
         mounts_transformed.append(docker.types.Mount(target=mount_location, source=mount_name, type='volume'))
 
-    # CHeck if container is running & cancel it if it is is.
+    containers = client.containers.list(all=True)
+    for container in containers:
+        if container.name == service:
+            container.stop()
+            container.remove()
+
     container = client.containers.run(
         image=image,
         name=service,
@@ -525,7 +529,7 @@ def container_runner(service: str, all: bool=False):
 @click.option("--all", "-a", help="Runs every single service at once.", required=False, type=str, is_flag=True)
 def run(service, all=False):
     """Allows you to run a service if it exists, """
-    container_runner(service=service, all=all)
+    container_runner(service=service)
 
 
 def ask_flask_route_config():
@@ -585,7 +589,7 @@ def ngrok_container(service: str):
     with yaspin(text=f"🚀 Publishing Container via NGROK...") as sp:
         if not is_service_running(service):
             sp.text = "🛑 Service is not running. Starting service..."
-            container_runner(service, all=False)
+            container_runner(service)
         
         # Get the exposed external port
         sp.text = "🔍 Getting external port..."
@@ -860,7 +864,7 @@ def flask(service, new, test, type, route):
         container_builder(service=service, all=False)
     elif task == "run":
         container_builder(service=service, all=False)
-        container_runner(service=service, all=False)
+        container_runner(service=service)
     elif task == "ngrok":
         ngrok_container(service=service)
     elif task == "test-run" or test:
