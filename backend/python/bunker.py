@@ -615,6 +615,9 @@ def ngrok_container(service: str):
 
 
 def test_builder(type_, path, dir_path="", tests_path=""):
+    if tests_path:
+        click.echo(f"ℹ Generating Tests for {tests_path}")
+
     if not dir_path:
         config = json.load(open(config_path))
         services_dir = config.get('create', {}).get('service_dir', {})
@@ -784,8 +787,9 @@ def test_runner(service: str, test_path="", all=False):
 @builder.command()
 @click.option("--service", "-s", help="The service to run.", required=False, type=str)
 @click.option("--test", "-test", help="The specific test to run", required=False, type=str)
-@click.option("--new", "-n", help="Start a new service.", required=False, type=str, is_flag=True)
-def flask(service, new, test):
+@click.option("--new", "-n", help="Start a new service.", required=False, is_flag=True)
+@click.option("--type", "-t", help="Action name to avoid the interactive shell", required=False, type=str)
+def flask(service, new, test, type):
     """Utility to generate flask templates, routes, files & tests"""
     config = json.load(open(config_path))
     services_dir = config.get('create', {}).get('service_dir', {})
@@ -797,7 +801,7 @@ def flask(service, new, test):
         click.echo("💔 You can't use the flask command to run non flask services!")
         exit(1)
 
-    if not test:
+    if not test or not type:
         if new and service:
             services_dir = os.path.join(services_dir, service)
             os.mkdir(services_dir)
@@ -825,35 +829,38 @@ def flask(service, new, test):
 
     # Now we can figure out what the user wants to do
     flask_tasks = [
-        "Create a new route (Also creates tests)", # Done
-        "Create Test cases for Missing Tests", # Done
-        "Run Specific Test Cases", # Done
-        "Build the service", # Done
-        "Run the service with Docker", # Done
-        "Get public url for testing" # Done
+        "(route) Create a new route (Also creates tests)", # Done
+        "(test-create) Create Test cases for Missing Tests", # Done
+        "(test-run) Run Specific Test Cases", # Done
+        "(build) Build the service", # Done
+        "(run) Run the service with Docker", # Done
+        "(ngrok) Get public url for testing" # Done
     ]
 
     task = None
-    if not test:
+    if not test and not type:
         task = questionary.select("What action would you like to take?", choices=flask_tasks).ask()
+        task = task.split(" ")[0].replace("(", "").replace(")", "")
+    elif type:
+        task = type
 
     if not service.endswith("Flask"):
         click.echo("💔 You can't use the flask command to run non flask services!")
         exit(1)
 
-    if task == "Create a new route (Also creates tests)":
+    if task == "route":
         flask_route_builder(service, all=False)
         test_builder(type_="service", path=service)
-    elif task == "Create Test cases for Missing Tests":
+    elif task == "test-create":
         test_builder(type_='service', path=service)
-    elif task == "Build the service":
+    elif task == "build":
         container_builder(service=service, all=False)
-    elif task == "Run the service with Docker":
+    elif task == "run":
         container_builder(service=service, all=False)
         container_runner(service=service, all=False)
-    elif task == "Get public url for testing":
+    elif task == "ngrok":
         ngrok_container(service=service)
-    elif task == "Run Specific Test Cases" or test:
+    elif task == "test-run" or test:
         test_runner(service, all=True, test_path=test)
 
 @builder.command()

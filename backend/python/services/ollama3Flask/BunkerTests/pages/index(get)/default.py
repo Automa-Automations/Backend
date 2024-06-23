@@ -1,6 +1,6 @@
 import unittest
 
-class TestServicesOllamaPagesIndexputDefault(unittest.TestCase):
+class TestServicesOllama3flaskPagesIndexgetDefault(unittest.TestCase):
     def test_no_errors(self):
         """Test for no errors"""
         raise NotImplementedError
