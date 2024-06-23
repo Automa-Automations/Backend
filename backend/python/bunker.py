@@ -22,6 +22,19 @@ import ast
 
 init(autoreset=True)
 
+config_path = "config.json"
+def global_options(func):
+    @click.option('--config', type=click.Path(), help='Path to the config file.')
+    def new_func(config, *args, **kwargs):
+        global config_path
+        if not os.path.exists(config):
+            click.echo(f"😥 The config path you provide {config} does not exist!")
+            exit(1)
+
+        config_path = config
+        return func(*args, **kwargs)
+    return new_func
+
 def get_top_level_function_names(file_path):
     with open(file_path, "r") as file:
         tree = ast.parse(file.read(), filename=file_path)
@@ -254,6 +267,7 @@ def flask_quickstart(name, root_dir):
 
 
 @click.group()
+@global_options
 def builder():
     """Bunker's code building CLI."""
     pass
