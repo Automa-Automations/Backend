@@ -536,9 +536,11 @@ def ask_flask_route_config():
     return config
 
 
-def flask_route_builder(service, all):
-    flask_routes_config = ask_flask_route_config()
-    routes = flask_routes_config['route'].split('/')
+def flask_route_builder(service, all, route=""):
+    if not route:
+        route = ask_flask_route_config()['route']
+
+    routes = route.split('/')
 
     if routes[0] != '':
         routes = [''] + routes
@@ -786,10 +788,11 @@ def test_runner(service: str, test_path="", all=False):
 
 @builder.command()
 @click.option("--service", "-s", help="The service to run.", required=False, type=str)
+@click.option("--route", "-r", help="The route path you want to create", required=False, type=str)
 @click.option("--test", "-test", help="The specific test to run", required=False, type=str)
 @click.option("--new", "-n", help="Start a new service.", required=False, is_flag=True)
 @click.option("--type", "-t", help="Action name to avoid the interactive shell", required=False, type=str)
-def flask(service, new, test, type):
+def flask(service, new, test, type, route):
     """Utility to generate flask templates, routes, files & tests"""
     config = json.load(open(config_path))
     services_dir = config.get('create', {}).get('service_dir', {})
@@ -838,7 +841,7 @@ def flask(service, new, test, type):
     ]
 
     task = None
-    if not test and not type:
+    if not test and not type and not route:
         task = questionary.select("What action would you like to take?", choices=flask_tasks).ask()
         task = task.split(" ")[0].replace("(", "").replace(")", "")
     elif type:
@@ -848,8 +851,8 @@ def flask(service, new, test, type):
         click.echo("💔 You can't use the flask command to run non flask services!")
         exit(1)
 
-    if task == "route":
-        flask_route_builder(service, all=False)
+    if task == "route" or route:
+        flask_route_builder(service, all=False, route=route)
         test_builder(type_="service", path=service)
     elif task == "test-create":
         test_builder(type_='service', path=service)
