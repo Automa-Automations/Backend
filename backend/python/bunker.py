@@ -679,14 +679,18 @@ def test_builder(type_, path, dir_path="", tests_path=""):
                     f.write(file_base_content)
 
 
-def test_runner(service: str, all=False, test_path=""):
+def test_runner(service: str, test_path="", all=False):
+    config = json.load(open("config.json"))
+    services_dir = config.get("create", {}).get('service_dir', {})
+
+    if not services_dir:
+        services_dir = choose_or_make_dir("service", ".")
+
+    if service and test_path:
+        service_tests_path = os.path.join(services_dir, service, "BunkerTests")
+        test_path = os.path.join(service_tests_path, test_path)
+
     if not test_path:
-        config = json.load(open("config.json"))
-        services_dir = config.get("create", {}).get('service_dir', {})
-
-        if not services_dir:
-            services_dir = choose_or_make_dir("service", ".")
-
         service_tests_path = os.path.join(services_dir, service, "BunkerTests")
 
         if not os.path.exists(service_tests_path):
@@ -695,6 +699,10 @@ def test_runner(service: str, all=False, test_path=""):
 
         path_ = service_tests_path
         while True:
+            if all:
+                test_path = os.path.join(path_)
+                break
+
             files_in_dir = os.listdir(path_) + ["Run All Tests in This Directory"]
 
             choice = questionary.select("Choose Tests to Run: ", choices=files_in_dir).ask()
@@ -827,15 +835,15 @@ def flask(service, new, test):
 @click.option("--test", "-test", help="The specific test to run", required=False, type=str)
 @click.option("--service", "-s", help="The service to run.", required=False, type=str)
 @click.option("--new", "-test", help="Create a new Set of tests.", required=False, is_flag=True)
-@click.option("--all", "-a", help="Run all tests from root directory!", required=False, is_flag=True)
+@click.option("--all", "-a", help="Runs all tests for a service (Used only with --service)", required=False, is_flag=True)
 def test(test, new, service, all):
-    if service:
+    if service and new:
         test_builder(type_="service", path=service)
 
     if new:
         test_builder(type_="src", path=test)
 
-    test_runner("", all=True, test_path=test)
+    test_runner(service, test_path=test, all=all)
 
 
 
