@@ -680,7 +680,6 @@ def test_builder(type_, path, dir_path="", tests_path=""):
 
 
 def test_runner(service: str, all=False, test_path=""):
-
     if not test_path:
         config = json.load(open("config.json"))
         services_dir = config.get("create", {}).get('service_dir', {})
@@ -711,7 +710,6 @@ def test_runner(service: str, all=False, test_path=""):
             path_ = os.path.join(path_, choice)
         click.echo(f"ℹ If you want to run this same test again, Use this command \n python bunker.py flask --test {test_path}")
 
-    all_tests_passed = False
 
     def run_tests(file_path):
         tests_passed = False
@@ -745,13 +743,14 @@ def test_runner(service: str, all=False, test_path=""):
 
             return tests_passed
 
-    if test_path.endswith(".py"):
+    all_tests_passed = True
+    if test_path.endswith(".py") and "BunkerTests" in test_path:
         all_tests_passed = run_tests(test_path)
 
     for root, _, files in os.walk(test_path):
         for file in files:
             file_path = os.path.join(root, file)
-            all_tests_passed = run_tests(file_path)
+            if "BunkerTests" in file_path: all_tests_passed = run_tests(file_path)
 
     if not all_tests_passed:
         click.echo("🥲 Some of your tests failed! Write better code!")
@@ -800,7 +799,7 @@ def flask(service, new, test):
     flask_tasks = [
         "Create a new route (Also creates tests)", # Done
         "Create Test cases for Missing Tests", # Done
-        "Run Specific Test Cases",
+        "Run Specific Test Cases", # Done
         "Build the service", # Done
         "Run the service with Docker", # Done
         "Get public url for testing" # Done
@@ -824,6 +823,19 @@ def flask(service, new, test):
     elif task == "Run Specific Test Cases" or test:
         test_runner(service, all=True, test_path=test)
 
+@builder.command()
+@click.option("--test", "-test", help="The specific test to run", required=False, type=str)
+@click.option("--service", "-s", help="The service to run.", required=False, type=str)
+@click.option("--new", "-test", help="Create a new Set of tests.", required=False, is_flag=True)
+@click.option("--all", "-a", help="Run all tests from root directory!", required=False, is_flag=True)
+def test(test, new, service, all):
+    if service:
+        test_builder(type_="service", path=service)
+
+    if new:
+        test_builder(type_="src", path=test)
+
+    test_runner("", all=True, test_path=test)
 
 
 
