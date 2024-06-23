@@ -28,11 +28,11 @@ def global_options(func):
     def new_func(config, *args, **kwargs):
         global config_path
 
-        if not os.path.exists(config):
+        if config and not os.path.exists(config):
             click.echo(f"😥 The config path you provide {config} does not exist!")
             exit(1)
 
-        config_path = config
+            config_path = config
         return func(*args, **kwargs)
     return new_func
 
@@ -793,6 +793,10 @@ def flask(service, new, test):
     if not services_dir or not os.path.exists(services_dir):
         services_dir = choose_or_make_dir("service", ".")
 
+    if service and not service.endswith("Flask"):
+        click.echo("💔 You can't use the flask command to run non flask services!")
+        exit(1)
+
     if not test:
         if new and service:
             services_dir = os.path.join(services_dir, service)
@@ -804,12 +808,12 @@ def flask(service, new, test):
             services_dir = os.path.join(services_dir, service)
             os.mkdir(services_dir)
             new = True
-        elif not service:
-            service = questionary.select("Choose a service: ", choices=os.listdir(services_dir)).ask()
+        elif not new and not service:
+            service = questionary.select("Choose a service: ", choices=os.listdir([i for i in services_dir if i.endswith("Flask")])).ask()
+        elif new and not service:
+            service = questionary.text("Service Name:").ask() + "Flask"
 
-
-        if new and not service:
-            service = questionary.text("Service Name:").ask()
+        if new and service:
             services_dir = os.path.join(services_dir, service)
             os.mkdir(services_dir)
             new = True
@@ -833,8 +837,13 @@ def flask(service, new, test):
     if not test:
         task = questionary.select("What action would you like to take?", choices=flask_tasks).ask()
 
+    if not service.endswith("Flask"):
+        click.echo("💔 You can't use the flask command to run non flask services!")
+        exit(1)
+
     if task == "Create a new route (Also creates tests)":
         flask_route_builder(service, all=False)
+        test_builder(type_="service", path=service)
     elif task == "Create Test cases for Missing Tests":
         test_builder(type_='service', path=service)
     elif task == "Build the service":
