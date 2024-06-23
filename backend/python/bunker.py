@@ -711,6 +711,11 @@ def test_runner(service: str, test_path="", all=False):
     if not services_dir:
         services_dir = choose_or_make_dir("service", ".")
 
+    if not service and not test_path:
+        services_dir = os.path.join(services_dir)
+        service = questionary.select(f"Which test do you want to run?", choices=os.listdir(services_dir)).ask()
+
+
     if service and test_path:
         service_tests_path = os.path.join(services_dir, service, "BunkerTests")
         test_path = os.path.join(service_tests_path, test_path)
