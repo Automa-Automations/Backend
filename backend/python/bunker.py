@@ -144,6 +144,11 @@ def ask_config_json_questions(config: dict[str, Any]):
                 break
 
     config["env"] = env_vars
+
+    if "cron" in config:
+        cron = questionary.text(f"Enter Crontab Expression ({config['cron']})").ask()
+        config['cron'] = cron
+
     return config
 
 
@@ -234,18 +239,7 @@ def dockerhub_quickstart(name: str, root_dir: str):
 
 def flask_quickstart(name, root_dir):
     os.system(f"cp -r templates/Flask/* {root_dir}")
-    config = {
-        "base_image": None,
-        "name": name,
-        "cpu": 0,
-        "memory": 0,
-        "gpu": "",
-        "ports": {
-            "5000": "80"
-        },
-        "mounts": {},
-        "env": {},
-    }
+    config = json.load(open(os.path.join(root_dir, "config.json")))
 
     config = ask_config_json_questions(config)
     click.echo("📝 Saving configuration...")
@@ -298,17 +292,7 @@ def choose_or_make_dir(type: str, root_dir: str, make_new=True):
 
 def cron_quickstart(name, service_path):
     os.system(f"cp -r templates/Cron/* {service_path}")
-    config = {
-        "base_image": None,
-        "name": name,
-        "cpu": "1",
-        "memory": "256MB",
-        "gpu": "",
-        "ports": {
-        },
-        "mounts": {},
-        "env": {},
-    }
+    config = json.load(open(os.path.join(service_path, "config.json")))
 
     config = ask_config_json_questions(config)
     click.echo("📝 Saving configuration...")
