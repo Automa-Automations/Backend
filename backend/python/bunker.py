@@ -68,9 +68,14 @@ def ask_config_json_questions(config: dict[str, Any]):
     config = config.copy()
 
     # CPU
-    cpu_cores = ["0.25", "0.5", "1", "2", "4", "8", "16", "32"]
-    cpu = questionary.select("Select CPU Cores:", choices=cpu_cores).ask()
-    config["cpu"] = cpu
+    should_ask_cpu = True
+    if config["cpu"] and not questionary.confirm(f"Would you like to change the CPU? ({config['cpu']})").ask():
+        should_ask_cpu = False
+
+    if should_ask_cpu:
+        cpu_cores = ["0.25", "0.5", "1", "2", "4", "8", "16", "32"]
+        cpu = questionary.select("Select CPU Cores:", choices=cpu_cores).ask()
+        config["cpu"] = cpu
 
     # Memory
     # If there is already memory specified in config then ask the user if they want to change it
@@ -291,6 +296,41 @@ def choose_or_make_dir(type: str, root_dir: str, make_new=True):
     return root_dir
 
 
+def cron_quickstart(name, service_path):
+    os.system(f"cp -r templates/Cron/* {service_path}")
+    config = {
+        "base_image": None,
+        "name": name,
+        "cpu": "1",
+        "memory": "256MB",
+        "gpu": "",
+        "ports": {
+        },
+        "mounts": {},
+        "env": {},
+    }
+
+    config = ask_config_json_questions(config)
+    click.echo("📝 Saving configuration...")
+    json.dump(config, open(os.path.join(service_path, "config.json"), "w"), indent=4)
+
+    dockerfile_path = os.path.join(service_path, "Dockerfile")
+    if not os.path.exists(dockerfile_path):
+        click.echo("Dockerfile not found. Using default Dockerfile.")
+        os.system(f"cp templates/Flask/Dockerfile {dockerfile_path}")
+
+    click.echo("📝 Modifying Dockerfile...")
+    dockerfile = open(dockerfile_path).read()
+    dockerfile = dockerfile.replace("<<app_run>>", "cd " + service_path + "; ")
+    open(dockerfile_path, "w").write(dockerfile)
+
+    click.echo("📝 Modifying main.py...")
+    main_path = os.path.join(service_path, "main.py")
+    main = open(main_path).read()
+    open(main_path, "w").write(main)
+
+    click.echo("🚀 Cron service created.")
+
 @builder.command()
 def create():
     """Create a new service from template. Or from scratch."""
@@ -331,10 +371,6 @@ def create():
         click.echo("Service name cannot be empty.")
         return
 
-    try:
-        os.mkdir(service_path)
-    except Exception as e:
-        ...
 
     # Create the service
     should_use_template = questionary.confirm("Would you like to use a template?").ask()
@@ -345,9 +381,14 @@ def create():
             "Cron - A Cron Job Service (Useful for mass data cleaning / processing)",
         ]).ask()
         if template == "DockerHub - Non-Modified Dockerhub Image":
+            os.mkdir(service_path)
             dockerhub_quickstart(name, service_path)
         if template == "Flask - An Http Restful API":
-            flask_quickstart(name, service_path)
+            os.mkdir(service_path+"Flask")
+            flask_quickstart(name, service_path+"Flask")
+        if template == "Cron - A Cron Job Service (Useful for mass data cleaning / processing)":
+            os.mkdir(service_path+"Cron")
+            cron_quickstart(name, service_path+"Cron")
 
 
 def build_container(service, dockerfile_path, path, should_stream_output=False) -> str:
@@ -875,6 +916,7 @@ def flask(service, new, test, type, route):
     elif task == "test" or test:
         test_runner(service, all=True, test_path=test)
 
+
 @builder.command()
 @click.option("--test", "-test", help="The specific test to run", required=False, type=str)
 @click.option("--service", "-s", help="The service to run.", required=False, type=str)
@@ -888,8 +930,6 @@ def test(test, new, service, all):
         test_builder(type_="src", path=test)
 
     test_runner(service, test_path=test, all=all)
-
-
 
 @builder.command()
 @click.option("--service", "-s", help="The service to run.", required=False, type=str)
