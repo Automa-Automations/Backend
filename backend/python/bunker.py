@@ -843,7 +843,7 @@ def flask(service, new, test, type, route):
     flask_tasks = [
         "(route) Create a new route (Also creates tests)", # Done
         "(test-create) Create Test cases for Missing Tests", # Done
-        "(test-run) Run Specific Test Cases", # Done
+        "(test) Run Specific Test Cases", # Done
         "(build) Build the service", # Done
         "(run) Run the service with Docker", # Done
         "(ngrok) Get public url for testing" # Done
@@ -872,7 +872,7 @@ def flask(service, new, test, type, route):
         container_runner(service=service)
     elif task == "ngrok":
         ngrok_container(service=service)
-    elif task == "test-run" or test:
+    elif task == "test" or test:
         test_runner(service, all=True, test_path=test)
 
 @builder.command()
