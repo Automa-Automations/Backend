@@ -635,57 +635,62 @@ def container_runner(service: str):
     config = json.load(open(config_path))
     services_dir = config.get("create", {}).get("service_dir", {})
 
-    if not services_dir:
-        services_dir = choose_or_make_dir("services", ".", False)
+    with yaspin(text=f"⤵️ Starting the Container running Process...") as sp:
+        if not services_dir:
+            services_dir = choose_or_make_dir("services", ".", False)
 
-    if not service:
-        service = questionary.select(
-            "Select a service to run:", choices=os.listdir(services_dir)
-        ).ask()
+        if not service:
+            service = questionary.select(
+                "Select a service to run:", choices=os.listdir(services_dir)
+            ).ask()
 
-    service_path = os.path.join(services_dir, service)
-    service_config_path = os.path.join(service_path, "config.json")
+        service_path = os.path.join(services_dir, service)
+        service_config_path = os.path.join(service_path, "config.json")
 
-    service_config = json.load(open(service_config_path))
-    client = docker.from_env()
+        service_config = json.load(open(service_config_path))
+        client = docker.from_env()
 
-    ports = service_config.get("ports", {})
-    mounts = service_config.get("mounts", {})
-    env = service_config.get("env", {})
-    base_image = service_config.get("base_image")
-    image = (
-        service_config.get("name").lower() if not base_image else base_image
-    )
+        ports = service_config.get("ports", {})
+        mounts = service_config.get("mounts", {})
+        env = service_config.get("env", {})
+        base_image = service_config.get("base_image")
 
-    ports_transformed = {
-        str(internal) + "/tcp": str(external)
-        for internal, external in ports.items()
-    }
-
-    mounts_transformed = []
-    for mount_name, mount_location in mounts.items():
-        mounts_transformed.append(
-            docker.types.Mount(
-                target=mount_location, source=mount_name, type="volume"
-            )
+        image = (
+            service_config.get("name").lower() if not base_image else base_image
         )
 
-    containers = client.containers.list(all=True)
-    for container in containers:
-        if container.name == service:
-            click.echo("🐳 Container already existed. Killing Previous Instance")
-            container.stop()
-            container.remove()
+        ports_transformed = {
+            str(internal) + "/tcp": str(external)
+            for internal, external in ports.items()
+        }
 
-    click.echo(f"🐳 Starting {service}...")
-    container = client.containers.run(
-        image=image,
-        name=service,
-        ports=ports_transformed,
-        mounts=mounts_transformed,
-        environment=env,
-        detach=True,
-    )
+        mounts_transformed = []
+        for mount_name, mount_location in mounts.items():
+            mounts_transformed.append(
+                docker.types.Mount(
+                    target=mount_location, source=mount_name, type="volume"
+                )
+            )
+
+        containers = client.containers.list(all=True)
+        for container in containers:
+            if container.name == service:
+                sp.text = "🐳 Container already existed. Killing Previous Instance"
+                container.stop()
+                container.remove()
+
+        sp.text = f"🐳 Starting {service}..."
+        container = client.containers.run(
+            image=image,
+            name=service,
+            ports=ports_transformed,
+            mounts=mounts_transformed,
+            environment=env,
+            detach=True,
+        )
+
+        sp.text = "Container successfully started running!"
+        sp.ok("🎉")
 
     return container
 
