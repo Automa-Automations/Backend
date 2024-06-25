@@ -631,7 +631,7 @@ def build(service, all):
     container_builder(service, all)
 
 
-def container_runner(service: str):
+def container_runner(service: str, detach=True):
     config = json.load(open(config_path))
     services_dir = config.get("create", {}).get("service_dir", {})
 
@@ -678,6 +678,7 @@ def container_runner(service: str):
                 sp.text = "🐳 Container already existed. Killing Previous Instance"
                 container.stop()
                 container.remove()
+                break
 
         sp.text = f"🐳 Starting {service}..."
         container = client.containers.run(
@@ -686,11 +687,22 @@ def container_runner(service: str):
             ports=ports_transformed,
             mounts=mounts_transformed,
             environment=env,
-            detach=True,
+            detach=detach,
         )
 
         sp.text = "Container successfully started running!"
         sp.ok("🎉")
+
+        if not detach:
+            logs = container
+            formatted_message = f"    {Fore.LIGHTBLACK_EX}{logs.decode('utf-8').strip()}"
+            print(formatted_message)
+        else:
+            for message in container.logs(stream=True):
+                formatted_message = f"    {Fore.LIGHTBLACK_EX}{message.decode('utf-8').strip()}"
+                print(formatted_message)
+
+        click.echo("🎉 Container Job successfully Finished!")
 
     return container
 
@@ -1175,10 +1187,10 @@ def cron_runner(service):
     while True:
         current_time = datetime.datetime.now().timestamp()
 
-        if current_time >= next:
+        if current_time >= next and current_time - next < 5:
             click.echo(f"🏃‍Running Cron Service at {current_time}")
             next = iter.get_next()
-            container_runner(service)
+            container_runner(service, detach=False)
 
         time.sleep(0.1)
 
