@@ -436,6 +436,15 @@ def create():
         ):
             os.mkdir(service_path + "Cron")
             cron_quickstart(name, service_path + "Cron")
+    else:
+        os.mkdir(service_path)
+        os.system(f"cp -r templates/BlankTemplate/* {service_path}")
+        file = json.load(open(os.path.join(service_path, "config.json")))
+        file['name'] = name
+        json.dump(file, open(os.path.join(service_path, "config.json"), "w"), indent=4)
+
+
+
 
 
 def build_container(service, dockerfile_path, path, should_stream_output=False) -> str:

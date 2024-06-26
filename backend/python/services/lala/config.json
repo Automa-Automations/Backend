@@ -1,0 +1,1 @@
+{"base_image": null, "name": "lala", "cpu": "1", "memory": "256MB", "gpu": "auto", "ports": {}, "env": {}}
