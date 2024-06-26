@@ -600,7 +600,7 @@ def build(service, all):
     container_builder(service, all)
 
 
-def container_runner(service: str):
+def container_runner(service: str, rebuild=False):
     if not service:
         click.echo("😥 Sorry, But it doesn't seem that you provided a valid service name!")
         exit(1)
@@ -612,7 +612,7 @@ def container_runner(service: str):
 
     image = [i for i in client.images.list() if i.attrs["RepoTags"] and i.attrs["RepoTags"][0] == f"{service.lower()}:latest"]
 
-    if not image:
+    if not image or rebuild:
         container_builder(service=service, all=False)
 
     with yaspin(text=f"⤵️ Starting the Container running Process...") as sp:
@@ -686,10 +686,11 @@ def container_runner(service: str):
 
 
 @builder.command()
-@click.option("--service", "-s", help="The service to run.", required=False, type=str)
-def run(service):
+@click.option("--service", "-s", help="The service to run.", required=True, type=str)
+@click.option("--rebuild", "-r", help="Rebuilds the service before running", required=False, is_flag=True)
+def run(service, rebuild):
     """Allows you to run a service if it exists,"""
-    container_runner(service=service)
+    container_runner(service=service, rebuild=rebuild)
 
 
 def ask_flask_route_config():
