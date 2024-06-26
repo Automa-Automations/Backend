@@ -1,11 +1,11 @@
 {
-    "base_image": null,
-    "name": "CronTemplate",
-    "cpu": "0.25",
-    "memory": "128MB",
-    "gpu": "none",
-    "ports": {},
-    "env": {},
-    "schedule": "*/5 * * * *",
-    "mounts": {}
+  "base_image": null,
+  "name": "CronTemplate",
+  "cpu": "0.25",
+  "memory": "128MB",
+  "gpu": "none",
+  "ports": {},
+  "env": {},
+  "schedule": "*/5 * * * *",
+  "mounts": {}
 }

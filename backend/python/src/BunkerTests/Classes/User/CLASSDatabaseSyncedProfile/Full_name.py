@@ -1,5 +1,6 @@
 import unittest
 
+
 class TestSrcClassesUserFull_name(unittest.TestCase):
     def test_no_errors(self):
         """Test for no errors"""

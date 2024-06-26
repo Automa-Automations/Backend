@@ -1,1 +1,2 @@
-def default(): return "Hello, services/ollama3Flask/pages/ollama/index(put).py"
+def default():
+    return "Hello, services/ollama3Flask/pages/ollama/index(put).py"

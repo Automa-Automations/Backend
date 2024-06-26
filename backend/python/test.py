@@ -1,10 +1,10 @@
 import dotenv
+
 dotenv.load_dotenv(".env")
 
 import os
 
 from src.ai.ImageApi import ImageApi
-
 
 
 # from src.Classes.User import DatabaseSyncedProfile
@@ -122,5 +122,6 @@ from src.ai.ImageApi import ImageApi
 # bot.upload()
 
 from src.Classes.Proxy import DatabaseSyncedProxy
+
 proxy = DatabaseSyncedProxy.from_id(1)
 proxy.host = "0.0.0.0"

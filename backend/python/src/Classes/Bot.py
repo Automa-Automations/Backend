@@ -17,21 +17,26 @@ from ollama import Client
 from src.ai.ImageApi import ImageApi
 from src.utils import get_value, insert_value, update_value
 from src.Classes.User import Profile, DatabaseSyncedProfile
-client = Client(host=os.environ['OLLAMA_BASE_URL'])
+
+client = Client(host=os.environ["OLLAMA_BASE_URL"])
+
 
 class BotType(Enum):
     AiImageGeneration = "AiImageGeneration"
 
+
 class Platform(Enum):
     Instagram = "Instagram"
+
 
 class PostPublicity(Enum):
     PUBLIC = "Public"
     PRIVATE = "Private"
     UNLISTED = "Unlisted"
 
+
 @dataclass
-class Post():
+class Post:
     content: Any
     """Any: The content of the post. This can be a file, a string, or anything else that is required for the post."""
 
@@ -46,6 +51,7 @@ class Post():
 
     publicity: PostPublicity
     """PostPublicity: The visibility of the post"""
+
 
 @dataclass
 class BotSession:
@@ -67,7 +73,10 @@ class BotSession:
     @property
     def owner(self) -> Tuple[Profile, DatabaseSyncedProfile]:
         """Tuple[Profile, DatabaseSyncedProfile]: The owner of the bot. Useful for modifying the user account based on bot actions."""
-        return (Profile.from_id(self.owner_id), DatabaseSyncedProfile.from_id(self.owner_id))
+        return (
+            Profile.from_id(self.owner_id),
+            DatabaseSyncedProfile.from_id(self.owner_id),
+        )
 
     @staticmethod
     def from_dict(dict_: dict):
@@ -84,13 +93,14 @@ class BotSession:
         # Take the current metadata
         current_metadata = self.metadata_dict
         # add the cookies
-        current_metadata['cookies'] = new_metadata
-        update_value(table=table, line=self.id, val="metadata_dict", new_value=current_metadata)
-
+        current_metadata["cookies"] = new_metadata
+        update_value(
+            table=table, line=self.id, val="metadata_dict", new_value=current_metadata
+        )
 
 
 @dataclass
-class Bot():
+class Bot:
     id: str
     """str: The unique identifier for the bot."""
 
@@ -106,7 +116,7 @@ class Bot():
     description: str
     """str: The description of the bot."""
 
-    proxy_id: int 
+    proxy_id: int
     """int: The unique identifier for the proxy of the bot."""
 
     metadata_dict: dict
@@ -121,7 +131,7 @@ class Bot():
     platform: Platform
     """Platform: The platform of the bot. This will define the schema for 'Bot().bot_configuration'."""
 
-    session_id: int 
+    session_id: int
     """int: The unique identifier for the session of the bot. This is used to authenticate the bot. Because a single `SocialAccount` can have multiple bots, the session_id will provide us with the information required"""
 
     currently_active: bool
@@ -133,12 +143,13 @@ class Bot():
     configuration: None = None
     """None: The configuration of the bot. This will be defined in the subclass."""
 
-
     @property
     def owner(self) -> Tuple[Profile, DatabaseSyncedProfile]:
         """Tuple[Profile, DatabaseSyncedProfile]: The owner of the bot. Useful for modifying the user account based on bot actions."""
-        return (Profile.from_id(self.owner_id), DatabaseSyncedProfile.from_id(self.owner_id))
-     
+        return (
+            Profile.from_id(self.owner_id),
+            DatabaseSyncedProfile.from_id(self.owner_id),
+        )
 
     @property
     def proxy(self) -> Proxy:
@@ -150,7 +161,6 @@ class Bot():
         """Session: The session of the bot. Useful for modifying the session based on bot actions. The session is just a dictionary!"""
         return BotSession.from_id(self.session_id)
 
-
     @staticmethod
     def from_id(id: int, type_: Any):
         value = get_value("bots", id)
@@ -158,7 +168,9 @@ class Bot():
         # Loop over all of the bot_types to assign the ContentGenerationBotHandler
         print(out.bot_type)
         if out.bot_type == BotType.AiImageGeneration.value:
-            out.handler = AIImageGenerationBotHandler(metadata=AiImageGenerationBotMetadata(**out.metadata_dict))
+            out.handler = AIImageGenerationBotHandler(
+                metadata=AiImageGenerationBotMetadata(**out.metadata_dict)
+            )
 
         if out.platform == Platform.Instagram.value:
             out.configuration = InstagramBotConfiguration(**out.bot_configuration_dict)
@@ -166,22 +178,59 @@ class Bot():
         return out
 
     @staticmethod
-    def new(friendly_name: str, description: str, owner_id: str, bot_type: BotType, platform: Platform, metadata_dict: dict, bot_configuration_dict: dict, session_id: int, proxy_id: int, currently_active: bool) -> Any:
+    def new(
+        friendly_name: str,
+        description: str,
+        owner_id: str,
+        bot_type: BotType,
+        platform: Platform,
+        metadata_dict: dict,
+        bot_configuration_dict: dict,
+        session_id: int,
+        proxy_id: int,
+        currently_active: bool,
+    ) -> Any:
         """new: This method will create a new bot."""
         id = str(uuid.uuid4().hex)
         created_at = datetime.datetime.now()
-        # bot = Bot(id=id, created_at=created_at, friendly_name=friendly_name, description=description, owner_id=owner_id, bot_type=bot_type, platform=platform, metadata_dict=metadata_dict, bot_configuration_dict=bot_configuration_dict, session_id=session_id, proxy_id=proxy_id, currently_active=currently_active)       
+        # bot = Bot(id=id, created_at=created_at, friendly_name=friendly_name, description=description, owner_id=owner_id, bot_type=bot_type, platform=platform, metadata_dict=metadata_dict, bot_configuration_dict=bot_configuration_dict, session_id=session_id, proxy_id=proxy_id, currently_active=currently_active)
         if platform == Platform.Instagram:
-            bot = InstagramPlatformBot(id=id, created_at=created_at, friendly_name=friendly_name, description=description, owner_id=owner_id, bot_type=bot_type, platform=platform, metadata_dict=metadata_dict, bot_configuration_dict=bot_configuration_dict, session_id=session_id, proxy_id=proxy_id, currently_active=currently_active)
+            bot = InstagramPlatformBot(
+                id=id,
+                created_at=created_at,
+                friendly_name=friendly_name,
+                description=description,
+                owner_id=owner_id,
+                bot_type=bot_type,
+                platform=platform,
+                metadata_dict=metadata_dict,
+                bot_configuration_dict=bot_configuration_dict,
+                session_id=session_id,
+                proxy_id=proxy_id,
+                currently_active=currently_active,
+            )
         else:
-            bot = Bot(id=id, created_at=created_at, friendly_name=friendly_name, description=description, owner_id=owner_id, bot_type=bot_type, platform=platform, metadata_dict=metadata_dict, bot_configuration_dict=bot_configuration_dict, session_id=session_id, proxy_id=proxy_id, currently_active=currently_active)
-            
+            bot = Bot(
+                id=id,
+                created_at=created_at,
+                friendly_name=friendly_name,
+                description=description,
+                owner_id=owner_id,
+                bot_type=bot_type,
+                platform=platform,
+                metadata_dict=metadata_dict,
+                bot_configuration_dict=bot_configuration_dict,
+                session_id=session_id,
+                proxy_id=proxy_id,
+                currently_active=currently_active,
+            )
+
         # Create a 100% dict version of the bot
         bot_dict = bot.__dict__
 
-        del bot_dict['configuration']
-        del bot_dict['metadata']
-        del bot_dict['id']
+        del bot_dict["configuration"]
+        del bot_dict["metadata"]
+        del bot_dict["id"]
 
         for key, value in bot_dict.items():
             if isinstance(value, Enum):
@@ -194,7 +243,9 @@ class Bot():
         bot.id = id
 
         if bot_type == BotType.AiImageGeneration:
-            bot.handler = AIImageGenerationBotHandler(metadata=AiImageGenerationBotMetadata(**metadata_dict))
+            bot.handler = AIImageGenerationBotHandler(
+                metadata=AiImageGenerationBotMetadata(**metadata_dict)
+            )
 
         # Register the cron_jobs for the bot
         if platform == Platform.Instagram:
@@ -208,9 +259,10 @@ class Bot():
 
         # Now we need to update the values
         bot.bot_configuration_dict = bot.configuration.__dict__
-        update_value("bots", bot.id, "bot_configuration_dict", bot.bot_configuration_dict)
+        update_value(
+            "bots", bot.id, "bot_configuration_dict", bot.bot_configuration_dict
+        )
 
-            
         return bot
 
     def modify_schedule(self, name: str, new_value: str) -> None:
@@ -232,12 +284,15 @@ class Bot():
         setattr(self.configuration, name, new_value)
         # Now we need to update the value
         self.bot_configuration_dict = self.configuration.__dict__
-        update_value("bots", self.id, "bot_configuration_dict", self.bot_configuration_dict)
-        
+        update_value(
+            "bots", self.id, "bot_configuration_dict", self.bot_configuration_dict
+        )
 
     @staticmethod
     def _create_cron(bot_id: str, cron: str, cron_name: str) -> Optional[dict]:
-        api_base_url = os.environ['API_BASE_URL'] + "/run_cron_job" # This is because a ton of the code will be super generic for this first version as it makes us build way faster!
+        api_base_url = (
+            os.environ["API_BASE_URL"] + "/run_cron_job"
+        )  # This is because a ton of the code will be super generic for this first version as it makes us build way faster!
         try:
             headers = {
                 "Content-Type": "application/json",
@@ -278,14 +333,13 @@ class Bot():
             response = requests.put(
                 "https://api.cron-job.org/jobs", headers=headers, json=json_data
             )
-            return response.json()['jobId']
+            return response.json()["jobId"]
         except Exception as e:
             print(e, traceback.format_exc())
             return None
 
-    
     @staticmethod
-    def _delete_schedule(cron_id: str): 
+    def _delete_schedule(cron_id: str):
         try:
             headers = {
                 "Content-Type": "application/json",
@@ -298,14 +352,14 @@ class Bot():
             print(e)
             return False
 
-    
 
 @dataclass
-class InstagramBotConfiguration():
+class InstagramBotConfiguration:
     """InstagramBotConfiguration: The configuration for the Instagram bot."""
+
     posting_interval: str
     """str: This is the cron job used to post to the platform."""
-   
+
     follow_for_follow: bool
     """bool: If the bot should follow for follow."""
 
@@ -338,11 +392,12 @@ class InstagramBotConfiguration():
 
     cron_job_posting_interval: int = None
     """int: The cron-job.org jobId"""
- 
+
 
 @dataclass
-class AiImageGenerationBotMetadata():
+class AiImageGenerationBotMetadata:
     """AiImageGenerationBotMetadata: The metadata for the AiImageGeneration bot."""
+
     model: str
     """str: The model to use for generating the image."""
 
@@ -370,19 +425,20 @@ class AiImageGenerationBotMetadata():
     base_topic: str
     """str: The base topic of the images. This is like the main driver of what should be generated!"""
 
+
 @dataclass
-class ContentGenerationBotHandler():
+class ContentGenerationBotHandler:
     """ContentGenerationBotHandler: The Content Generation bot class. This class"""
-    
+
     metadata: Any
     """None: The metadata of the bot."""
 
-    def generate(self, owner: DatabaseSyncedProfile) -> List['Post']:
+    def generate(self, owner: DatabaseSyncedProfile) -> List["Post"]:
         """generate: This method will generate the content using the metadata of the bot."""
         return []
 
     @classmethod
-    def from_type(cls, type_: 'ContentGenerationBotHandler', metadata: Any) -> Any:
+    def from_type(cls, type_: "ContentGenerationBotHandler", metadata: Any) -> Any:
         """generate: This method will generate the content using the metadata of the bot."""
         return type_(metadata)
 
@@ -397,51 +453,51 @@ class AIImageGenerationBotHandler(ContentGenerationBotHandler):
         return client.generate(
             model="phi3:3.8b",
             prompt=f"Please generate a 1-3 word topic based on the base_topic provided: {base_topic}. You should only respond with the response, no extra fluff attached to the message, for example <BASE_TOPIC>, your response: Cute ginger cat. Only respond with the answer in the format  have given you!",
-            keep_alive="1m"
+            keep_alive="1m",
         )["response"]
 
     def _generate_image_prompt(self, base_prompt: str, topic: str, style: str):
         return client.generate(
             model="phi3:3.8b",
             prompt=f'{base_prompt} The topic for the image should be: {topic}. And the stile reference should be {style}. Give us a descriptive image prompt that will allow the AI image generator to generate a high quality image! Limit your propmpt to 2 sentences, and only respond with the image prompt, No extra context before or after, for example: MY INPUT, your output: "very cute tiny, A cute orange cat smile wearing sweater avatar, rim lighting, adorable big eyes, small, By greg rutkowski, chibi, Perfect lighting, Sharp focus"',
-            keep_alive="1m"
+            keep_alive="1m",
         )["response"]
 
     def _generate_image_title(self, base_title: str, topic: str, style: str):
         return client.generate(
             model="phi3:3.8b",
             prompt=f'{base_title} The topic for the image should be: {topic}. And the stile reference should be {style}. Give us a descriptive image title that will allow the AI image generator to generate a high quality image! Limit your title to 2 sentences, and only respond with the image title, No extra context before or after, for example: MY INPUT, your output: "Cute orange cat smile wearing sweater avatar, rim lighting, adorable big eyes, small, By greg rutkowski, chibi, Perfect lighting, Sharp focus. Ensure you are fully exclaiming the main topic of the image, as we dont want the AI to generate an image that is invalid."',
-            keep_alive='1m'
+            keep_alive="1m",
         )["response"]
 
-    def _generate_image_description(
-        self, base_title: str, topic: str, style: str
-    ):
+    def _generate_image_description(self, base_title: str, topic: str, style: str):
         return client.generate(
             model="phi3:3.8b",
             prompt=f'{base_title} The topic for the image should be: {topic}. And the stile reference should be {style}. Give us a descriptive image description that will allow the AI image generator to generate a high quality image! Limit your description to 10 sentences, max, and 1 sentence min, only respond with the image description, No extra context before or after, for example: MY INPUT, your output: "Cute orange cat smile wearing sweater avatar, rim lighting, adorable big eyes, small, By greg rutkowski, chibi, Perfect lighting, Sharp focus... REST OF RESPONSE ... Check out my socials ... #something, something something! . Ensure you are fully exclaiming the main topic of the image, as we dont want the AI to generate an image that is invalid."',
-            keep_alive='1m'
+            keep_alive="1m",
         )["response"]
 
     def _generate_image(
         self, prompt: str, negative_prompt: str, model: str, size: tuple
     ):
         api = ImageApi()
-        return api.generate_image(
-            prompt, negative_prompt, model, size[0], size[1]
-        )
+        return api.generate_image(prompt, negative_prompt, model, size[0], size[1])
 
-    def generate(self, owner: DatabaseSyncedProfile) -> List['Post']:
+    def generate(self, owner: DatabaseSyncedProfile) -> List["Post"]:
         posts = []
-        for i in range(self.metadata.total_images): 
+        for i in range(self.metadata.total_images):
             # It costs 1 credit per image
-            if  owner.credits < 1:
+            if owner.credits < 1:
                 raise Exception("Not enough credits to generate images!")
 
             owner.credits -= 1
 
             print("Generating topic...")
-            topic = self._generate_topic_item(self.metadata.base_topic).split('\n')[0].strip()
+            topic = (
+                self._generate_topic_item(self.metadata.base_topic)
+                .split("\n")[0]
+                .strip()
+            )
             print("Generated topic: ", topic)
 
             print("Generating prompt...")
@@ -449,7 +505,7 @@ class AIImageGenerationBotHandler(ContentGenerationBotHandler):
                 self.metadata.positive_prompt, topic, self.metadata.style
             ).strip()
             print("Generated prompt: ", prompt)
-        
+
             print("Generating title...")
             title = self._generate_image_title(
                 self.metadata.title_prompt
@@ -460,7 +516,7 @@ class AIImageGenerationBotHandler(ContentGenerationBotHandler):
                 self.metadata.style,
             ).strip()
             print("Generated title: ", title)
-        
+
             print("Generating description...")
             description = self._generate_image_description(
                 title,
@@ -481,13 +537,22 @@ class AIImageGenerationBotHandler(ContentGenerationBotHandler):
             with open(image_filepath, "wb") as f:
                 f.write(images[0])
 
-            posts.append(Post(title=title, description=description, tags=[], publicity=PostPublicity.PUBLIC, content=image_filepath))
-        
+            posts.append(
+                Post(
+                    title=title,
+                    description=description,
+                    tags=[],
+                    publicity=PostPublicity.PUBLIC,
+                    content=image_filepath,
+                )
+            )
+
         return posts
 
 
 class InstagramPlatformBot(Bot):
     """InstagramPlatformBot: The Instagram platform bot class. This class will provide all of the methods to interact with instagram. Following & subclassing from Bot. But having its own api implementation, and other methods which are platform specific, but still shares the handler logic between different types of bots."""
+
     bot_configuration: InstagramBotConfiguration
     """InstagramBotConfiguration: The configuration of the bot."""
 
@@ -497,12 +562,17 @@ class InstagramPlatformBot(Bot):
     _client: Optional[Client]
     _is_authenticated: bool = False
     """Client: The Private Instagrapi Client"""
-    
+
     def upload(self) -> None:
         posts = self.handler.generate(owner=self.owner[1])
         print(posts)
         for post in posts:
-            print(self.client.photo_upload(path=post.content, caption=f"{post.title} {' '.join(post.tags)}\n\n{post.description}").dict())
+            print(
+                self.client.photo_upload(
+                    path=post.content,
+                    caption=f"{post.title} {' '.join(post.tags)}\n\n{post.description}",
+                ).dict()
+            )
         return None
 
     @property
@@ -513,13 +583,15 @@ class InstagramPlatformBot(Bot):
 
         if self._is_authenticated:
             return self._client
-        
+
         cl = self._client
         session = self.session
         cl.set_proxy(self.proxy.url)
         session_filepath = f"/tmp/{self.id}.json"
-        if not session.metadata_dict['cookies']:
-            cl.login(session.metadata_dict['username'], session.metadata_dict['password'])
+        if not session.metadata_dict["cookies"]:
+            cl.login(
+                session.metadata_dict["username"], session.metadata_dict["password"]
+            )
             cl.dump_settings(session_filepath)
 
             with open(session_filepath, "r") as f:
@@ -528,15 +600,14 @@ class InstagramPlatformBot(Bot):
 
         else:
             with open(session_filepath, "w") as f:
-                json.dump(session.metadata_dict['cookies'], f)
+                json.dump(session.metadata_dict["cookies"], f)
 
             cl.load_settings(session_filepath)
-        
+
         self._is_authenticated = True
         self._client = cl
         return self._client
 
-        
     def follow(self) -> None:
         """Do following logic here"""
         print("Following...")
@@ -561,5 +632,3 @@ class InstagramPlatformBot(Bot):
     def comment_dm_promotion(self) -> None:
         """Do comment dm promotion logic here"""
         print("Commenting dm promotion...")
-
-

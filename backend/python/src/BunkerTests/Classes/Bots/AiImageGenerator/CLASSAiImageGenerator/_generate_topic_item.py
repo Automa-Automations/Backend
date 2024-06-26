@@ -1,5 +1,6 @@
 import unittest
 
+
 class TestSrcClassesBotsAiimagegenerator_generate_topic_item(unittest.TestCase):
     def test_no_errors(self):
         """Test for no errors"""

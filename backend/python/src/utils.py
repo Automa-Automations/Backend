@@ -16,22 +16,14 @@ def update_value(
         if isinstance(new_value, datetime.datetime):
             new_value = str(new_value)
 
-        supabase.table(table).update({val: new_value}).eq(
-            line_name, line
-        ).execute()
+        supabase.table(table).update({val: new_value}).eq(line_name, line).execute()
     except Exception as e:
         print(e, traceback.format_exc())
 
 
 def get_value(table: str, line: Any, line_name: str = "id") -> dict:
     try:
-        return (
-            supabase.table(table)
-            .select("*")
-            .eq(line_name, line)
-            .execute()
-            .data[0]
-        )
+        return supabase.table(table).select("*").eq(line_name, line).execute().data[0]
     except Exception as e:
         print(e, traceback.format_exc())
     return {}
@@ -58,9 +50,7 @@ def upload_file(
     new_file_name = uuid.uuid4()
     file_path_segments = path_on_bucket.split("/")
     filename, extension = file_path_segments[-1].split(".")
-    filename = (
-        f"{new_file_name}_{filename}_{datetime.datetime.now().timestamp()}"
-    )
+    filename = f"{new_file_name}_{filename}_{datetime.datetime.now().timestamp()}"
     full_filename = f"{filename}.{extension}"
     joined_file_segments = "/".join(file_path_segments)
     if len(joined_file_segments.split("/")) == 1:

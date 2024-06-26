@@ -1,5 +1,6 @@
 import unittest
 
+
 class TestSrcClassesPlanTo_dict(unittest.TestCase):
     def test_no_errors(self):
         """Test for no errors"""

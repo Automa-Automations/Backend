@@ -1,5 +1,6 @@
 import unittest
 
+
 class TestSrcClassesUserTo_synced_profile(unittest.TestCase):
     def test_no_errors(self):
         """Test for no errors"""

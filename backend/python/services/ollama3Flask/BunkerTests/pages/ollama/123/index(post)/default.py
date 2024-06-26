@@ -1,5 +1,6 @@
 import unittest
 
+
 class TestServicesOllama3flaskPagesOllama123IndexpostDefault(unittest.TestCase):
     def test_no_errors(self):
         """Test for no errors"""

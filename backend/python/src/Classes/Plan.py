@@ -2,6 +2,7 @@ import dataclasses
 from src.utils import get_value
 import datetime
 
+
 @dataclasses.dataclass
 class Plan:
     id: str
@@ -17,13 +18,12 @@ class Plan:
 
     def to_dict(self):
         return dataclasses.asdict(self)
-    
+
     @staticmethod
     def from_dict(data: dict):
         return Plan(**data)
 
     @staticmethod
     def from_id(id: str):
-        value = get_value(table='plans', line=id.lower())
+        value = get_value(table="plans", line=id.lower())
         return Plan.from_dict(value)
-

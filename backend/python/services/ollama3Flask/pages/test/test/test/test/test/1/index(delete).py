@@ -1,1 +1,2 @@
-def default(): return "Hello, services/ollama3Flask/pages/test/test/test/test/test/1/index(delete)"
+def default():
+    return "Hello, services/ollama3Flask/pages/test/test/test/test/test/1/index(delete)"

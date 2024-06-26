@@ -1,5 +1,6 @@
 import unittest
 
+
 class TestSrcClassesBotComment_dm_promotion(unittest.TestCase):
     def test_no_errors(self):
         """Test for no errors"""

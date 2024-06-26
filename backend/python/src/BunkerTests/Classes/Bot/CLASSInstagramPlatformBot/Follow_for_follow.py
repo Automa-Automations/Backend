@@ -1,5 +1,6 @@
 import unittest
 
+
 class TestSrcClassesBotFollow_for_follow(unittest.TestCase):
     def test_no_errors(self):
         """Test for no errors"""

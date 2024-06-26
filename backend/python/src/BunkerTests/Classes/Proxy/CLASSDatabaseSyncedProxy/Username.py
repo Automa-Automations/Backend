@@ -1,5 +1,6 @@
 import unittest
 
+
 class TestSrcClassesProxyUsername(unittest.TestCase):
     def test_no_errors(self):
         """Test for no errors"""

@@ -1,5 +1,6 @@
 import unittest
 
+
 class TestSrcRandom_drinkRandom_drink(unittest.TestCase):
     def test_no_errors(self):
         """Test for no errors"""
