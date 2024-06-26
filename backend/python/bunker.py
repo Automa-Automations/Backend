@@ -600,9 +600,20 @@ def build(service, all):
     container_builder(service, all)
 
 
-def container_runner(service: str, detach=True):
+def container_runner(service: str):
+    if not service:
+        click.echo("😥 Sorry, But it doesn't seem that you provided a valid service name!")
+        exit(1)
+
     config = json.load(open(config_path))
     services_dir = config.get("create", {}).get("service_dir", {})
+
+    client = docker.from_env()
+
+    image = [i for i in client.images.list() if i.attrs["RepoTags"] and i.attrs["RepoTags"][0] == f"{service.lower()}:latest"]
+
+    if not image:
+        container_builder(service=service, all=False)
 
     with yaspin(text=f"⤵️ Starting the Container running Process...") as sp:
         if not services_dir:
@@ -616,8 +627,11 @@ def container_runner(service: str, detach=True):
         service_path = os.path.join(services_dir, service)
         service_config_path = os.path.join(service_path, "config.json")
 
+        if not os.path.exists(service_path):
+            sp.fail("😥 Please run a valid service!")
+            exit(1)
+
         service_config = json.load(open(service_config_path))
-        client = docker.from_env()
 
         ports = service_config.get("ports", {})
         mounts = service_config.get("mounts", {})
@@ -654,24 +668,17 @@ def container_runner(service: str, detach=True):
             ports=ports_transformed,
             mounts=mounts_transformed,
             environment=env,
-            detach=detach,
+            detach=True,
         )
 
         sp.text = "Container successfully started running!"
         sp.ok("🎉")
 
-        if not detach:
-            logs = container
+        for message in container.logs(stream=True):
             formatted_message = (
-                f"    {Fore.LIGHTBLACK_EX}{logs.decode('utf-8').strip()}"
+                f"    {Fore.LIGHTBLACK_EX}{message.decode('utf-8').strip()}"
             )
             print(formatted_message)
-        else:
-            for message in container.logs(stream=True):
-                formatted_message = (
-                    f"    {Fore.LIGHTBLACK_EX}{message.decode('utf-8').strip()}"
-                )
-                print(formatted_message)
 
         click.echo("🎉 Container Job successfully Finished!")
 
@@ -680,15 +687,7 @@ def container_runner(service: str, detach=True):
 
 @builder.command()
 @click.option("--service", "-s", help="The service to run.", required=False, type=str)
-@click.option(
-    "--all",
-    "-a",
-    help="Runs every single service at once.",
-    required=False,
-    type=str,
-    is_flag=True,
-)
-def run(service, all=False):
+def run(service):
     """Allows you to run a service if it exists,"""
     container_runner(service=service)
 
