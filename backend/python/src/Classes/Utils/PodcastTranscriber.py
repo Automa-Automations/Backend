@@ -8,6 +8,7 @@ from src.utils import download_podcast
 
 logger = logging.getLogger(__name__)
 
+
 class PodcastTranscriber:
     def __init__(self, podcast_url):
         self.podcast_url = podcast_url
@@ -15,7 +16,7 @@ class PodcastTranscriber:
 
     def _convert_to_mp3(self, file_path: str):
         mp4_audio = AudioSegment.from_file(file_path, format="mp4")
-        mp3_file_path = file_path.rsplit('.', 1)[0] + '.mp3'
+        mp3_file_path = file_path.rsplit(".", 1)[0] + ".mp3"
         mp4_audio.export(mp3_file_path, format="mp3")
         return mp3_file_path
 
@@ -25,8 +26,10 @@ class PodcastTranscriber:
         download_output = download_podcast(podcast_url)
         print(download_output)
 
-        if download_output['status'] == 'success':
-            download_path = os.path.join(download_output['output_path'], download_output['filename'])
+        if download_output["status"] == "success":
+            download_path = os.path.join(
+                download_output["output_path"], download_output["filename"]
+            )
             podcast_mp3_path = podcast_transcriber._convert_to_mp3(download_path)
             assembly_ai = AssemblyAI(api_key)
             assembly_ai.debugging = debugging
@@ -34,7 +37,7 @@ class PodcastTranscriber:
             parsed_transcript = assembly_ai.parse_transcript(transcript)
             podcast_transcriber.transcript = parsed_transcript
             os.remove(podcast_mp3_path)
-            
+
         return podcast_transcriber
 
     @classmethod
@@ -45,6 +48,7 @@ class PodcastTranscriber:
         podcast_transcriber.transcript = transcription_api.get_video_transcript()
         return podcast_transcriber
 
+
 class AssemblyAI:
     def __init__(self, api_key: str):
         self.api_key = api_key
@@ -52,12 +56,13 @@ class AssemblyAI:
         self.debugging = False
 
     def get_yt_podcast_transcription(self, podcast_download_path: str):
-        logger.info("testing...")
         transcriber = aai.Transcriber()
         transcript = transcriber.transcribe(podcast_download_path)
         transcript = transcript.wait_for_completion()
         if transcript.json_response and "text" in transcript.json_response:
-            logger.info(f"Transcript word length: {len(transcript.json_response["text"])}")
+            logger.info(
+                f"Transcript word length: {len(transcript.json_response["text"])}"
+            )
 
             if self.debugging:
                 with open("./assembly_transcript.json", "w") as f:
@@ -88,7 +93,9 @@ class AssemblyAI:
 
             if current_sentence_dict["sentence"].strip()[-1] in ["?", "!", "."]:
                 current_sentence_dict["end_time"] = word_dict["end"]
-                current_sentence_dict["sentence"] = current_sentence_dict["sentence"].strip()
+                current_sentence_dict["sentence"] = current_sentence_dict[
+                    "sentence"
+                ].strip()
                 full_sentences_transcript.append(current_sentence_dict)
                 current_sentence_dict = {
                     "sentence": "",
@@ -97,12 +104,15 @@ class AssemblyAI:
                     "speaker": "",
                 }
 
-        logger.info(f"Full sentences transcript length: {len(full_sentences_transcript)}")
+        logger.info(
+            f"Full sentences transcript length: {len(full_sentences_transcript)}"
+        )
         if self.debugging:
             with open("assembly_parsed_transcript.json", "w") as f:
                 f.write(json.dumps(full_sentences_transcript, indent=4))
 
         return full_sentences_transcript
+
 
 class YoutubeTranscriptionAPITranscriber:
     def __init__(self, podcast_url: str):

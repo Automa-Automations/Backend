@@ -8,6 +8,7 @@ import uuid
 import requests
 from fuzzywuzzy import fuzz
 
+
 def update_value(
     table: str, line: str, val: str, new_value: Any, line_name: str = "id"
 ):
@@ -134,11 +135,13 @@ def download_file_url(from_: str) -> bytes:
 
     return file_object
 
+
 def format_video_url(video_url: str) -> str:
     if "youtu.be" in video_url:
         video_url = f"https://youtube.com/watch?v={video_url.split("youtu.be/")[1].split("?")[0]}"
 
     return video_url
+
 
 def download_podcast(podcast_url, output_path: str = "downloads/", filename: str = ""):
     print("Downloading podcast...")
@@ -147,21 +150,22 @@ def download_podcast(podcast_url, output_path: str = "downloads/", filename: str
         if filename == "":
             filename = yt.title
 
-        yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution')[-1].download(
-            output_path=output_path, filename=filename
-        )
+        yt.streams.filter(progressive=True, file_extension="mp4").order_by(
+            "resolution"
+        )[-1].download(output_path=output_path, filename=filename)
 
         return {
             "output_path": output_path,
             "filename": filename,
             "status": "success",
-        } 
+        }
 
     except Exception as e:
         return {
             "error": str(e),
             "status": "error",
         }
+
 
 def validate_string_similarity(string1, string2, percentage=80):
     """
@@ -206,4 +210,3 @@ def validate_string_similarity(string1, string2, percentage=80):
             similarity_score = 100
 
     return similarity_score >= percentage
-

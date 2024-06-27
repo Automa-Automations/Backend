@@ -17,7 +17,7 @@ class BackendStack(Stack):
 
         backend_stack_zip = "./backend/layers/backend_layer.zip"
 
-        backend_stack_layer  = aws_lambda.LayerVersion(
+        backend_stack_layer = aws_lambda.LayerVersion(
             self,
             "BackendStackLayer",
             code=aws_lambda.Code.from_asset(backend_stack_zip),

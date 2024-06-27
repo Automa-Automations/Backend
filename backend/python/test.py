@@ -4,7 +4,9 @@ from dotenv import load_dotenv
 import logging
 
 load_dotenv()
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 
 all_tests = [
     {
@@ -23,7 +25,10 @@ all_tests = [
             {
                 "name": "PodcastVideoTranscriber",
                 "units": [
-                    {"name": "transcription_test", "test": Utils.PodcastVideoTranscriber.PodcastVideoTranscriber},
+                    {
+                        "name": "transcription_test",
+                        "test": Utils.PodcastVideoTranscriber.PodcastVideoTranscriber,
+                    },
                 ],
             },
             {
@@ -36,9 +41,9 @@ all_tests = [
                     {
                         "name": "openai_chat_completion",
                         "test": Utils.ChatCompletion.OpenAIChatCompletion,
-                    }
-                ]
-            }
+                    },
+                ],
+            },
         ],
     }
 ]

@@ -1,0 +1,64 @@
+[
+    {
+        "sentence": "Sean Puri's got this thing where he says, don't follow what most people do because you don't want the results that most people get.",
+        "exclude": ["Sean Puri's got this thing where he says,"]
+    },
+    {
+        "sentence": "The average person is obese, likely to be divorced, and has less than one k in the bank.",
+        "exclude": []
+    },
+    {
+        "sentence": "It feels safe to do what everyone else is doing, but it's actually a terrible decision.",
+        "start_time": 236506,
+        "end_time": 240214,
+        "speaker": null
+    },
+    {
+        "sentence": "It's like, the best way to guarantee to not have the life that you want is to do what everyone else is doing, unless you want what everyone else has, which no one does.",
+        "exclude": ["which no one does."]
+    },
+    {
+        "sentence": "So, like, a lot of people have many voices that they hear that they feel are judging them, right?",
+        "exclude": ["So, like,"]
+    },
+    {
+        "sentence": "They have their friends, they have their uncle, they have their siblings, they have their cousins, coworkers, whatever.",
+        "exclude": []
+    },
+    {
+        "sentence": "I think I had just one voice that I heard really loudly.",
+        "exclude": ["that I heard really loudly."]
+    },
+    {
+        "sentence": "I was talking to one of our employees the other day, and I was trying to put it in perspective, a younger guy, and I was like, imagine how much you care about your mother's opinion and your father's opinion and your sibling and all of those other people.",
+        "exclude": ["I was talking to one of our employees the other day, and I was trying to put it in perspective, a younger guy, and I was like,"]
+    },
+    {
+        "sentence": "I was like, and now imagine that there's literally only one.",
+        "exclude": ["I was like,"]
+    },
+    {
+        "sentence": "I had just a father.",
+        "exclude": []
+    },
+    {
+        "sentence": "And so his approval was literally everything.",
+        "exclude": ["And so "]
+    },
+    {
+        "sentence": "And he disapproved of the path that I wanted to take in my life.",
+        "exclude": []
+    },
+    {
+        "sentence": "And so I think a lot of these mental faculties or these little frameworks or these isms just came from, like, how can I combat this incredibly booming voice in the background?",
+        "exclude": []
+    },
+    {
+        "sentence": "But the craziest thing was that the moment that my father was most proud of me and he approved of my life the most was when I was the saddest.",
+        "exclude": ["But"]
+    },
+    {
+        "sentence": "And so that's when I was like, maybe his approval isn't the right way to feel good about life.",
+        "exclude": []
+    }
+]

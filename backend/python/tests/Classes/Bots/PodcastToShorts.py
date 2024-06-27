@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 podcast_url = os.environ.get("TEST_PODCAST_URL") or ""
 
+
 class FullRun(unittest.TestCase):
     def test_full_run(self):
         self.assertEqual(True, True)
@@ -17,6 +18,7 @@ class FullRun(unittest.TestCase):
         self.assertEqual(isinstance(shorts, list), True)
         self.assertIsNotNone(shorts[0])
         self.assertEqual(isinstance(shorts[0], dict), True)
+
 
 class ClipAndFollowFacesMobileRatio(unittest.TestCase):
     def test_clip_and_follow_faces_mobile_ratio(self):
