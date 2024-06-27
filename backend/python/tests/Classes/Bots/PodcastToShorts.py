@@ -1,18 +1,45 @@
 import unittest
 from moviepy.editor import VideoFileClip
 from src.Classes.Bots import PodcastToShorts
+from typing import Literal
 import os
 import logging
 
 logger = logging.getLogger(__name__)
 
+env_type = "LOCAL_"
+if os.environ.get("CURRENT_ENVIRONMENT", "local") == "prod":
+    env_type = "HOSTED_"
+
+assembly_api_key = os.environ.get("ASSEMBLY_API_KEY") or ""
+ollama_base_url = os.environ.get(f"{env_type}OLLAMA_HOST_URL") or ""
+llm_api_key = os.environ.get("OPENAI_API_KEY") or ""
+
 podcast_url = os.environ.get("TEST_PODCAST_URL") or ""
+llm_type: Literal["ollama", "openai"] = "ollama"
+transcriptor_type: Literal["assembly_ai", "yt_transcript_api"] = "assembly_ai"
+llm_model = os.environ.get("LLM_TESTING_MODEL") or ""
 
 
 class FullRun(unittest.TestCase):
     def test_full_run(self):
         self.assertEqual(True, True)
-        podcast_to_shorts = PodcastToShorts(podcast_url=podcast_url)
+        podcast_to_shorts = PodcastToShorts(
+            podcast_url=podcast_url,
+            llm_type=llm_type,
+            llm_model=llm_model,
+            transcriptor_type=transcriptor_type,
+        )
+        if llm_type == "ollama":
+            podcast_to_shorts.ollama_base_url = ollama_base_url
+        elif llm_type == "openai":
+            podcast_to_shorts.llm_api_key = llm_api_key
+        else:
+            raise ValueError("Invalid llm_type")
+
+        if transcriptor_type == "assembly_ai":
+            podcast_to_shorts.assembly_api_key = assembly_api_key
+
         shorts = podcast_to_shorts.get_shorts()
 
         self.assertEqual(isinstance(shorts, list), True)

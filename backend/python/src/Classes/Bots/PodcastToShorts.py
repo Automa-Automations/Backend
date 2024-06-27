@@ -10,7 +10,7 @@ import random
 import logging
 import re
 from src.Classes.Utils.PodcastTranscriber import PodcastTranscriber
-from src.utils import format_video_url, validate_string_similarity
+from src.utils import format_video_url, validate_string_similarity, download_podcast
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ class PodcastToShorts:
         self.assembly_api_key = assembly_api_key
         self.llm_type: Literal["openai", "ollama"] = llm_type
         self.llm_model = llm_model
-        self.debugging = True
+        self.debugging = False
         self.podcast_url = format_video_url(self.podcast_url)
         self.yt = YouTube(self.podcast_url)
         self.ollama_base_url = ollama_base_url
@@ -250,7 +250,7 @@ class PodcastToShorts:
 
     def _cleanup_shortened_transcript_response(self, llm_response, short):
         if self.transcriptor_type == "assembly_ai":
-            return {}
+            return llm_response
         elif self.transcriptor_type == "yt_transcript_api":
             llm_response["start_text"] = llm_response["start_text"].replace("\n", " ")
             llm_response["end_text"] = llm_response["end_text"].replace("\n", " ")
@@ -365,7 +365,7 @@ class PodcastToShorts:
 
     def _generate_shorts(self, shorts_final_transcripts: List):
         # for now, just download the podcast and get shorts, unedited.
-        download_response = download_podcast()
+        download_response = download_podcast(self.podcast_url)
         if download_response["status"] == "success":
             logger.info("Podcast downloaded successfully")
             clip_shorts_data = []

@@ -7,6 +7,7 @@ import traceback
 import uuid
 import requests
 from fuzzywuzzy import fuzz
+import os
 
 
 def update_value(
@@ -145,6 +146,8 @@ def format_video_url(video_url: str) -> str:
 
 def download_podcast(podcast_url, output_path: str = "downloads/", filename: str = ""):
     print("Downloading podcast...")
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
     try:
         yt = YouTube(podcast_url)
         if filename == "":
