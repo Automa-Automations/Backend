@@ -24,19 +24,28 @@ class PodcastTranscriber:
     def from_assembly(cls, podcast_url: str, api_key: str, debugging: bool = False):
         podcast_transcriber = cls(podcast_url)
         download_output = download_podcast(podcast_url)
-        print(download_output)
+        logger.info(f"Download Output: {download_output}")
 
         if download_output["status"] == "success":
             download_path = os.path.join(
                 download_output["output_path"], download_output["filename"]
             )
-            podcast_mp3_path = podcast_transcriber._convert_to_mp3(download_path)
+
+            test_podcast_mp3_path = download_path.rsplit(".", 1)[0] + ".mp3"
+            if debugging and os.path.exists(test_podcast_mp3_path):
+                logger.info(
+                    f"Mp3 file already exist, no need to convert video to mp3. Path: {test_podcast_mp3_path}"
+                )
+                podcast_mp3_path = test_podcast_mp3_path
+            else:
+                podcast_mp3_path = podcast_transcriber._convert_to_mp3(download_path)
+
             assembly_ai = AssemblyAI(api_key)
             assembly_ai.debugging = debugging
             transcript = assembly_ai.get_yt_podcast_transcription(podcast_mp3_path)
             parsed_transcript = assembly_ai.parse_transcript(transcript)
             podcast_transcriber.transcript = parsed_transcript
-            os.remove(podcast_mp3_path)
+            podcast_transcriber.audio_duration = transcript["audio_duration"]
 
         return podcast_transcriber
 

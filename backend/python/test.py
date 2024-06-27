@@ -112,4 +112,5 @@ def run_suite(all_units_list):
     unittest.TextTestRunner().run(suite)
 
 
-main()
+if __name__ == "__main__":
+    main()

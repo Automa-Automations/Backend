@@ -40,6 +40,7 @@ class FullRun(unittest.TestCase):
         if transcriptor_type == "assembly_ai":
             podcast_to_shorts.assembly_api_key = assembly_api_key
 
+        podcast_to_shorts.assembly_api_key = assembly_api_key
         shorts = podcast_to_shorts.get_shorts()
 
         self.assertEqual(isinstance(shorts, list), True)

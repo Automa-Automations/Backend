@@ -44,10 +44,15 @@ class PodcastToShorts:
         self.yt = YouTube(self.podcast_url)
         self.ollama_base_url = ollama_base_url
         self.llm_api_key = llm_api_key
-
-        self.__validate_params()
+        self.debug_transcripts_feedback_path = (
+            "./src/Classes/Bots/json_files/transcripts_feedback.json"
+        )
+        self.debug_shorts_final_transcripts_path = (
+            "./src/Classes/Bots/json_files/shorts_final_transcripts.json"
+        )
 
     def get_shorts(self, debugging=False):
+        self.__validate_params()
         """
         Method to generate the shorts from the podcast
         """
@@ -66,15 +71,21 @@ class PodcastToShorts:
         transcript = transcriptor.transcript
         logger.info(f"Transcript length: {len(transcript)})")
 
-        podcast_length = round(
-            (transcript[-1]["start"] + transcript[-1]["duration"]) / 60
-        )
+        if self.transcriptor_type == "assembly_ai":
+            podcast_length = round(transcriptor.audio_duration / 60)
+        elif self.transcriptor_type == "yt_transcript_api":
+            podcast_length = round(
+                (transcript[-1]["start"] + transcript[-1]["duration"]) / 60
+            )
+
         logger.info(f"Podcast Length: {podcast_length} minutes")
 
-        if self.debugging or debugging:
-            with open(
-                "./src/Classes/Bots/json_files/transcripts_feedback.json", "r"
-            ) as f:
+        if (
+            self.debugging
+            or debugging
+            and os.path.exists(self.debug_transcripts_feedback_path)
+        ):
+            with open(self.debug_transcripts_feedback_path, "r") as f:
                 transcriptions_feedback = json.load(f)
         else:
             transcriptions_feedback = self.__get_transcripts_feedback(transcript)
@@ -115,11 +126,9 @@ class PodcastToShorts:
             shorts_transcripts = highest_score_list
 
         # if self.debugging or debugging:
-        if debugging:
+        if debugging and os.path.exists(self.debug_shorts_final_transcripts_path):
             logger.info("Loading from shorts_final_transcripts.json...")
-            with open(
-                "./src/Classes/Bots/json_files/shorts_final_transcripts.json", "r"
-            ) as f:
+            with open(self.debug_shorts_final_transcripts_path, "r") as f:
                 shorts_final_transcripts = json.load(f)
         else:
             # take each short, use OpenAI to remove all unnecessary content in the start and end, only getting the juicy part, so that it is just the short.
@@ -240,10 +249,10 @@ class PodcastToShorts:
                     "Final transcript chunk empty. Nothing appended to 'final_transcripts'."
                 )
 
-            with open("./src/Classes/Bots/shorts_final_transcripts.json", "w") as f:
+            with open(self.debug_shorts_final_transcripts_path, "w") as f:
                 f.write(json.dumps(final_transcripts, indent=4))
                 logger.info(
-                    "saved shorts final transcripts to shorts_final_transcripts.json"
+                    f"saved shorts final transcripts to {self.debug_shorts_final_transcripts_path}"
                 )
 
         return final_transcripts
@@ -535,12 +544,10 @@ class PodcastToShorts:
             )
 
             transcripts_feedback.append(feedback_chunk)
-            with open(
-                "./src/Classes/Bots/json_files/transcripts_feedback.json", "w"
-            ) as f:
+            with open(self.debug_transcripts_feedback_path, "w") as f:
                 f.write(json.dumps(transcripts_feedback, indent=4))
                 logger.info(
-                    "saved transcripts feedback for this chunk to transcripts_feedback.json"
+                    f"saved transcripts feedback for this chunk to {self.debug_transcripts_feedback_path}"
                 )
 
             with open("./src/Classes/Bots/json_files/transcripts_score.json", "w") as f:
@@ -595,21 +602,27 @@ class PodcastToShorts:
         )
 
     def __validate_params(self):
+        invalid_params = False
         if self.transcriptor_type == "assembly_ai" and not self.assembly_api_key:
             logger.error(
                 "Assembly AI API Key must be passed in class initialization when using assembly_ai"
             )
+            invalid_params = True
         if self.llm_type == "openai" and self.llm_model and "gpt" not in self.llm_model:
             logger.error("OpenAI model must be a GPT model")
+            invalid_params = True
         if self.llm_type == "openai" and not self.llm_api_key:
             logger.error(
                 "OpenAI API Key must be passed in class initialization when using openai"
             )
+            invalid_params = True
         if self.llm_type == "ollama" and not self.ollama_base_url:
             logger.error(
                 "ollama_host_url must be passed in class initialization when using ollama"
             )
+            invalid_params = True
         if self.llm_type not in ["openai", "ollama"]:
             logger.error("LLM type is not valid")
-
-        raise ValueError("Invalid parameters passed")
+            invalid_params = True
+        if invalid_params:
+            raise ValueError("Invalid parameters passed")

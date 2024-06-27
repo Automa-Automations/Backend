@@ -146,16 +146,20 @@ def format_video_url(video_url: str) -> str:
 
 def download_podcast(podcast_url, output_path: str = "downloads/", filename: str = ""):
     print("Downloading podcast...")
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
+
     try:
         yt = YouTube(podcast_url)
         if filename == "":
             filename = yt.title
 
-        yt.streams.filter(progressive=True, file_extension="mp4").order_by(
-            "resolution"
-        )[-1].download(output_path=output_path, filename=filename)
+        podcast_output_path = f"{output_path}{filename}"
+        if not os.path.exists(podcast_output_path):
+            if not os.path.exists(output_path):
+                os.makedirs(output_path)
+
+            yt.streams.filter(progressive=True, file_extension="mp4").order_by(
+                "resolution"
+            )[-1].download(output_path=output_path, filename=filename)
 
         return {
             "output_path": output_path,
