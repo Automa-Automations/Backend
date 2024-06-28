@@ -206,35 +206,75 @@ class PodcastToShorts:
                 ) as f:
                     example_output = json.load(f)
 
-                prompt = f"""{prompt_first_sentence}. I want you to only keep in only 5 - 15 sentences that will be the most engaging and get the most amount of views. Then, from that 5 - 15 sentences, I want you to exclude words/parts of the sentences if needed to make the flow of the transcript better for a short. Your response must be strictly in the following json format: ${json.dumps(example_output)}. Keep the 5 - 15 sentences the exact same as what it was from the transcript.
-                """
+                # prompt = f"""{prompt_first_sentence}. I want you to only keep in only 5 - 15 sentences that will be the most engaging and get the most amount of views. Then, from that 5 - 15 sentences, I want you to exclude words/parts of the sentences if needed to make the flow of the transcript better for a short. Your response must be strictly in the following json format: ${json.dumps(example_output)}. Keep the 5 - 15 sentences the exact same as what it was from the transcript."""
+
+                prompt = f"""{prompt_first_sentence}. Give me only 10 - 15 sentences from the transcript I just gave you that will be the most engaging and get the most amount of views. Keep the sentences the exact same as what it was from the transcript. Your output in the following format: {json.dumps({"sentences": ["sentence here", "another sentence here"]}, indent=4)}. """
             else:
                 logger.error("Transcriptor type invalid")
                 return []
 
             logger.info(f"Prompt: {prompt}")
-            if self.llm_type == "openai":
-                chat_completion = ChatCompletion(
-                    llm_type=self.llm_type,
-                    llm_model=self.llm_model,
-                    api_key=self.llm_api_key,
-                )
-                llm_response = chat_completion.generate(
-                    system_prompt=prompt,
-                    user_message=f"Here is the transcript: {short['transcript']}",
-                    json_format=True,
-                )
-            elif self.llm_type == "ollama":
-                chat_completion = ChatCompletion(
-                    llm_type=self.llm_type,
-                    llm_model=self.llm_model,
-                    ollama_base_url=self.ollama_base_url,
-                )
-                llm_response = chat_completion.generate(
-                    user_message=prompt, json_format=True
-                )
-            else:
-                raise ValueError("LLM type is not valid")
+            max_retries = 5
+            llm_response = ""
+            valid_response = False
+            while max_retries:
+                max_retries -= 5
+                if self.llm_type == "openai":
+                    chat_completion = ChatCompletion(
+                        llm_type=self.llm_type,
+                        llm_model=self.llm_model,
+                        api_key=self.llm_api_key,
+                    )
+                    llm_response = chat_completion.generate(
+                        system_prompt=prompt,
+                        user_message=f"Here is the transcript: {short['transcript']}",
+                        json_format=True,
+                    )
+                elif self.llm_type == "ollama":
+                    chat_completion = ChatCompletion(
+                        llm_type=self.llm_type,
+                        llm_model=self.llm_model,
+                        ollama_base_url=self.ollama_base_url,
+                    )
+                    llm_response = chat_completion.generate(
+                        user_message=prompt, json_format=True
+                    )
+                else:
+                    raise ValueError("LLM type is not valid")
+
+                if (
+                    (self.transcriptor_type == "assembly_ai")
+                    and isinstance(llm_response, dict)
+                    and ("sentences" in llm_response)
+                    and (isinstance(llm_response["sentences"], list))
+                ):
+                    invalid_sentences = False
+                    for sentence in llm_response:
+                        if not isinstance(sentence, str):
+                            invalid_sentences = True
+                            break
+
+                    if not invalid_sentences:
+                        logger.info("Response format valid. Breaking while loop...")
+                        valid_response = True
+                        break
+                    logger.info("Response invalid, regenerating response...")
+                elif (
+                    (self.transcriptor_type == "yt_transcript_api")
+                    and isinstance(llm_response, dict)
+                    and "start_text" in llm_response
+                    and "end_text" in llm_response
+                    and isinstance(llm_response["start_text"], str)
+                    and isinstance(llm_response["end_text"], str)
+                ):
+                    logger.info("Response format valid. Breaking while loop...")
+                    valid_response = True
+                    break
+
+                logger.info("Response invalid, regenerating response...")
+
+            if not valid_response or not llm_response:
+                raise ValueError("Response is empty, or is invalid")
 
             final_transcript_chunk = self._cleanup_shortened_transcript_response(
                 llm_response, short
