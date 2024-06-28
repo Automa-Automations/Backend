@@ -1,4 +1,4 @@
-[
+
     {
         "sentence": "So we're talking about, like, oh, man, they're going to mess up this order on this vendors.",
         "start_time": 213392,
@@ -196,6 +196,5 @@
         "start_time": 384986,
         "end_time": 385674,
         "speaker": null
-    },
-
+    }
 ]

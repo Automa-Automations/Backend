@@ -9,9 +9,7 @@
     },
     {
         "sentence": "It feels safe to do what everyone else is doing, but it's actually a terrible decision.",
-        "start_time": 236506,
-        "end_time": 240214,
-        "speaker": null
+        "exclude": []
     },
     {
         "sentence": "It's like, the best way to guarantee to not have the life that you want is to do what everyone else is doing, unless you want what everyone else has, which no one does.",

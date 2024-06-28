@@ -1,0 +1,27 @@
+[
+    {
+        "sentence": "There's a book called about face.",
+        "exclude": [
+            "There's a book called"
+        ]
+    },
+    {
+        "sentence": "You only have to ask a stupid question once.",
+        "start_time": 560,
+        "end_time": 2574,
+        "speaker": null
+    },
+    {
+        "sentence": "You bind yourself to it, and the tighter you bind yourself to it, the more you find out what it is.",
+        "start_time": null,
+        "end_time": null,
+        "speaker": null,
+        "exclude": []
+    },
+    {
+        "sentence": "It's daunting to even consider that.",
+        "start_time": 12904,
+        "end_time": 12929,
+        "speaker": null
+    }
+]

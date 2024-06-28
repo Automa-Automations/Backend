@@ -39,7 +39,7 @@ class PodcastToShorts:
         self.assembly_api_key = assembly_api_key
         self.llm_type: Literal["openai", "ollama"] = llm_type
         self.llm_model = llm_model
-        self.debugging = False
+        self.debugging = True
         self.podcast_url = format_video_url(self.podcast_url)
         self.yt = YouTube(self.podcast_url)
         self.ollama_base_url = ollama_base_url
@@ -69,7 +69,7 @@ class PodcastToShorts:
             raise ValueError("Transcriptor type is not valid")
 
         transcript = transcriptor.transcript
-        logger.info(f"Transcript length: {len(transcript)})")
+        logger.info(f"Transcript objects length: {len(transcript)}")
 
         if self.transcriptor_type == "assembly_ai":
             podcast_length = round(transcriptor.audio_duration / 60)
@@ -78,25 +78,25 @@ class PodcastToShorts:
                 (transcript[-1]["start"] + transcript[-1]["duration"]) / 60
             )
 
+        else:
+            raise ValueError("Transcriptor type is not valid")
+
         logger.info(f"Podcast Length: {podcast_length} minutes")
 
-        if (
-            self.debugging
-            or debugging
-            and os.path.exists(self.debug_transcripts_feedback_path)
+        if (self.debugging or debugging) and os.path.exists(
+            self.debug_transcripts_feedback_path
         ):
             with open(self.debug_transcripts_feedback_path, "r") as f:
+                logger.info("Loading from transcripts_feedback.json...")
                 transcriptions_feedback = json.load(f)
         else:
             transcriptions_feedback = self.__get_transcripts_feedback(transcript)
         logger.info(
-            f"Transcriptions With Feedback length: {len(transcriptions_feedback)}): {transcriptions_feedback}"
+            f"Transcriptions With Feedback length: {len(transcriptions_feedback)}"
         )
 
         shorts_transcripts = self.__filter_transcripts(transcriptions_feedback)
-        logger.info(
-            f"Shorts Transcripts: (length: {len(shorts_transcripts)}): {shorts_transcripts}"
-        )
+        logger.info(f"Shorts Transcripts length: {len(shorts_transcripts)}")
 
         if len(shorts_transcripts) < round(podcast_length / 10):
             # get all the shorts that is "should_make_short" false. We need to get the best of them, so that there is enough shorts.
@@ -126,12 +126,13 @@ class PodcastToShorts:
             shorts_transcripts = highest_score_list
 
         # if self.debugging or debugging:
-        if debugging and os.path.exists(self.debug_shorts_final_transcripts_path):
+        if (self.debugging or debugging) and os.path.exists(
+            self.debug_shorts_final_transcripts_path
+        ):
             logger.info("Loading from shorts_final_transcripts.json...")
             with open(self.debug_shorts_final_transcripts_path, "r") as f:
-                shorts_final_transcripts = json.load(f)
+                shorts_final_transcripts: list = json.load(f)
         else:
-            # take each short, use OpenAI to remove all unnecessary content in the start and end, only getting the juicy part, so that it is just the short.
             logger.info("Getting shorts final transcripts...")
             shorts_final_transcripts = self.__get_shorts_final_transcripts(
                 shorts_transcripts
@@ -166,7 +167,7 @@ class PodcastToShorts:
         logger.info(f"Got an extra {len(best_shorts)} shorts.")
         return best_shorts
 
-    def __get_shorts_final_transcripts(self, shorts_transcripts: List[dict]):
+    def __get_shorts_final_transcripts(self, shorts_transcripts: list[dict]):
         """
         Method to get the final transcripts of the shorts, by removing the start and end sentences, to get the optimized short.
         Parameters:
@@ -175,17 +176,17 @@ class PodcastToShorts:
         - list: The list of the final transcripts of the shorts
         """
         final_transcripts = []
-        for short in shorts_transcripts:
+
+        for index, short in enumerate(shorts_transcripts):
+            if self.llm_type == "ollama":
+                prompt_first_sentence = f"I want to make a great 15 - 55 seconds long short from the following transcript: {json.dumps(short['transcript'])}"
+            elif self.llm_type == "openai":
+                prompt_first_sentence = f"I want to make a great 15 - 55 seconds long short from the transcript part given to you."
+            else:
+                logger.error("LLM type is not valid")
+                return []
+
             if self.transcriptor_type == "yt_transcript_api":
-                if self.llm_type == "ollama":
-                    prompt_first_sentence = f"I want to make a great 15 - 55 seconds long short from the following transcript: {json.dumps(short['transcript'])} (the transcript given to you is few minutes long transcript from a long form podcast, of around an hour)"
-                elif self.llm_type == "openai":
-
-                    prompt_first_sentence = f"I want to make a great 15 - 55 seconds long short from the transcript part given to you (the transcript given to you is few minutes long transcript from a long form podcast, of around an hour)."
-                else:
-                    logger.error("LLM type is not valid")
-                    return
-
                 prompt = f"""{prompt_first_sentence}. Give me the perfect start text and end text from the transcript that will be the perfect start and end for making an engaging short (DON'T USE THE FIRST TEXT AND THE LAST TEXT FROM THE TRANSCRIPT I GAVE YOU, IT MUST START A LITTLE BIT LATER ON.) Note, the start and end text must be from the transcript. The start text must be before the end text. The start text must be the best starting sentence from the transcript for a short, and the end text must be a the best ending sentence from the transcript for a short. The start text must be the beginning of a sentence, and the end text must end a sentence (meaning first character for start text must be a capital letter, indicating it is the start of a sentence, and the end sentence should be ending with an ending character - '?.!'. Keep the start and end text the exact same as what it was from the transcript.
 
                 The start text may not be "{short["transcript"][0]["text"]}", and the end text may not be '{short['transcript'][-1]['text']}'.
@@ -195,27 +196,23 @@ class PodcastToShorts:
                     'end_text': 'the exact end text'
                 }, indent=4)}"""
             elif self.transcriptor_type == "assembly_ai":
-                with open("./src/Classes/Bots/examples/1_input.json", "r") as f:
+                with open(
+                    "./src/Classes/Bots/json_files/examples/1_input.json", "r"
+                ) as f:
                     example_input = json.load(f)
 
-                with open("./src/Classes/Bots/examples/1_output.json", "r") as f:
+                with open(
+                    "./src/Classes/Bots/json_files/examples/1_output.json", "r"
+                ) as f:
                     example_output = json.load(f)
 
-                prompt = f"""I want to make a great 15 - 55 seconds long short from the transcript part given to you (the transcript given to you is few minutes long transcript from a long form podcast, of around an hour). From the sentences in the transcript, I want to remove all unnecessary sentences and exclude all words from the included sentences if needed to make the flow of the short better, keeping in only the part that will be the most engaging, that will get the most amount of views. For example, you might get the following transcript:
-                ###
-                Input Transcript Example: ${json.dumps(example_input, indent=4)}
-                Output Example (for a 15 - 55 second long short): ${json.dumps(example_output, indent=4)}
-                ###
+                prompt = f"""{prompt_first_sentence}. I want you to only keep in only 5 - 15 sentences that will be the most engaging and get the most amount of views. Then, from that 5 - 15 sentences, I want you to exclude words/parts of the sentences if needed to make the flow of the transcript better for a short. Your response must be strictly in the following json format: ${json.dumps(example_output)}. Keep the 5 - 15 sentences the exact same as what it was from the transcript.
                 """
-                if self.llm_type == "ollama":
-                    prompt = f"""{prompt}
-                    Here is the input transcript: {json.dumps(short['transcript'])}
-                    Return an outpout in json format, in the same format as the output example."""
-
             else:
                 logger.error("Transcriptor type invalid")
-                return
+                return []
 
+            logger.info(f"Prompt: {prompt}")
             if self.llm_type == "openai":
                 chat_completion = ChatCompletion(
                     llm_type=self.llm_type,
@@ -243,6 +240,9 @@ class PodcastToShorts:
                 llm_response, short
             )
             if final_transcript_chunk != -1:
+                logger.info(
+                    f"[{index+1}/{len(shorts_transcripts)}]. Appending response to final transcripts"
+                )
                 final_transcripts.append(final_transcript_chunk)
             else:
                 logger.warning(
@@ -255,9 +255,11 @@ class PodcastToShorts:
                     f"saved shorts final transcripts to {self.debug_shorts_final_transcripts_path}"
                 )
 
+        logger.info("Returning final transcripts...")
         return final_transcripts
 
     def _cleanup_shortened_transcript_response(self, llm_response, short):
+        logger.info("Cleaning up shortened transcript response...")
         if self.transcriptor_type == "assembly_ai":
             return llm_response
         elif self.transcriptor_type == "yt_transcript_api":
@@ -350,11 +352,8 @@ class PodcastToShorts:
                 transcript_duration = self.__get_total_transcript_duration(
                     shortened_transcript
                 )
-                if (
-                    transcript_duration
-                    and transcript_duration < 15
-                    or not transcript_duration
-                ):
+
+                if not transcript_duration or transcript_duration < 15:
                     return -1
 
                 final_transcript_chunk = {
@@ -478,6 +477,7 @@ class PodcastToShorts:
         Returns:
         - list: The list of the feedback of the transcriptions
         """
+        logger.info("Getting transcripts feedback...")
         chunked_transcript = self.__chunk_transcript(full_sentences_transcript)
         transcripts_feedback = []
         for idx, chunk in enumerate(chunked_transcript):
@@ -505,7 +505,10 @@ class PodcastToShorts:
                 "feedback": "Any feedback on the short, what is good and bad about the transcript, how to make it better."
             }, indent=4)}
             """
-            while True:
+            max_retries = 5
+            response = ""
+            while max_retries:
+                max_retries -= 1
                 try:
                     if self.llm_type == "openai":
                         chat_completion = ChatCompletion(
@@ -516,6 +519,7 @@ class PodcastToShorts:
                         response = chat_completion.generate(
                             system_prompt=prompt,
                             user_message=f"Here is the transcript chunk: {chunk}",
+                            json_format=True,
                         )
                     elif self.llm_type == "ollama":
                         chat_completion = ChatCompletion(
@@ -523,22 +527,25 @@ class PodcastToShorts:
                             llm_model=self.llm_model,
                             ollama_base_url=self.ollama_base_url,
                         )
-                        response = chat_completion.generate(user_message=prompt)
+                        response = chat_completion.generate(
+                            user_message=prompt, json_format=True
+                        )
                     else:
                         raise ValueError("LLM type is not valid")
 
                     logger.info("Successfully got response")
                     break
+                except Exception as e:  # If there is an error, just skip this chunk
+                    logger.warning(f"Error occurred: {e}. Trying again")
 
-                except:  # If there is an error, just skip this chunk
-                    logger.error("Error occurred. Trying again.")
+            if not response:
+                raise ValueError("Response is empty")
 
             feedback_chunk = {
                 "transcript": chunk,
                 "stats": response,
             }
 
-            logger.info(f"{idx+1}. Formatted Chunk: {chunk}")
             logger.info(
                 f"{idx+1}. Feedback Chunk Stats Length: {len(feedback_chunk["stats"])}"
             )
@@ -587,6 +594,7 @@ class PodcastToShorts:
                 chunk_transcript_list.append(current_chunk)
                 current_chunk = [transcript_dict]
 
+        logger.info(f"Total number of chunks: {len(chunk_transcript_list)}")
         return chunk_transcript_list
 
     def __get_total_transcript_duration(
