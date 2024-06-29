@@ -300,7 +300,8 @@ class PodcastToShorts:
                 logger.info("Response invalid, regenerating response...")
 
             if not valid_response or not llm_response:
-                raise ValueError("Response is empty, or is invalid")
+                logger.warning("Response is empty, or is invalid")
+                continue
 
             final_transcript_chunk = self._cleanup_shortened_transcript_response(
                 llm_response, short

@@ -117,7 +117,10 @@ class AssemblyAI:
 
         for word_dict in all_transcript_words:
             current_sentence_dict["sentence"] += word_dict["text"] + " "
-            if word_dict["text"][0].isupper():
+            if (
+                word_dict["text"][0].isupper()
+                and not current_sentence_dict["start_time"]
+            ):
                 current_sentence_dict["start_time"] = word_dict["start"]
                 current_sentence_dict["speaker"] = word_dict["speaker"]
 
