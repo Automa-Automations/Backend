@@ -423,5 +423,25 @@
         "score": 40,
         "should_make_short": false,
         "feedback": "The transcript seems to be an introduction or ad for a podcast. It lacks any of the engaging factors that would make it suitable for a viral short. The conversation is too casual and doesn't provide anything new, unique, or highly motivational. It's mostly just a person sharing their thoughts without adding much value."
+    },
+    {
+        "score": 40,
+        "should_make_short": "False",
+        "feedback": "The transcript lacks engaging or interesting content. It's mostly a personal rant with some swearing. The tone is not inspiring or motivating, and there's no unique perspective or trend-following aspect that would make viewers want to watch the full video. To improve this, consider making it more relatable, adding a story or sharing an experience that resonates with others."
+    },
+    {
+        "score": 50,
+        "should_make_short": false,
+        "feedback": "The transcript has some interesting points, such as discussing the 'dungeon' and people's fears. However, the language is quite casual and often includes strong profanity, which may not be suitable for all audiences. The conversation seems to be more of a personal anecdote than an engaging or motivational piece. To improve it, consider focusing on one specific idea or story and expanding on it. Remove some of the weaker sentences and rephrase others for better clarity. Overall, the transcript needs more structure and depth to make it appealing to a wider audience."
+    },
+    {
+        "score": 40,
+        "should_make_short": false,
+        "feedback": "The transcript seems to be an introduction or a wrap-up for the podcast. It's not particularly engaging, funny, motivational, educational, or unique. The speaker is making some general statements about life and tests, but they're not very specific or interesting. To make this short better, consider adding more specific examples or anecdotes that illustrate the point being made."
+    },
+    {
+        "score": 40,
+        "should_make_short": "False",
+        "feedback": "The transcript seems to be an introduction or a summary of the podcast. It lacks engaging, interesting, funny, highly motivating, educational, unique, and 'badass' moments that would make it suitable for a viral short. The tone is quite casual and conversational, which may not be enough to grab the attention of viewers."
     }
 ]

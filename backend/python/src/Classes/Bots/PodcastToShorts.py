@@ -45,10 +45,10 @@ class PodcastToShorts:
         self.ollama_base_url = ollama_base_url
         self.llm_api_key = llm_api_key
         self.debug_transcripts_feedback_path = (
-            "./src/Classes/Bots/json_files/transcripts_feedback.json"
+            f"./src/Classes/Bots/json_files/{llm_type}_transcripts_feedback.json"
         )
         self.debug_shorts_final_transcripts_path = (
-            "./src/Classes/Bots/json_files/shorts_final_transcripts.json"
+            f"./src/Classes/Bots/json_files/{llm_type}_shorts_final_transcripts.json"
         )
 
     def get_shorts(self, debugging=False):
@@ -234,13 +234,13 @@ class PodcastToShorts:
 
                 # prompt = f"""{prompt_first_sentence}. I want you to only keep in only 5 - 15 sentences that will be the most engaging and get the most amount of views. Then, from that 5 - 15 sentences, I want you to exclude words/parts of the sentences if needed to make the flow of the transcript better for a short. Your response must be strictly in the following json format: ${json.dumps(example_output)}. Keep the 5 - 15 sentences the exact same as what it was from the transcript."""
 
-                prompt = f"""{prompt_first_sentence}. Give me only 10 - 15 sentences from the transcript I just gave you that will be the most engaging and get the most amount of views. Keep the sentences the exact same as what it was from the transcript. Your output in the following format: {json.dumps({"sentences": ["sentence here", "another sentence here"]}, indent=4)}. """
+                prompt = f"""{prompt_first_sentence}. Give me only 15 - 20 sentences from the transcript I just gave you that will be the most engaging and get the most amount of views, you must stricly output in the following JSON format: {json.dumps({"sentences": ["sentence here", "another sentence here"]}, indent=4)}. Keep the sentences the exact same as what it was from the transcript."""
             else:
                 logger.error("Transcriptor type invalid")
                 return []
 
-            logger.info(f"Prompt: {prompt}")
-            max_retries = 5
+            # logger.info(f"Prompt: {prompt}")
+            max_retries = 8
             llm_response = ""
             valid_response = False
             while max_retries:
@@ -504,6 +504,8 @@ class PodcastToShorts:
             logger.info(f"Total sentences clips: {len(all_sentences_clips)}")
             logger.info("Concatenating all the clips together...")
             clipped_video = concatenate_videoclips(all_sentences_clips)
+        else:
+            raise ValueError("Transcriptor type is not valid")
         try:
             # clip video to mobile aspect ratio (9:16), along with following faces smoothly
             logger.info(
@@ -644,7 +646,10 @@ class PodcastToShorts:
                     f"saved transcripts feedback for this chunk to {self.debug_transcripts_feedback_path}"
                 )
 
-            with open("./src/Classes/Bots/json_files/transcripts_score.json", "w") as f:
+            with open(
+                f"./src/Classes/Bots/json_files/{self.llm_type}_transcripts_score.json",
+                "w",
+            ) as f:
                 f.write(
                     json.dumps(
                         [transcript["stats"] for transcript in transcripts_feedback],

@@ -15403,5 +15403,755 @@
             "should_make_short": false,
             "feedback": "The transcript seems to be an introduction or ad for a podcast. It lacks any of the engaging factors that would make it suitable for a viral short. The conversation is too casual and doesn't provide anything new, unique, or highly motivational. It's mostly just a person sharing their thoughts without adding much value."
         }
+    },
+    {
+        "transcript": [
+            {
+                "sentence": "I think most people are full of shit.",
+                "start_time": 8909024,
+                "end_time": 8910528,
+                "speaker": null
+            },
+            {
+                "sentence": "Cause I know.",
+                "start_time": 8910968,
+                "end_time": 8911568,
+                "speaker": null
+            },
+            {
+                "sentence": "I know the deep, dark secrets of those fucking cupboards.",
+                "start_time": 8911704,
+                "end_time": 8915496,
+                "speaker": null
+            },
+            {
+                "sentence": "It's ugly, man.",
+                "start_time": 8915688,
+                "end_time": 8916920,
+                "speaker": null
+            },
+            {
+                "sentence": "And every day I'm talking to them.",
+                "start_time": 8917776,
+                "end_time": 8918488,
+                "speaker": null
+            },
+            {
+                "sentence": "Every day I'm cleaning them.",
+                "start_time": 8918704,
+                "end_time": 8919304,
+                "speaker": null
+            },
+            {
+                "sentence": "I'm cleaning them and I'm talking to the same demons that came out of those fucking cupboards as I'm cleaning them.",
+                "start_time": 8922984,
+                "end_time": 8923832,
+                "speaker": null
+            },
+            {
+                "sentence": "Sometimes they go right back in them again.",
+                "start_time": 8923936,
+                "end_time": 8925860,
+                "speaker": null
+            },
+            {
+                "sentence": "It's not easy.",
+                "start_time": 8926960,
+                "end_time": 8928260,
+                "speaker": null
+            },
+            {
+                "sentence": "And this is why most of us just why I am misunderstood.",
+                "start_time": 8932606,
+                "end_time": 8933890,
+                "speaker": null
+            },
+            {
+                "sentence": "Because what comes out of those cabinets that I'm cleaning, sometimes they see on instagram, sometimes they'll see it in the pocket.",
+                "start_time": 8937494,
+                "end_time": 8943206,
+                "speaker": null
+            },
+            {
+                "sentence": "Sometimes they see in this one.",
+                "start_time": 8943238,
+                "end_time": 8944342,
+                "speaker": null
+            },
+            {
+                "sentence": "I turn people off.",
+                "start_time": 8944446,
+                "end_time": 8945878,
+                "speaker": null
+            },
+            {
+                "sentence": "Open up your own cabinets and then go talk about it.",
+                "start_time": 8946054,
+                "end_time": 8953050,
+                "speaker": null
+            },
+            {
+                "sentence": "Let me see how pretty it looks.",
+                "start_time": 8953390,
+                "end_time": 8955190,
+                "speaker": null
+            },
+            {
+                "sentence": "Let me see how pretty you sound.",
+                "start_time": 8955230,
+                "end_time": 8957000,
+                "speaker": null
+            },
+            {
+                "sentence": "Let me see how put together your words are.",
+                "start_time": 8957190,
+                "end_time": 8960040,
+                "speaker": null
+            },
+            {
+                "sentence": "I bet you a fuck or a motherfucker comes out.",
+                "start_time": 8960340,
+                "end_time": 8962492,
+                "speaker": null
+            },
+            {
+                "sentence": "Because for you to go back in there again, to clean the same fucking cabinet that a demon came out of, take some big balls, bro, to do it every day of your life, to go back in there and spring clean every day, not once a fucking year, once every decade, every day.",
+                "start_time": 8962516,
+                "end_time": 8982396,
+                "speaker": null
+            },
+            {
+                "sentence": "You know, it gets dusty.",
+                "start_time": 8982428,
+                "end_time": 8983800,
+                "speaker": null
+            },
+            {
+                "sentence": "And every day you don't start with the.",
+                "start_time": 8983980,
+                "end_time": 8985952,
+                "speaker": null
+            },
+            {
+                "sentence": "With the victories.",
+                "start_time": 8986096,
+                "end_time": 8987540,
+                "speaker": null
+            },
+            {
+                "sentence": "You don't go, oh, this is nice.",
+                "start_time": 8988040,
+                "end_time": 8989480,
+                "speaker": null
+            },
+            {
+                "sentence": "Look at my.",
+                "start_time": 8989520,
+                "end_time": 8990040,
+                "speaker": null
+            },
+            {
+                "sentence": "Look at my.",
+                "start_time": 8990120,
+                "end_time": 8990592,
+                "speaker": null
+            },
+            {
+                "sentence": "I love me.",
+                "start_time": 8990616,
+                "end_time": 8991088,
+                "speaker": null
+            },
+            {
+                "sentence": "Well, let me clean up this little dusty.",
+                "start_time": 8991104,
+                "end_time": 8992632,
+                "speaker": null
+            },
+            {
+                "sentence": "Nope.",
+                "start_time": 8992656,
+                "end_time": 8993088,
+                "speaker": null
+            },
+            {
+                "sentence": "I go right for the things that could keep me buried.",
+                "start_time": 8993184,
+                "end_time": 8996020,
+                "speaker": null
+            },
+            {
+                "sentence": "I go right there first.",
+                "start_time": 8996320,
+                "end_time": 8997440,
+                "speaker": null
+            },
+            {
+                "sentence": "Because if I don't clean those out first, the day doesn't start.",
+                "start_time": 8997816,
+                "end_time": 9000700,
+                "speaker": null
+            }
+        ],
+        "stats": {
+            "score": 40,
+            "should_make_short": "False",
+            "feedback": "The transcript lacks engaging or interesting content. It's mostly a personal rant with some swearing. The tone is not inspiring or motivating, and there's no unique perspective or trend-following aspect that would make viewers want to watch the full video. To improve this, consider making it more relatable, adding a story or sharing an experience that resonates with others."
+        }
+    },
+    {
+        "transcript": [
+            {
+                "sentence": "So what he's saying to me is truth.",
+                "start_time": 9001920,
+                "end_time": 9005500,
+                "speaker": null
+            },
+            {
+                "sentence": "And like I told you a million times a day, can never figure out how to explain this shit to people.",
+                "start_time": 9007536,
+                "end_time": 9013600,
+                "speaker": null
+            },
+            {
+                "sentence": "Because I'm not neuro.",
+                "start_time": 9013912,
+                "end_time": 9015632,
+                "speaker": null
+            },
+            {
+                "sentence": "Nothing.",
+                "start_time": 9015696,
+                "end_time": 9016420,
+                "speaker": null
+            },
+            {
+                "sentence": "I'm just a guy that said, okay, we gotta start in the dungeon and we gotta stay here for the rest of our lives for you to become successful.",
+                "start_time": 9016840,
+                "end_time": 9027160,
+                "speaker": null
+            },
+            {
+                "sentence": "The dungeon is a place that has to be clean.",
+                "start_time": 9027200,
+                "end_time": 9029700,
+                "speaker": null
+            },
+            {
+                "sentence": "And it's the scariest place to be.",
+                "start_time": 9030720,
+                "end_time": 9032580,
+                "speaker": null
+            },
+            {
+                "sentence": "That's why I'm misunderstood.",
+                "start_time": 9033576,
+                "end_time": 9034878,
+                "speaker": null
+            },
+            {
+                "sentence": "Cause I'm speaking from the dungeon.",
+                "start_time": 9035274,
+                "end_time": 9036946,
+                "speaker": null
+            },
+            {
+                "sentence": "That's why I am successful.",
+                "start_time": 9038042,
+                "end_time": 9039430,
+                "speaker": null
+            },
+            {
+                "sentence": "Cause I go there every damn day.",
+                "start_time": 9040274,
+                "end_time": 9041670,
+                "speaker": null
+            },
+            {
+                "sentence": "And that is the truth.",
+                "start_time": 9042090,
+                "end_time": 9043466,
+                "speaker": null
+            },
+            {
+                "sentence": "What he says, it's the exact truth.",
+                "start_time": 9043498,
+                "end_time": 9046242,
+                "speaker": null
+            },
+            {
+                "sentence": "Those cabinets are fucking dusty, dirty and scary as shit.",
+                "start_time": 9046386,
+                "end_time": 9051190,
+                "speaker": null
+            },
+            {
+                "sentence": "Broken glass, fucking dark spiders, cobwebs.",
+                "start_time": 9051490,
+                "end_time": 9057870,
+                "speaker": null
+            },
+            {
+                "sentence": "But most of all, your biggest fear, the biggest things that put you in the fucked up place you are today are in there.",
+                "start_time": 9058330,
+                "end_time": 9065510,
+                "speaker": null
+            },
+            {
+                "sentence": "That's why we all like to keep them shut, even like to lock em up, act like they never happen.",
+                "start_time": 9065670,
+                "end_time": 9069966,
+                "speaker": null
+            },
+            {
+                "sentence": "That's why you never grow.",
+                "start_time": 9069998,
+                "end_time": 9071570,
+                "speaker": null
+            },
+            {
+                "sentence": "You never improve.",
+                "start_time": 9071910,
+                "end_time": 9073046,
+                "speaker": null
+            },
+            {
+                "sentence": "You never have real conversations like we're having right now.",
+                "start_time": 9073198,
+                "end_time": 9075854,
+                "speaker": null
+            },
+            {
+                "sentence": "Never, never.",
+                "start_time": 9075982,
+                "end_time": 9077518,
+                "speaker": null
+            },
+            {
+                "sentence": "Oh, no, no, no, no.",
+                "start_time": 9077654,
+                "end_time": 9079326,
+                "speaker": null
+            },
+            {
+                "sentence": "Let's not.",
+                "start_time": 9079478,
+                "end_time": 9079926,
+                "speaker": null
+            },
+            {
+                "sentence": "No, no, no.",
+                "start_time": 9079958,
+                "end_time": 9080358,
+                "speaker": null
+            },
+            {
+                "sentence": "Let's not go there.",
+                "start_time": 9080414,
+                "end_time": 9081422,
+                "speaker": null
+            },
+            {
+                "sentence": "I talked to so many people who tell me that let's talk about this because they'll tell me, but they can only say it once and they'll say it in passing.",
+                "start_time": 9081566,
+                "end_time": 9092640,
+                "speaker": null
+            },
+            {
+                "sentence": "They won't get deep in the weeds with it.",
+                "start_time": 9092680,
+                "end_time": 9094944,
+                "speaker": null
+            },
+            {
+                "sentence": "Like, you can't just clean it, motherfucker.",
+                "start_time": 9095112,
+                "end_time": 9098208,
+                "speaker": null
+            },
+            {
+                "sentence": "You gotta spit shine that motherfucker.",
+                "start_time": 9098304,
+                "end_time": 9100600,
+                "speaker": null
+            },
+            {
+                "sentence": "You gotta relive it, every fucking detail of it.",
+                "start_time": 9100760,
+                "end_time": 9105128,
+                "speaker": null
+            }
+        ],
+        "stats": {
+            "score": 50,
+            "should_make_short": false,
+            "feedback": "The transcript has some interesting points, such as discussing the 'dungeon' and people's fears. However, the language is quite casual and often includes strong profanity, which may not be suitable for all audiences. The conversation seems to be more of a personal anecdote than an engaging or motivational piece. To improve it, consider focusing on one specific idea or story and expanding on it. Remove some of the weaker sentences and rephrase others for better clarity. Overall, the transcript needs more structure and depth to make it appealing to a wider audience."
+        }
+    },
+    {
+        "transcript": [
+            {
+                "sentence": "You can't be like, oh, yeah, yeah, my dad beat me and they, you know, you know, it is what it is.",
+                "start_time": 9105144,
+                "end_time": 9110980,
+                "speaker": null
+            },
+            {
+                "sentence": "It is what it is, motherfucker.",
+                "start_time": 9111440,
+                "end_time": 9112672,
+                "speaker": null
+            },
+            {
+                "sentence": "It's killing you.",
+                "start_time": 9112696,
+                "end_time": 9113940,
+                "speaker": null
+            },
+            {
+                "sentence": "It's taking over your whole fucking life.",
+                "start_time": 9114680,
+                "end_time": 9117300,
+                "speaker": null
+            },
+            {
+                "sentence": "But that's the conversation.",
+                "start_time": 9117760,
+                "end_time": 9118736,
+                "speaker": null
+            },
+            {
+                "sentence": "Yeah, my dad.",
+                "start_time": 9118768,
+                "end_time": 9119464,
+                "speaker": null
+            },
+            {
+                "sentence": "I'm fine now, though.",
+                "start_time": 9119592,
+                "end_time": 9120600,
+                "speaker": null
+            },
+            {
+                "sentence": "I'm good.",
+                "start_time": 9120640,
+                "end_time": 9121380,
+                "speaker": null
+            },
+            {
+                "sentence": "Okay.",
+                "start_time": 9121680,
+                "end_time": 9122580,
+                "speaker": null
+            },
+            {
+                "sentence": "All right.",
+                "start_time": 9123320,
+                "end_time": 9124120,
+                "speaker": null
+            },
+            {
+                "sentence": "No, you ain't.",
+                "start_time": 9124280,
+                "end_time": 9125104,
+                "speaker": null
+            },
+            {
+                "sentence": "You ain't fine.",
+                "start_time": 9125192,
+                "end_time": 9126220,
+                "speaker": null
+            },
+            {
+                "sentence": "You ain't fine.",
+                "start_time": 9126560,
+                "end_time": 9127256,
+                "speaker": null
+            },
+            {
+                "sentence": "This is, this is real talk.",
+                "start_time": 9127288,
+                "end_time": 9128680,
+                "speaker": null
+            },
+            {
+                "sentence": "People don't have that.",
+                "start_time": 9128760,
+                "end_time": 9129768,
+                "speaker": null
+            },
+            {
+                "sentence": "So your boy's right.",
+                "start_time": 9129904,
+                "end_time": 9131120,
+                "speaker": null
+            },
+            {
+                "sentence": "100% right.",
+                "start_time": 0,
+                "end_time": 9132540,
+                "speaker": ""
+            },
+            {
+                "sentence": "Scary as shit.",
+                "start_time": 9132840,
+                "end_time": 9134296,
+                "speaker": null
+            },
+            {
+                "sentence": "It's scary as shit.",
+                "start_time": 9134488,
+                "end_time": 9136580,
+                "speaker": null
+            },
+            {
+                "sentence": "That makes you who you're supposed to be.",
+                "start_time": 9137000,
+                "end_time": 9139700,
+                "speaker": null
+            },
+            {
+                "sentence": "And that's the test.",
+                "start_time": 9140410,
+                "end_time": 9141750,
+                "speaker": null
+            },
+            {
+                "sentence": "We forget.",
+                "start_time": 9142490,
+                "end_time": 9143538,
+                "speaker": null
+            },
+            {
+                "sentence": "We think we're supposed to breathe air and have kids and pay the bills and shit.",
+                "start_time": 9143714,
+                "end_time": 9148990,
+                "speaker": null
+            },
+            {
+                "sentence": "Everyone.",
+                "start_time": 9149770,
+                "end_time": 9150394,
+                "speaker": null
+            },
+            {
+                "sentence": "What's this life about?",
+                "start_time": 9150522,
+                "end_time": 9151738,
+                "speaker": null
+            },
+            {
+                "sentence": "That make no sense being tested, my friend.",
+                "start_time": 9151874,
+                "end_time": 9156190,
+                "speaker": null
+            },
+            {
+                "sentence": "Tests come when you have not studied.",
+                "start_time": 9156890,
+                "end_time": 9161110,
+                "speaker": null
+            },
+            {
+                "sentence": "Tests come when you think that you're in a great place.",
+                "start_time": 9161810,
+                "end_time": 9165682,
+                "speaker": null
+            },
+            {
+                "sentence": "That's the test.",
+                "start_time": 9165826,
+                "end_time": 9166522,
+                "speaker": null
+            },
+            {
+                "sentence": "The test is every day of your life.",
+                "start_time": 9166586,
+                "end_time": 9168270,
+                "speaker": null
+            },
+            {
+                "sentence": "And most of us fail because we don't know why we're here, because we don't go inward to say, oh, you gave me a lot of shit to fix, man.",
+                "start_time": 9168570,
+                "end_time": 9177110,
+                "speaker": null
+            },
+            {
+                "sentence": "And this test sucks.",
+                "start_time": 9177970,
+                "end_time": 9179470,
+                "speaker": null
+            },
+            {
+                "sentence": "But then you start, David Goggins, I don't think I could add to that.",
+                "start_time": 9187866,
+                "end_time": 9188986,
+                "speaker": null
+            },
+            {
+                "sentence": "I know I can't.",
+                "start_time": 9189546,
+                "end_time": 9190350,
+                "speaker": null
+            },
+            {
+                "sentence": "Thank you for sharing what you shared today.",
+                "start_time": 9192940,
+                "end_time": 9196440,
+                "speaker": null
+            }
+        ],
+        "stats": {
+            "score": 40,
+            "should_make_short": false,
+            "feedback": "The transcript seems to be an introduction or a wrap-up for the podcast. It's not particularly engaging, funny, motivational, educational, or unique. The speaker is making some general statements about life and tests, but they're not very specific or interesting. To make this short better, consider adding more specific examples or anecdotes that illustrate the point being made."
+        }
+    },
+    {
+        "transcript": [
+            {
+                "sentence": "I mean, as much as your process or anyone's process can't be completely understood from the outside, you gave us a real window into this thing, this process that you was, as you said, God put it on you.",
+                "start_time": 9215812,
+                "end_time": 9217212,
+                "speaker": null
+            },
+            {
+                "sentence": "I believe in God, too.",
+                "start_time": 9217924,
+                "end_time": 9218372,
+                "speaker": null
+            },
+            {
+                "sentence": "People can believe what they want, but somehow your life, God, gave you these challenges early on, and then there was a point where you went internal and like you said, you developed a skill but it's a perishable skill.",
+                "start_time": 9222468,
+                "end_time": 9235680,
+                "speaker": null
+            },
+            {
+                "sentence": "And you clearly live in the process of opening those cupboards, reopening those cupboards, trying to spit shine those cupboards, understanding that they're never, ever really done, but that you can gain ground on them, that you can win day after day after day.",
+                "start_time": 9236060,
+                "end_time": 9254460,
+                "speaker": null
+            },
+            {
+                "sentence": "And you really shared a lot of concrete things that I think I know people are going to be able to apply if they choose.",
+                "start_time": 9259320,
+                "end_time": 9263024,
+                "speaker": null
+            },
+            {
+                "sentence": "And I agree with you.",
+                "start_time": 9263464,
+                "end_time": 9264008,
+                "speaker": null
+            },
+            {
+                "sentence": "I think most people will be like, whoa, that was a lot.",
+                "start_time": 9264024,
+                "end_time": 9267320,
+                "speaker": null
+            },
+            {
+                "sentence": "Yep, it's heavy.",
+                "start_time": 9267440,
+                "end_time": 9268880,
+                "speaker": null
+            },
+            {
+                "sentence": "I think I want to just kind of bake myself in Netflix and Chex mix instead.",
+                "start_time": 9274040,
+                "end_time": 9276180,
+                "speaker": null
+            },
+            {
+                "sentence": "But there's also the reality that there are men and women, boys and girls who hear that and go, okay, and start cracking the cupboards open.",
+                "start_time": 9277200,
+                "end_time": 9289580,
+                "speaker": null
+            },
+            {
+                "sentence": "And I just know that for myself, I'm extremely grateful that you're willing to put it all out there.",
+                "start_time": 9292984,
+                "end_time": 9295956,
+                "speaker": null
+            },
+            {
+                "sentence": "So brutally honest, so brutally authentic that word authenticity gets thrown around so much.",
+                "start_time": 9296128,
+                "end_time": 9303040,
+                "speaker": null
+            },
+            {
+                "sentence": "And I can tell you that for me and for everybody else, that's really what resonates.",
+                "start_time": 9304436,
+                "end_time": 9309044,
+                "speaker": null
+            },
+            {
+                "sentence": "So whether or not you want to, whether or not it's the purpose behind it or not, you're lighting the path.",
+                "start_time": 9309132,
+                "end_time": 9315160,
+                "speaker": null
+            },
+            {
+                "sentence": "So thank you.",
+                "start_time": 9315500,
+                "end_time": 9317412,
+                "speaker": null
+            },
+            {
+                "sentence": "Respect.",
+                "start_time": 9317476,
+                "end_time": 9317796,
+                "speaker": null
+            },
+            {
+                "sentence": "Thank you.",
+                "start_time": 9317868,
+                "end_time": 9318324,
+                "speaker": null
+            },
+            {
+                "sentence": "Thanks for having me.",
+                "start_time": 9318372,
+                "end_time": 9319428,
+                "speaker": null
+            },
+            {
+                "sentence": "Thank you for joining me for today's discussion with David Goggins.",
+                "start_time": 9321948,
+                "end_time": 9322780,
+                "speaker": null
+            },
+            {
+                "sentence": "To learn more about David and to find links to his two fantastic books, can't hurt me and never finished, please see the show note captions if you're learning from and or enjoying this podcast, please subscribe to our YouTube channel.",
+                "start_time": 9334476,
+                "end_time": 9335356,
+                "speaker": null
+            },
+            {
+                "sentence": "That's a terrific, zero cost way to support us.",
+                "start_time": 9335468,
+                "end_time": 9337660,
+                "speaker": null
+            },
+            {
+                "sentence": "In addition, please subscribe to the podcast on both Spotify and Apple.",
+                "start_time": 9341308,
+                "end_time": 9341628,
+                "speaker": null
+            },
+            {
+                "sentence": "And on both Spotify and Apple.",
+                "start_time": 9342636,
+                "end_time": 9342924,
+                "speaker": null
+            }
+        ],
+        "stats": {
+            "score": 40,
+            "should_make_short": "False",
+            "feedback": "The transcript seems to be an introduction or a summary of the podcast. It lacks engaging, interesting, funny, highly motivating, educational, unique, and 'badass' moments that would make it suitable for a viral short. The tone is quite casual and conversational, which may not be enough to grab the attention of viewers."
+        }
     }
 ]
