@@ -277,7 +277,7 @@ def dockerhub_quickstart(name: str, root_dir: str):
     # Create the service
     config = {
         "base_image": image_to_use,
-        "name": f"{name.lower()}_{uuid.uuid4().hex}",
+        "name": f"{name.lower()}-{uuid.uuid4().hex}".lower(),
         "cpu": 0,
         "memory": 0,
         "gpu": "",
@@ -311,7 +311,7 @@ def dockerhub_quickstart(name: str, root_dir: str):
 def flask_quickstart(name, root_dir):
     os.system(f"cp -r templates/Flask/* {root_dir}")
     config = json.load(open(os.path.join(root_dir, "config.json")))
-    config["name"] = name
+    config["name"] = f"{name}-{uuid.uuid4().hex}".lower()
 
     config = ask_config_json_questions(config)
     click.echo("📝 Saving configuration...")
@@ -376,7 +376,7 @@ def choose_or_make_dir(type: str, root_dir: str, make_new=True):
 def cron_quickstart(name, service_path):
     os.system(f"cp -r templates/Cron/* {service_path}")
     config = json.load(open(os.path.join(service_path, "config.json")))
-    config["name"] = name
+    config["name"] =  f"{name}-{uuid.uuid4().hex}".lower()
 
     config = ask_config_json_questions(config)
     click.echo("📝 Saving configuration...")
@@ -1343,34 +1343,43 @@ def cron(service, test, new, type, all):
     elif task == "test" or test:
         test_runner(service, all=all, test_path=test)
 
+
 def push_image(image_name):
     client = docker.from_env()
     repository = f"{os.environ['DOCKERHUB_USERNAME']}/{image_name}"
-    
+
     click.echo(f"Starting to push the image {repository}...")
-    
+
     try:
         with yaspin(text="Pushing image", color="cyan") as spinner:
-            push_output = client.images.push(repository, stream=True, decode=True)
+            push_output = client.images.push(
+                repository, stream=True, decode=True
+            )
             for line in push_output:
                 status_message = "Pushing image"
                 if "status" in line:
                     status_message = line["status"]
                     if "id" in line:
-                        status_message = f"Layer ID: {line['id']}, Status: {line['status']}"
+                        status_message = (
+                            f"Layer ID: {line['id']}, Status: {line['status']}"
+                        )
                     spinner.text = status_message
 
                 if "progress" in line:
-                    spinner.text = f"{status_message} - Progress: {line['progress']}"
+                    spinner.text = (
+                        f"{status_message} - Progress: {line['progress']}"
+                    )
 
                 if "error" in line:
                     spinner.fail("❌")
                     click.echo(f"Error: {line['error']}", err=True)
                     return
-                
+
             spinner.ok("✅")
-            click.echo(f"🎉 Finished pushing the image {Fore.GREEN}{repository}.")
-    
+            click.echo(
+                f"🎉 Finished pushing the image {Fore.GREEN}{repository}."
+            )
+
     except docker.errors.APIError as e:
         click.echo(f"APIError: {e}", err=True)
     except Exception as e:
@@ -1409,6 +1418,268 @@ def format():
         subprocess.run(command, shell=True, check=True)
 
 
-# if __name__ == "__main__":
-    # builder()
-push_image("lala")
+import requests
+
+headers = {"Authorization": "Bearer fo1_EsFlhIwDIHpJX-ZJbInB6S82rbaIhAgY5TM3O93PwHQ"}
+
+
+def list_apps():
+    url = "https://api.machines.dev/v1/apps"
+
+    querystring = {"org_slug": "personal"}
+
+    response = requests.get(url, params=querystring, headers=headers)
+
+    return response.json()["apps"]
+
+
+def does_app_exist(name):
+    apps = list_apps()
+    return (
+        True
+        if len([app for app in apps if app["name"] == name.lower()]) > 0
+        else False
+    )
+
+
+def create_app(name):
+    if does_app_exist(name):
+        print(f"App {name} already exists")
+        return
+
+    url = "https://api.machines.dev/v1/apps"
+
+    payload = {
+        "app_name": name.lower(),
+        "enable_subdomains": True,
+        "network": "tcp",
+        "org_slug": "personal",
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+    return response.json()['id']
+
+
+def list_machine(app_name):
+    url = f"https://api.machines.dev/v1/apps/{app_name}/machines"
+
+    response = requests.get(url, headers=headers)
+    response_json = response.json()
+
+    machine_ids = [machine["id"] for machine in response_json]
+
+    return machine_ids
+
+
+def does_machine_exist(app_name, machine_id):
+    machines = list_machine(app_name)
+    return True if machine_id in machines else False
+
+
+def delete_machine(app_name, machine_id):
+    if does_machine_exist(app_name, machine_id):
+        url = f"https://api.machines.dev/v1/apps/{app_name}/machines/{machine_id}"
+        response = requests.delete(url, headers=headers)
+        print(response.json())
+
+
+def create_machine(app_name, image_name):
+    app_name = app_name.lower()
+    url = f"https://api.machines.dev/v1/apps/{app_name}/machines"
+
+    payload = {
+        "config": {
+            "auto_destroy": True,
+            "checks": {
+                "grace_period": {},
+                "headers": [None],
+                "interval": {},
+                "method": "",
+                "path": "",
+                "port": 1,
+                "protocol": "",
+                "timeout": {},
+                "tls_server_name": "",
+                "tls_skip_verify": True,
+                "type": ""
+            },
+            "disable_machine_autostart": True,
+            "dns": {
+                "dns_forward_rules": [
+                    {
+                        "addr": None,
+                        "basename": None
+                    }
+                ],
+                "nameservers": [""],
+                "options": [
+                    {
+                        "name": None,
+                        "value": None
+                    }
+                ],
+                "searches": [""],
+                "skip_registration": True
+            },
+            "env": {"someKey": ""},
+            "files": [
+                {
+                    "guest_path": "",
+                    "raw_value": "",
+                    "secret_name": ""
+                }
+            ],
+            "guest": {
+                "cpu_kind": "",
+                "cpus": 1,
+                "gpu_kind": "",
+                "gpus": 1,
+                "host_dedication_id": "",
+                "kernel_args": [""],
+                "memory_mb": 1
+            },
+            "image": "",
+            "init": {
+                "cmd": [""],
+                "entrypoint": [""],
+                "exec": [""],
+                "kernel_args": [""],
+                "swap_size_mb": 1,
+                "tty": True
+            },
+            "metadata": {"someKey": ""},
+            "metrics": {
+                "path": "",
+                "port": 1
+            },
+            "mounts": [
+                {
+                    "add_size_gb": 1,
+                    "encrypted": True,
+                    "extend_threshold_percent": 1,
+                    "name": "",
+                    "path": "",
+                    "size_gb": 1,
+                    "size_gb_limit": 1,
+                    "volume": ""
+                }
+            ],
+            "processes": [
+                {
+                    "cmd": [None],
+                    "entrypoint": [None],
+                    "env": None,
+                    "env_from": [None],
+                    "exec": [None],
+                    "ignore_app_secrets": True,
+                    "secrets": [None],
+                    "user": ""
+                }
+            ],
+            "restart": {
+                "max_retries": 1,
+                "policy": "no"
+            },
+            "schedule": "",
+            "services": [
+                {
+                    "autostart": True,
+                    "autostop": True,
+                    "checks": [None],
+                    "concurrency": {
+                        "hard_limit": None,
+                        "soft_limit": None,
+                        "type": None
+                    },
+                    "force_instance_description": "",
+                    "force_instance_key": "",
+                    "internal_port": 1,
+                    "min_machines_running": 1,
+                    "ports": [None],
+                    "protocol": ""
+                }
+            ],
+            "size": "",
+            "standbys": [""],
+            "statics": [
+                {
+                    "guest_path": "",
+                    "tigris_bucket": "",
+                    "url_prefix": ""
+                }
+            ],
+            "stop_config": {
+                "signal": "",
+                "timeout": {"time.Duration": 1}
+            }
+        },
+        "lease_ttl": 1,
+        "lsvd": True,
+        "name": "",
+        "region": "",
+        "skip_launch": True,
+        "skip_service_registration": True
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+
+    print(response.json())
+    return response.json()
+
+
+def create_machines(app_name, image_name):
+    if not does_app_exist(app_name):
+        print(f"App {app_name} does not exist")
+        return
+
+    # Delete all machines
+    # Create new machines based on regions etc...
+    for machine in list_machine(app_name):
+        delete_machine(app_name, machine)
+
+    # Create a new machine
+    create_machine(app_name, image_name)
+
+
+def deploy_image(image_name, service_dir):
+    # Create Fly App if not exists
+    repository = f"{os.environ['DOCKERHUB_USERNAME']}/{image_name}"
+    config_path = os.path.join(service_dir, "config.json")
+    app_config = json.load(open(config_path))
+    app_name = app_config['name']
+    app_exists = does_app_exist(app_name)
+
+    if not app_exists:
+        create_app(app_name)
+
+    create_machine(app_name, repository)
+
+
+@builder.command()
+@click.option(
+    "--service",
+    "-s",
+    help="The service to deploy.",
+    required=False,
+    type=str,
+)
+def deploy(service):
+    # Pushes the newest version of the image to Dockerhub
+    # If there isn't a dockerfile for the image, we skip pushing the image
+    config = json.load(open(config_path))
+    services_dir = config.get("create", {}).get("service_dir", {})
+    service_path = os.path.join(services_dir, service)
+
+    dockerfile_path = os.path.join(service_path, "Dockerfile")
+    if not os.path.exists(dockerfile_path):
+        click.echo(
+            f"❌ {Fore.RED}Error: Dockerfile doesn't exist, Skipping dockerhub pushing {dockerfile_path}"
+        )
+        return
+    else:
+        push_image(service)
+        deploy_image(service, service_path)
+
+
+if __name__ == "__main__":
+    builder()
