@@ -2,6 +2,7 @@
   "api_base": "https://simonferns.com",
   "deploy_to": "single",
   "create": {
-    "service_dir": "services"
-  }
+   "service_dir": "services"
+  },
+  "dockerhub_username": "adoniscodes"
 }

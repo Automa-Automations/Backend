@@ -440,11 +440,8 @@ def create():
         os.mkdir(service_path)
         os.system(f"cp -r templates/BlankTemplate/* {service_path}")
         file = json.load(open(os.path.join(service_path, "config.json")))
-        file['name'] = name
+        file["name"] = name
         json.dump(file, open(os.path.join(service_path, "config.json"), "w"), indent=4)
-
-
-
 
 
 def build_container(service, dockerfile_path, path, should_stream_output=False) -> str:
@@ -452,10 +449,11 @@ def build_container(service, dockerfile_path, path, should_stream_output=False) 
     try:
         stream = client.build(
             path=path,
-            tag=service.lower(),
+            tag=f"adoniscodes/{service.lower()}",
             dockerfile=dockerfile_path,
             decode=True,
         )
+
         spinner = None
         for line in stream:
             if "stream" in line:
@@ -602,7 +600,9 @@ def build(service, all):
 
 def container_runner(service: str, rebuild=False):
     if not service:
-        click.echo("😥 Sorry, But it doesn't seem that you provided a valid service name!")
+        click.echo(
+            "😥 Sorry, But it doesn't seem that you provided a valid service name!"
+        )
         exit(1)
 
     config = json.load(open(config_path))
@@ -610,7 +610,11 @@ def container_runner(service: str, rebuild=False):
 
     client = docker.from_env()
 
-    image = [i for i in client.images.list() if i.attrs["RepoTags"] and i.attrs["RepoTags"][0] == f"{service.lower()}:latest"]
+    image = [
+        i
+        for i in client.images.list()
+        if i.attrs["RepoTags"] and i.attrs["RepoTags"][0] == f"{service.lower()}:latest"
+    ]
 
     if not image or rebuild:
         container_builder(service=service, all=False)
@@ -663,7 +667,7 @@ def container_runner(service: str, rebuild=False):
 
         sp.text = f"🐳 Starting {service}..."
         container = client.containers.run(
-            image=image,
+            image=f"adoniscodes/{image}",
             name=service,
             ports=ports_transformed,
             mounts=mounts_transformed,
@@ -687,7 +691,13 @@ def container_runner(service: str, rebuild=False):
 
 @builder.command()
 @click.option("--service", "-s", help="The service to run.", required=True, type=str)
-@click.option("--rebuild", "-r", help="Rebuilds the service before running", required=False, is_flag=True)
+@click.option(
+    "--rebuild",
+    "-r",
+    help="Rebuilds the service before running",
+    required=False,
+    is_flag=True,
+)
 def run(service, rebuild):
     """Allows you to run a service if it exists,"""
     container_runner(service=service, rebuild=rebuild)
