@@ -31,7 +31,16 @@ class FaceTrackingVideo:
             print("Initializing face_recognition detector...")
             self.face_detector = face_recognition
 
+        # Check the frame's data type and convert if necessary
+        if frame.dtype != np.uint8:
+            frame = frame.astype(np.uint8)
+
+        # Ensure the frame is in RGB format
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # Add debug statements
+        print(f"Frame shape: {rgb_frame.shape}, dtype: {rgb_frame.dtype}")
+
         face_locations = self.face_detector.face_locations(rgb_frame, model="hog")
 
         if face_locations:
@@ -87,6 +96,10 @@ class FaceTrackingVideo:
 
     def collect_face_position(self, frame, nframes):
         """Collect the face position for a given frame"""
+        if frame is None:
+            print("Warning: Received an empty frame")
+            return None
+
         if self.frame_index % self.face_window_len == 0:
             print(f"Collecting face at frame {self.frame_index}/{nframes}")
             face_coordinates = self.detect_faces(frame)

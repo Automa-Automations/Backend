@@ -8,10 +8,11 @@ supabase
 black
 fuzzywuzzy
 moviepy
+numpy==1.26.4
 dlib
 face_recognition
 scipy
 python-dotenv
-opencv-python-headless
+opencv-python
 pydub
 assemblyai

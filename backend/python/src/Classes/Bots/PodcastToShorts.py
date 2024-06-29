@@ -11,6 +11,7 @@ import logging
 import re
 from src.Classes.Utils.PodcastTranscriber import PodcastTranscriber
 from src.utils import format_video_url, validate_string_similarity, download_podcast
+import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -445,6 +446,7 @@ class PodcastToShorts:
             clip_shorts_data = []
             for short_transcript in shorts_final_transcripts:
                 clipped_short_data = self._clip_short(
+                    "./shorts",
                     download_response["output_path"],
                     download_response["filename"],
                     short_transcript,
@@ -465,9 +467,19 @@ class PodcastToShorts:
                 f"Error while downloading the podcast: {download_response['error']}"
             )
 
-    def _clip_short(self, output_path: str, filename: str, short_transcript) -> dict:
+    def _clip_short(
+        self,
+        shorts_output_path: str,
+        podcast_output_path: str,
+        filename: str,
+        short_transcript,
+    ) -> dict:
         logger.info("Clipping short...")
-        podcast_path = os.path.join(output_path, filename)
+
+        if not os.path.exists(shorts_output_path):
+            os.makedirs(shorts_output_path)
+
+        podcast_path = os.path.join(podcast_output_path, filename)
         if self.transcriptor_type == "yt_transcript_api":
             short_start_time = short_transcript["transcript"][0]["start"]
             short_end_time = (
@@ -481,9 +493,11 @@ class PodcastToShorts:
             raise ValueError("Transcriptor type is not valid")
 
         short_filename = f"{filename}_short_{short_start_time}_{short_end_time}.mp4"
-        clipped_video_path = os.path.join(output_path, f"mobile_ratio_{short_filename}")
+        clipped_video_path = os.path.join(
+            shorts_output_path, f"mobile_ratio_{short_filename}"
+        )
         original_clip_video_path = os.path.join(
-            output_path, f"original_{short_filename}"
+            shorts_output_path, f"original_{short_filename}"
         )
 
         if self.transcriptor_type == "yt_transcript_api":
@@ -505,6 +519,8 @@ class PodcastToShorts:
             clipped_video = concatenate_videoclips(all_sentences_clips)
         else:
             raise ValueError("Transcriptor type is not valid")
+
+        clipped_video.write_videofile(original_clip_video_path)
         try:
             # clip video to mobile aspect ratio (9:16), along with following faces smoothly
             logger.info(
@@ -535,6 +551,7 @@ class PodcastToShorts:
             logger.error(
                 f"Error while clipping short to right aspect ratio and adding in face detection: {e}"
             )
+            traceback.print_exc()
             return {}
 
     def _clip_and_follow_faces_mobile_ratio(self, clipped_video):
