@@ -1343,25 +1343,38 @@ def cron(service, test, new, type, all):
     elif task == "test" or test:
         test_runner(service, all=all, test_path=test)
 
-
 def push_image(image_name):
     client = docker.from_env()
     repository = f"{os.environ['DOCKERHUB_USERNAME']}/{image_name}"
     
     click.echo(f"Starting to push the image {repository}...")
     
-    with yaspin(text="Pushing image", color="cyan") as spinner:
-        push_output = client.images.push(repository, stream=True, decode=True)
-        for line in push_output:
-            if 'status' in line:
-                if 'id' in line:
-                    spinner.write(f"Layer ID: {line['id']}, Status: {line['status']}")
-                else:
-                    spinner.write(f"Status: {line['status']}")
-            if 'progress' in line:
-                spinner.write(f"Progress: {line['progress']}")
+    try:
+        with yaspin(text="Pushing image", color="cyan") as spinner:
+            push_output = client.images.push(repository, stream=True, decode=True)
+            for line in push_output:
+                status_message = "Pushing image"
+                if "status" in line:
+                    status_message = line["status"]
+                    if "id" in line:
+                        status_message = f"Layer ID: {line['id']}, Status: {line['status']}"
+                    spinner.text = status_message
+
+                if "progress" in line:
+                    spinner.text = f"{status_message} - Progress: {line['progress']}"
+
+                if "error" in line:
+                    spinner.fail("❌")
+                    click.echo(f"Error: {line['error']}", err=True)
+                    return
+                
+            spinner.ok("✅")
+            click.echo(f"🎉 Finished pushing the image {Fore.GREEN}{repository}.")
     
-    click.echo(f"Finished pushing the image {repository}.")
+    except docker.errors.APIError as e:
+        click.echo(f"APIError: {e}", err=True)
+    except Exception as e:
+        click.echo(f"Unexpected error: {e}", err=True)
 
 
 @builder.command()
