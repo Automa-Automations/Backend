@@ -1,6 +1,7 @@
 # Bunker is a build, template, configuration and auto testing for unit tests, integration tests & production tests.
 # Bunker will allow you to generate templates for projects, allowing you to effectively test every single method of a class, every single module & every single package that you are developoing. bunker will also create a generic template for each service, and also create templates for any service your service depends on, in order to test them with each other "integration tests". bunker will also create a template for the production environment, and will allow you to test your service with the production environment, to ensure that your service is working as expected. bunker will also create a template for the production environment, and will allow you to test your service with the production environment, to ensure that your service is working as expected. bunker will also create a template for the production environment, and will allow you to test your service with the production environment, to ensure that your service is working as expected. bunker also effectively injects code into your project to do monitoring, bunker captures all logs into a single generic database, and also captures errors, uptime, usage & more.
 import datetime
+import dotenv
 from croniter import croniter
 import click
 import unittest
@@ -21,17 +22,22 @@ from colorama import Fore, init
 import ast
 
 init(autoreset=True)
+dotenv.load_dotenv()
 
 config_path = "config.json"
 
 
 def global_options(func):
-    @click.option("--config", type=click.Path(), help="Path to the config file.")
+    @click.option(
+        "--config", type=click.Path(), help="Path to the config file."
+    )
     def new_func(config, *args, **kwargs):
         global config_path
 
         if config and not os.path.exists(config):
-            click.echo(f"😥 The config path you provide {config} does not exist!")
+            click.echo(
+                f"😥 The config path you provide {config} does not exist!"
+            )
             exit(1)
 
             config_path = config
@@ -146,11 +152,18 @@ def ask_config_json_questions(config: dict[str, Any]):
 
     mounts = config.get("mounts", {})
     should_ask_mounts = True
-    if mounts and not questionary.confirm("Would you like to change the mounts?").ask():
+    if (
+        mounts
+        and not questionary.confirm(
+            "Would you like to change the mounts?"
+        ).ask()
+    ):
         should_ask_mounts = False
 
     if should_ask_mounts:
-        should_ask_mounts = questionary.confirm("Would you like to add mounts?").ask()
+        should_ask_mounts = questionary.confirm(
+            "Would you like to add mounts?"
+        ).ask()
 
     if should_ask_mounts:
         while True:
@@ -182,16 +195,22 @@ def ask_config_json_questions(config: dict[str, Any]):
     if should_ask_env_vars:
         while True:
             env_var_name = questionary.text("Environment Variable Name:").ask()
-            env_var_value = questionary.text("Environment Variable Value:").ask()
+            env_var_value = questionary.text(
+                "Environment Variable Value:"
+            ).ask()
             env_vars[env_var_name] = env_var_value
-            add_another = questionary.confirm("Add another environment variable?").ask()
+            add_another = questionary.confirm(
+                "Add another environment variable?"
+            ).ask()
             if not add_another:
                 break
 
     config["env"] = env_vars
 
     if "schedule" in config:
-        cron = questionary.text(f"Enter Crontab Expression ({config['cron']})").ask()
+        cron = questionary.text(
+            f"Enter Crontab Expression ({config['cron']})"
+        ).ask()
         config["schedule"] = cron
 
     return config
@@ -272,7 +291,9 @@ def dockerhub_quickstart(name: str, root_dir: str):
     # PORTS (Auto Detectable)
     click.echo("🔍 Detecting ports...")
     ports_ = get_exposed_ports(image_to_use)
-    ports = {str(port.split("/")[0]): str(port.split("/")[0]) for port in ports_}
+    ports = {
+        str(port.split("/")[0]): str(port.split("/")[0]) for port in ports_
+    }
 
     for port in ports_:
         click.echo(f"   🛶 {Fore.YELLOW} Detected port {port}")
@@ -282,7 +303,9 @@ def dockerhub_quickstart(name: str, root_dir: str):
     config = ask_config_json_questions(config)
 
     click.echo("📝 Saving configuration...")
-    json.dump(config, open(os.path.join(root_dir, "config.json"), "w"), indent=4)
+    json.dump(
+        config, open(os.path.join(root_dir, "config.json"), "w"), indent=4
+    )
 
 
 def flask_quickstart(name, root_dir):
@@ -292,7 +315,9 @@ def flask_quickstart(name, root_dir):
 
     config = ask_config_json_questions(config)
     click.echo("📝 Saving configuration...")
-    json.dump(config, open(os.path.join(root_dir, "config.json"), "w"), indent=4)
+    json.dump(
+        config, open(os.path.join(root_dir, "config.json"), "w"), indent=4
+    )
 
     dockerfile_path = os.path.join(root_dir, "Dockerfile")
     if not os.path.exists(dockerfile_path):
@@ -301,7 +326,9 @@ def flask_quickstart(name, root_dir):
 
     click.echo("📝 Modifying Dockerfile...")
     dockerfile = open(dockerfile_path).read()
-    dockerfile = dockerfile.replace("<<port>>", list(config["ports"].keys())[0])
+    dockerfile = dockerfile.replace(
+        "<<port>>", list(config["ports"].keys())[0]
+    )
     dockerfile = dockerfile.replace(
         "<<app_run>>", "cd " + os.path.join(root_dir) + "; "
     )
@@ -338,7 +365,9 @@ def choose_or_make_dir(type: str, root_dir: str, make_new=True):
             "Select a root directory:", choices=root_dir_files
         ).ask()
     else:
-        root_dir = questionary.text(f"{type.capitalize()} Directory Name:").ask()
+        root_dir = questionary.text(
+            f"{type.capitalize()} Directory Name:"
+        ).ask()
         os.mkdir(root_dir)
 
     return root_dir
@@ -351,7 +380,9 @@ def cron_quickstart(name, service_path):
 
     config = ask_config_json_questions(config)
     click.echo("📝 Saving configuration...")
-    json.dump(config, open(os.path.join(service_path, "config.json"), "w"), indent=4)
+    json.dump(
+        config, open(os.path.join(service_path, "config.json"), "w"), indent=4
+    )
 
     dockerfile_path = os.path.join(service_path, "Dockerfile")
     if not os.path.exists(dockerfile_path):
@@ -414,7 +445,9 @@ def create():
         return
 
     # Create the service
-    should_use_template = questionary.confirm("Would you like to use a template?").ask()
+    should_use_template = questionary.confirm(
+        "Would you like to use a template?"
+    ).ask()
     if should_use_template:
         template = questionary.select(
             "Select a template:",
@@ -441,15 +474,21 @@ def create():
         os.system(f"cp -r templates/BlankTemplate/* {service_path}")
         file = json.load(open(os.path.join(service_path, "config.json")))
         file["name"] = name
-        json.dump(file, open(os.path.join(service_path, "config.json"), "w"), indent=4)
+        json.dump(
+            file,
+            open(os.path.join(service_path, "config.json"), "w"),
+            indent=4,
+        )
 
 
-def build_container(service, dockerfile_path, path, should_stream_output=False) -> str:
+def build_container(
+    service, dockerfile_path, path, should_stream_output=False
+) -> str:
     client = docker.APIClient()
     try:
         stream = client.build(
             path=path,
-            tag=f"adoniscodes/{service.lower()}",
+            tag=f"{os.environ['DOCKERHUB_USERNAME']}/{service.lower()}",
             dockerfile=dockerfile_path,
             decode=True,
         )
@@ -464,7 +503,9 @@ def build_container(service, dockerfile_path, path, should_stream_output=False) 
                     if spinner:
                         spinner.stop()
                         spinner.ok("✅")
-                    return line["stream"].split(" ")[-1].strip().replace("\n", "")
+                    return (
+                        line["stream"].split(" ")[-1].strip().replace("\n", "")
+                    )
 
                 if not should_stream_output:
                     continue
@@ -473,7 +514,10 @@ def build_container(service, dockerfile_path, path, should_stream_output=False) 
                     continue
 
                 pretty_output = (
-                    line["stream"].encode("utf-8").decode("unicode-escape").strip()
+                    line["stream"]
+                    .encode("utf-8")
+                    .decode("unicode-escape")
+                    .strip()
                 )
                 pretty_output = pretty_output.replace("â", "").replace(
                     "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv",
@@ -501,9 +545,7 @@ def build_container(service, dockerfile_path, path, should_stream_output=False) 
                     spinner = yaspin(text=f"{pretty_output}")
                     spinner.start()
                 else:
-                    spinner.text = (
-                        f"{spinner.text.split(':')[0]}: {pretty_output[:50]}..."
-                    )
+                    spinner.text = f"{spinner.text.split(':')[0]}: {pretty_output[:50]}..."
 
             if "error" in line:
                 if "--->" in line["stream"]:
@@ -558,7 +600,9 @@ def container_builder(service, all):
         click.echo(f"{Fore.GREEN}Building Docker image for service: {service}")
         dockerfile_path = os.path.join(service_path, "Dockerfile")
         config_path_ = os.path.join(service_path, "config.json")
-        service_name = json.load(open(config_path_)).get("name", uuid.uuid4().hex)
+        service_name = json.load(open(config_path_)).get(
+            "name", uuid.uuid4().hex
+        )
 
         df_exists = os.path.exists(dockerfile_path)
         cf_exists = os.path.exists(config_path_)
@@ -585,7 +629,9 @@ def container_builder(service, all):
 
 
 @builder.command()
-@click.option("--service", "-s", help="The service to build.", required=False, type=str)
+@click.option(
+    "--service", "-s", help="The service to build.", required=False, type=str
+)
 @click.option(
     "--all",
     "-a",
@@ -613,7 +659,8 @@ def container_runner(service: str, rebuild=False):
     image = [
         i
         for i in client.images.list()
-        if i.attrs["RepoTags"] and i.attrs["RepoTags"][0] == f"{service.lower()}:latest"
+        if i.attrs["RepoTags"]
+        and i.attrs["RepoTags"][0] == f"{service.lower()}:latest"
     ]
 
     if not image or rebuild:
@@ -642,7 +689,11 @@ def container_runner(service: str, rebuild=False):
         env = service_config.get("env", {})
         base_image = service_config.get("base_image")
 
-        image = service_config.get("name").lower() if not base_image else base_image
+        image = (
+            service_config.get("name").lower()
+            if not base_image
+            else base_image
+        )
 
         ports_transformed = {
             str(internal) + "/tcp": str(external)
@@ -660,14 +711,16 @@ def container_runner(service: str, rebuild=False):
         containers = client.containers.list(all=True)
         for container in containers:
             if container.name == service:
-                sp.text = "🐳 Container already existed. Killing Previous Instance"
+                sp.text = (
+                    "🐳 Container already existed. Killing Previous Instance"
+                )
                 container.stop()
                 container.remove()
                 break
 
         sp.text = f"🐳 Starting {service}..."
         container = client.containers.run(
-            image=f"adoniscodes/{image}",
+            image=f"{os.environ['DOCKERHUB_USERNAME']}/{image}",
             name=service,
             ports=ports_transformed,
             mounts=mounts_transformed,
@@ -690,7 +743,9 @@ def container_runner(service: str, rebuild=False):
 
 
 @builder.command()
-@click.option("--service", "-s", help="The service to run.", required=True, type=str)
+@click.option(
+    "--service", "-s", help="The service to run.", required=True, type=str
+)
 @click.option(
     "--rebuild",
     "-r",
@@ -704,7 +759,9 @@ def run(service, rebuild):
 
 
 def ask_flask_route_config():
-    config = {"route": questionary.text("What route would you like to create?").ask()}
+    config = {
+        "route": questionary.text("What route would you like to create?").ask()
+    }
 
     return config
 
@@ -857,7 +914,9 @@ def test_builder(type_, path, dir_path="", tests_path=""):
                         test_dir = "/".join(test_dir.split("/")[:-1])
 
                     if not test_dir.endswith("".join(segments[:2])):
-                        class_path = os.path.join(test_dir, "".join(segments[:2]))
+                        class_path = os.path.join(
+                            test_dir, "".join(segments[:2])
+                        )
                         if not os.path.exists(class_path):
                             os.mkdir(class_path)
                         test_dir = class_path
@@ -919,7 +978,9 @@ def test_runner(service: str, test_path="", all=False):
                 test_path = os.path.join(path_)
                 break
 
-            files_in_dir = os.listdir(path_) + ["Run All Tests in This Directory"]
+            files_in_dir = os.listdir(path_) + [
+                "Run All Tests in This Directory"
+            ]
 
             choice = questionary.select(
                 "Choose Tests to Run: ", choices=files_in_dir
@@ -945,13 +1006,17 @@ def test_runner(service: str, test_path="", all=False):
 
             # Run the tests in the specific file
             try:
-                spec = importlib.util.spec_from_file_location(module_name, file_path)
+                spec = importlib.util.spec_from_file_location(
+                    module_name, file_path
+                )
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
 
                 for name in dir(module):
                     obj = getattr(module, name)
-                    if isinstance(obj, type) and issubclass(obj, unittest.TestCase):
+                    if isinstance(obj, type) and issubclass(
+                        obj, unittest.TestCase
+                    ):
                         # Load tests from the TestCase class
                         loader = unittest.TestLoader()
                         suite = loader.loadTestsFromTestCase(obj)
@@ -986,7 +1051,9 @@ def test_runner(service: str, test_path="", all=False):
 
 
 @builder.command()
-@click.option("--service", "-s", help="The service to run.", required=False, type=str)
+@click.option(
+    "--service", "-s", help="The service to run.", required=False, type=str
+)
 @click.option(
     "--route",
     "-r",
@@ -1001,7 +1068,9 @@ def test_runner(service: str, test_path="", all=False):
     required=False,
     type=str,
 )
-@click.option("--new", "-n", help="Start a new service.", required=False, is_flag=True)
+@click.option(
+    "--new", "-n", help="Start a new service.", required=False, is_flag=True
+)
 @click.option(
     "--type",
     "-t",
@@ -1018,7 +1087,9 @@ def flask(service, new, test, type, route):
         services_dir = choose_or_make_dir("service", ".")
 
     if service and not service.endswith("Flask"):
-        click.echo("💔 You can't use the flask command to run non flask services!")
+        click.echo(
+            "💔 You can't use the flask command to run non flask services!"
+        )
         exit(1)
 
     if not test or not type:
@@ -1030,7 +1101,9 @@ def flask(service, new, test, type, route):
         if (
             not new
             and not service
-            and questionary.confirm("Would you like to create a new service?").ask()
+            and questionary.confirm(
+                "Would you like to create a new service?"
+            ).ask()
         ):
             service = questionary.text("Service Name:").ask()
             services_dir = os.path.join(services_dir, service)
@@ -1039,7 +1112,9 @@ def flask(service, new, test, type, route):
         elif not new and not service:
             service = questionary.select(
                 "Choose a service: ",
-                choices=os.listdir([i for i in services_dir if i.endswith("Flask")]),
+                choices=os.listdir(
+                    [i for i in services_dir if i.endswith("Flask")]
+                ),
             ).ask()
         elif new and not service:
             service = questionary.text("Service Name:").ask() + "Flask"
@@ -1074,7 +1149,9 @@ def flask(service, new, test, type, route):
         task = type
 
     if not service.endswith("Flask"):
-        click.echo("💔 You can't use the flask command to run non flask services!")
+        click.echo(
+            "💔 You can't use the flask command to run non flask services!"
+        )
         exit(1)
 
     if task == "route" or route:
@@ -1101,7 +1178,9 @@ def flask(service, new, test, type, route):
     required=False,
     type=str,
 )
-@click.option("--service", "-s", help="The service to run.", required=False, type=str)
+@click.option(
+    "--service", "-s", help="The service to run.", required=False, type=str
+)
 @click.option(
     "--new",
     "-test",
@@ -1149,7 +1228,9 @@ def cron_runner(service):
 
 
 @builder.command()
-@click.option("--service", "-s", help="The service to run.", required=False, type=str)
+@click.option(
+    "--service", "-s", help="The service to run.", required=False, type=str
+)
 @click.option(
     "--test",
     "-test",
@@ -1157,9 +1238,15 @@ def cron_runner(service):
     required=False,
     type=str,
 )
-@click.option("--new", "-n", help="Start a new service.", required=False, is_flag=True)
 @click.option(
-    "--all", "-a", help="Command Specific to the --type", required=False, is_flag=True
+    "--new", "-n", help="Start a new service.", required=False, is_flag=True
+)
+@click.option(
+    "--all",
+    "-a",
+    help="Command Specific to the --type",
+    required=False,
+    is_flag=True,
 )
 @click.option(
     "--type",
@@ -1176,7 +1263,9 @@ def cron(service, test, new, type, all):
         services_dir = choose_or_make_dir("service", ".")
 
     if service and not service.endswith("Cron"):
-        click.echo("💔 You can't use the cron command to run non cron services!")
+        click.echo(
+            "💔 You can't use the cron command to run non cron services!"
+        )
         exit(1)
 
     if not test or not type:
@@ -1188,7 +1277,9 @@ def cron(service, test, new, type, all):
         if (
             not new
             and not service
-            and questionary.confirm("Would you like to create a new service?").ask()
+            and questionary.confirm(
+                "Would you like to create a new service?"
+            ).ask()
         ):
             service = questionary.text("Service Name:").ask()
             services_dir = os.path.join(services_dir, service)
@@ -1197,12 +1288,16 @@ def cron(service, test, new, type, all):
         elif not service:
             service = questionary.select(
                 "Choose a service: ",
-                choices=[i for i in os.listdir(services_dir) if i.endswith("Cron")],
+                choices=[
+                    i for i in os.listdir(services_dir) if i.endswith("Cron")
+                ],
             ).ask()
         elif not new and not service:
             service = questionary.select(
                 "Choose a service: ",
-                choices=os.listdir([i for i in services_dir if i.endswith("Flask")]),
+                choices=os.listdir(
+                    [i for i in services_dir if i.endswith("Flask")]
+                ),
             ).ask()
         elif new and not service:
             service = questionary.text("Service Name:").ask() + "Flask"
@@ -1234,7 +1329,9 @@ def cron(service, test, new, type, all):
         task = type
 
     if not service.endswith("Cron"):
-        click.echo("💔 You can't use the flask command to run non flask services!")
+        click.echo(
+            "💔 You can't use the flask command to run non flask services!"
+        )
         exit(1)
 
     elif task == "test-create":
@@ -1245,6 +1342,26 @@ def cron(service, test, new, type, all):
         cron_runner(service)
     elif task == "test" or test:
         test_runner(service, all=all, test_path=test)
+
+
+def push_image(image_name):
+    client = docker.from_env()
+    repository = f"{os.environ['DOCKERHUB_USERNAME']}/{image_name}"
+    
+    click.echo(f"Starting to push the image {repository}...")
+    
+    with yaspin(text="Pushing image", color="cyan") as spinner:
+        push_output = client.images.push(repository, stream=True, decode=True)
+        for line in push_output:
+            if 'status' in line:
+                if 'id' in line:
+                    spinner.write(f"Layer ID: {line['id']}, Status: {line['status']}")
+                else:
+                    spinner.write(f"Status: {line['status']}")
+            if 'progress' in line:
+                spinner.write(f"Progress: {line['progress']}")
+    
+    click.echo(f"Finished pushing the image {repository}.")
 
 
 @builder.command()
@@ -1264,7 +1381,9 @@ def format():
     ]
 
     # Construct the exclude pattern for black
-    black_exclude_pattern = "|".join([f"{pattern}" for pattern in ignore_patterns])
+    black_exclude_pattern = "|".join(
+        [f"{pattern}" for pattern in ignore_patterns]
+    )
 
     # Define the formatter commands
     formatter_commands = [
@@ -1277,5 +1396,6 @@ def format():
         subprocess.run(command, shell=True, check=True)
 
 
-if __name__ == "__main__":
-    builder()
+# if __name__ == "__main__":
+    # builder()
+push_image("lala")
