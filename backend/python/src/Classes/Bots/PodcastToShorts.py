@@ -44,12 +44,8 @@ class PodcastToShorts:
         self.yt = YouTube(self.podcast_url)
         self.ollama_base_url = ollama_base_url
         self.llm_api_key = llm_api_key
-        self.debug_transcripts_feedback_path = (
-            f"./src/Classes/Bots/json_files/{llm_type}_transcripts_feedback.json"
-        )
-        self.debug_shorts_final_transcripts_path = (
-            f"./src/Classes/Bots/json_files/{llm_type}_shorts_final_transcripts.json"
-        )
+        self.debug_transcripts_feedback_path = f"./src/Classes/Bots/json_files/transcripts_feedback_{transcriptor_type}.json"
+        self.debug_shorts_final_transcripts_path = f"./src/Classes/Bots/json_files/_shorts_final_transcripts_{transcriptor_type}.json"
 
     def get_shorts(self, debugging=False):
         self.__validate_params()
@@ -106,6 +102,8 @@ class PodcastToShorts:
             other_shorts = self.__filter_transcripts(
                 transcriptions_feedback, should_make_short=False
             )
+            logger.info(f"Other shorts length: {len(other_shorts)}")
+
             extra_shorts = self.__get_best_shorts(
                 shorts_transcripts=other_shorts,
                 total_shorts=round(podcast_length / 10) - len(shorts_transcripts),
@@ -498,7 +496,7 @@ class PodcastToShorts:
             all_sentences_clips = []
             for sentence_dict in short_transcript:
                 sentence_clip = VideoFileClip(podcast_path).subclip(
-                    sentence_dict["start_time"], sentence_dict["end_time"]
+                    sentence_dict["start_time"] / 1000, sentence_dict["end_time"] / 1000
                 )
                 all_sentences_clips.append(sentence_clip)
 
@@ -553,9 +551,20 @@ class PodcastToShorts:
         Returns:
         - list: The list of the transcriptions that have the should_make_short value
         """
+
+        cleaned_transcripts_feedback = []
+        for transcription in transcriptions_feedback:
+            new_transcription = transcription
+            if transcription["stats"]["should_make_short"] == "False":
+                new_transcription["stats"]["should_make_short"] = False
+            elif transcription["stats"]["should_make_short"] == "True":
+                new_transcription["stats"]["should_make_short"] = False
+
+            cleaned_transcripts_feedback.append(new_transcription)
+
         return [
             transcription
-            for transcription in transcriptions_feedback
+            for transcription in cleaned_transcripts_feedback
             if transcription["stats"]["should_make_short"] == should_make_short
         ]
 
