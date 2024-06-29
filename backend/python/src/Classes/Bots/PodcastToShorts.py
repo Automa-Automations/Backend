@@ -5,7 +5,7 @@ from pytube import YouTube
 import os
 import json
 import base64
-from moviepy.editor import VideoFileClip
+from moviepy.editor import VideoFileClip, concatenate_videoclips
 import random
 import logging
 import re
@@ -475,16 +475,35 @@ class PodcastToShorts:
                 short_transcript["transcript"][-1]["start"]
                 + short_transcript["transcript"][-1]["duration"]
             )
+        elif self.transcriptor_type == "assembly_ai":
+            short_start_time = short_transcript[0]["start_time"]
+            short_end_time = short_transcript[-1]["end_time"]
+        else:
+            raise ValueError("Transcriptor type is not valid")
 
         short_filename = f"{filename}_short_{short_start_time}_{short_end_time}.mp4"
         clipped_video_path = os.path.join(output_path, f"mobile_ratio_{short_filename}")
         original_clip_video_path = os.path.join(
             output_path, f"original_{short_filename}"
         )
-        # use moviepy to clip the video
-        clipped_video = VideoFileClip(podcast_path).subclip(
-            short_start_time, short_end_time
-        )
+
+        if self.transcriptor_type == "yt_transcript_api":
+            # use moviepy to clip the video
+            clipped_video = VideoFileClip(podcast_path).subclip(
+                short_start_time, short_end_time
+            )
+        elif self.transcriptor_type == "assembly_ai":
+            # Make clips of all the sentences in the short, and then add them together as one clip
+            all_sentences_clips = []
+            for sentence_dict in short_transcript:
+                sentence_clip = VideoFileClip(podcast_path).subclip(
+                    sentence_dict["start_time"], sentence_dict["end_time"]
+                )
+                all_sentences_clips.append(sentence_clip)
+
+            logger.info(f"Total sentences clips: {len(all_sentences_clips)}")
+            logger.info("Concatenating all the clips together...")
+            clipped_video = concatenate_videoclips(all_sentences_clips)
         try:
             # clip video to mobile aspect ratio (9:16), along with following faces smoothly
             logger.info(
@@ -492,7 +511,7 @@ class PodcastToShorts:
             )
 
             mobile_ratio_follow_faces_short = self._clip_and_follow_faces_mobile_ratio(
-                clipped_video
+                clipped_video,
             )
             mobile_ratio_follow_faces_short.write_videofile(clipped_video_path)
 
