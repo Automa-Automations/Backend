@@ -142,12 +142,38 @@ class PodcastToShorts:
         )
 
         logger.info("Generating shorts...")
+        # add in the start and end times to each sentence
+        if self.transcriptor_type == "assembly_ai":
+            shorts_final_transcripts = self.__add_timestamps_final_transcripts(
+                shorts_final_transcripts, transcript
+            )
         clip_shorts_data = self._generate_shorts(shorts_final_transcripts)
         logger.info(
             f"Clip Shorts Data: (length: {len(clip_shorts_data)}): {clip_shorts_data}"
         )
 
         return clip_shorts_data
+
+    def __add_timestamps_final_transcripts(
+        self, final_transcripts, assembly_ai_transcript
+    ):
+        transcript_with_timestamps = []
+        for index, final_transcript in enumerate(final_transcripts):
+            current_transcript_with_timestamps = []
+            for sentence in final_transcript["sentences"]:
+                for assembly_sentence_dict in assembly_ai_transcript:
+                    if assembly_sentence_dict["sentence"].lower() == sentence.lower():
+                        current_transcript_with_timestamps.append(
+                            assembly_sentence_dict
+                        )
+                        break
+
+            if len(current_transcript_with_timestamps) > 5:
+                transcript_with_timestamps.append(current_transcript_with_timestamps)
+            else:
+                logger.warning(f"Transcript {index+1} has less than 5 sentences")
+
+        return transcript_with_timestamps
 
     def __get_best_shorts(self, shorts_transcripts: List[dict], total_shorts: int):
         """
@@ -218,7 +244,7 @@ class PodcastToShorts:
             llm_response = ""
             valid_response = False
             while max_retries:
-                max_retries -= 5
+                max_retries -= 1
                 if self.llm_type == "openai":
                     chat_completion = ChatCompletion(
                         llm_type=self.llm_type,
@@ -249,7 +275,7 @@ class PodcastToShorts:
                     and (isinstance(llm_response["sentences"], list))
                 ):
                     invalid_sentences = False
-                    for sentence in llm_response:
+                    for sentence in llm_response["sentences"]:
                         if not isinstance(sentence, str):
                             invalid_sentences = True
                             break
@@ -279,6 +305,7 @@ class PodcastToShorts:
             final_transcript_chunk = self._cleanup_shortened_transcript_response(
                 llm_response, short
             )
+
             if final_transcript_chunk != -1:
                 logger.info(
                     f"[{index+1}/{len(shorts_transcripts)}]. Appending response to final transcripts"
@@ -442,11 +469,12 @@ class PodcastToShorts:
     def _clip_short(self, output_path: str, filename: str, short_transcript) -> dict:
         logger.info("Clipping short...")
         podcast_path = os.path.join(output_path, filename)
-        short_start_time = short_transcript["transcript"][0]["start"]
-        short_end_time = (
-            short_transcript["transcript"][-1]["start"]
-            + short_transcript["transcript"][-1]["duration"]
-        )
+        if self.transcriptor_type == "yt_transcript_api":
+            short_start_time = short_transcript["transcript"][0]["start"]
+            short_end_time = (
+                short_transcript["transcript"][-1]["start"]
+                + short_transcript["transcript"][-1]["duration"]
+            )
 
         short_filename = f"{filename}_short_{short_start_time}_{short_end_time}.mp4"
         clipped_video_path = os.path.join(output_path, f"mobile_ratio_{short_filename}")
