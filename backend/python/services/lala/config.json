@@ -1,6 +1,6 @@
 {
   "base_image": null,
-  "name": "lala-EDC7BB630102401988279DD1D6ED306E",
+  "name": "lala-EDC7BB630102401988279DD1D6ED306E-1",
   "cpu": "1",
   "memory": "256MB",
   "gpu": "auto",

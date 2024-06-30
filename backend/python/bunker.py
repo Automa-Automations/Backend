@@ -375,7 +375,7 @@ def choose_or_make_dir(type: str, root_dir: str, make_new=True):
 def cron_quickstart(name, service_path):
     os.system(f"cp -r templates/Cron/* {service_path}")
     config = json.load(open(os.path.join(service_path, "config.json")))
-    config["name"] =  f"{name}-{uuid.uuid4().hex}".lower()
+    config["name"] = f"{name}-{uuid.uuid4().hex}".lower()
 
     config = ask_config_json_questions(config)
     click.echo("📝 Saving configuration...")
@@ -490,7 +490,7 @@ def build_container(
             tag=f"{os.environ['DOCKERHUB_USERNAME']}/{service.lower()}",
             dockerfile=dockerfile_path,
             decode=True,
-            platform='linux/amd64'
+            platform="linux/amd64",
         )
 
         spinner = None
@@ -1420,7 +1420,9 @@ def format():
 
 import requests
 
-headers = {"Authorization": "Bearer fo1_EsFlhIwDIHpJX-ZJbInB6S82rbaIhAgY5TM3O93PwHQ"}
+headers = {
+    "Authorization": "Bearer fo1_EsFlhIwDIHpJX-ZJbInB6S82rbaIhAgY5TM3O93PwHQ"
+}
 
 
 def list_apps():
@@ -1457,7 +1459,7 @@ def create_app(name):
     }
 
     response = requests.post(url, json=payload, headers=headers)
-    return response.json()['id']
+    return response.json()["id"]
 
 
 def list_machine(app_name):
@@ -1490,24 +1492,33 @@ def create_machine(app_name, image_name, service_config):
 
     payload = {
         "config": {
-          "init": {
-            "exec": [
-              "/bin/sleep",
-              "inf"
-            ]
-          },
-          "image": f"registry-1.docker.io/{image_name}",
-          "auto_destroy": True,
-          "restart": {
-            "policy": "always"
-          },
-          "guest": {
-            "cpu_kind": "shared",
-            "cpus": config.get("cpu", 1),
-            "memory_mb": config.get("memory", 1024),
-          }
+            "region": "jnb",
+            "init": {},
+            "image": f"ollama/ollama:latest",
+            "auto_destroy": True,
+            "restart": {"policy": "always"},
+            "mounts": [
+                # {
+                    # "name": "ollama",
+                    # "path": "/root/.ollama",
+                    # "size_gb": 10,
+                # }
+            ],
+            "services": [
+                {
+                    "internal_port": 11434,
+                    "protocol": "tcp",
+                }
+            ],
+            "guest": {
+                "cpu_kind": "performance",
+                "cpus": 2,
+                "memory_mb": 8192,
+                "gpus": 1,
+                "gpu_kind": "a100-pcie-40gb",
+            },
         }
-   }
+    }
 
     response = requests.post(url, json=payload, headers=headers)
 
@@ -1534,13 +1545,13 @@ def deploy_image(image_name, service_dir):
     repository = f"{os.environ['DOCKERHUB_USERNAME']}/{image_name}"
     config_path = os.path.join(service_dir, "config.json")
     app_config = json.load(open(config_path))
-    app_name = app_config['name']
-    app_exists = does_app_exist(app_name)
+    app_name = app_config["name"]
+    app_exists = does_app_exist(app_name.lower())
 
     if not app_exists:
-        create_app(app_name)
+        create_app(app_name.lower())
 
-    create_machines(app_name, repository, app_config)
+    create_machines(app_name.lower(), repository, app_config)
 
 
 @builder.command()
