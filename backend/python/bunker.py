@@ -17,7 +17,6 @@ import uuid
 from pyngrok import ngrok
 import sys
 import importlib
-
 from colorama import Fore, init
 import ast
 
@@ -491,6 +490,7 @@ def build_container(
             tag=f"{os.environ['DOCKERHUB_USERNAME']}/{service.lower()}",
             dockerfile=dockerfile_path,
             decode=True,
+            platform='linux/amd64'
         )
 
         spinner = None
@@ -1483,143 +1483,31 @@ def delete_machine(app_name, machine_id):
         print(response.json())
 
 
-def create_machine(app_name, image_name):
+def create_machine(app_name, image_name, service_config):
+    config = service_config
     app_name = app_name.lower()
     url = f"https://api.machines.dev/v1/apps/{app_name}/machines"
 
     payload = {
         "config": {
-            "auto_destroy": True,
-            "checks": {
-                "grace_period": {},
-                "headers": [None],
-                "interval": {},
-                "method": "",
-                "path": "",
-                "port": 1,
-                "protocol": "",
-                "timeout": {},
-                "tls_server_name": "",
-                "tls_skip_verify": True,
-                "type": ""
-            },
-            "disable_machine_autostart": True,
-            "dns": {
-                "dns_forward_rules": [
-                    {
-                        "addr": None,
-                        "basename": None
-                    }
-                ],
-                "nameservers": [""],
-                "options": [
-                    {
-                        "name": None,
-                        "value": None
-                    }
-                ],
-                "searches": [""],
-                "skip_registration": True
-            },
-            "env": {"someKey": ""},
-            "files": [
-                {
-                    "guest_path": "",
-                    "raw_value": "",
-                    "secret_name": ""
-                }
-            ],
-            "guest": {
-                "cpu_kind": "",
-                "cpus": 1,
-                "gpu_kind": "",
-                "gpus": 1,
-                "host_dedication_id": "",
-                "kernel_args": [""],
-                "memory_mb": 1
-            },
-            "image": "",
-            "init": {
-                "cmd": [""],
-                "entrypoint": [""],
-                "exec": [""],
-                "kernel_args": [""],
-                "swap_size_mb": 1,
-                "tty": True
-            },
-            "metadata": {"someKey": ""},
-            "metrics": {
-                "path": "",
-                "port": 1
-            },
-            "mounts": [
-                {
-                    "add_size_gb": 1,
-                    "encrypted": True,
-                    "extend_threshold_percent": 1,
-                    "name": "",
-                    "path": "",
-                    "size_gb": 1,
-                    "size_gb_limit": 1,
-                    "volume": ""
-                }
-            ],
-            "processes": [
-                {
-                    "cmd": [None],
-                    "entrypoint": [None],
-                    "env": None,
-                    "env_from": [None],
-                    "exec": [None],
-                    "ignore_app_secrets": True,
-                    "secrets": [None],
-                    "user": ""
-                }
-            ],
-            "restart": {
-                "max_retries": 1,
-                "policy": "no"
-            },
-            "schedule": "",
-            "services": [
-                {
-                    "autostart": True,
-                    "autostop": True,
-                    "checks": [None],
-                    "concurrency": {
-                        "hard_limit": None,
-                        "soft_limit": None,
-                        "type": None
-                    },
-                    "force_instance_description": "",
-                    "force_instance_key": "",
-                    "internal_port": 1,
-                    "min_machines_running": 1,
-                    "ports": [None],
-                    "protocol": ""
-                }
-            ],
-            "size": "",
-            "standbys": [""],
-            "statics": [
-                {
-                    "guest_path": "",
-                    "tigris_bucket": "",
-                    "url_prefix": ""
-                }
-            ],
-            "stop_config": {
-                "signal": "",
-                "timeout": {"time.Duration": 1}
-            }
-        },
-        "lease_ttl": 1,
-        "lsvd": True,
-        "name": "",
-        "region": "",
-        "skip_launch": True,
-        "skip_service_registration": True
-    }
+          "init": {
+            "exec": [
+              "/bin/sleep",
+              "inf"
+            ]
+          },
+          "image": f"registry-1.docker.io/{image_name}",
+          "auto_destroy": True,
+          "restart": {
+            "policy": "always"
+          },
+          "guest": {
+            "cpu_kind": "shared",
+            "cpus": config.get("cpu", 1),
+            "memory_mb": config.get("memory", 1024),
+          }
+        }
+   }
 
     response = requests.post(url, json=payload, headers=headers)
 
@@ -1627,7 +1515,7 @@ def create_machine(app_name, image_name):
     return response.json()
 
 
-def create_machines(app_name, image_name):
+def create_machines(app_name, image_name, app_config):
     if not does_app_exist(app_name):
         print(f"App {app_name} does not exist")
         return
@@ -1638,7 +1526,7 @@ def create_machines(app_name, image_name):
         delete_machine(app_name, machine)
 
     # Create a new machine
-    create_machine(app_name, image_name)
+    create_machine(app_name, image_name, app_config)
 
 
 def deploy_image(image_name, service_dir):
@@ -1652,7 +1540,7 @@ def deploy_image(image_name, service_dir):
     if not app_exists:
         create_app(app_name)
 
-    create_machine(app_name, repository)
+    create_machines(app_name, repository, app_config)
 
 
 @builder.command()
@@ -1677,6 +1565,7 @@ def deploy(service):
         )
         return
     else:
+        # Build the image
         push_image(service)
         deploy_image(service, service_path)
 
