@@ -75,6 +75,31 @@ def get_top_level_class_methods(file_path):
     return class_methods
 
 
+def choose_service():
+    config = json.load(open(config_path))
+
+    service_dir = config.get("create", {}).get("service_dir", {})
+
+    if not service_dir:
+        service_dir = choose_or_make_dir("services", ".")
+
+        save_default = questionary.confirm(
+            "Would you like to save this as the default service directory?"
+        ).ask()
+
+        if save_default:
+            config["create"]["service_dir"] = service_dir
+            json.dump(config, open(config_path, "w"), indent=4)
+
+    services = os.listdir(service_dir)
+    service = questionary.select(
+        "Select a service: ", choices=services
+    ).ask()
+
+    return service
+
+
+
 def ask_config_json_questions(config: dict[str, Any]):
     config = config.copy()
 
@@ -1498,11 +1523,11 @@ def create_machine(app_name, image_name, service_config):
             "auto_destroy": True,
             "restart": {"policy": "always"},
             "mounts": [
-                # {
-                    # "name": "ollama",
-                    # "path": "/root/.ollama",
-                    # "size_gb": 10,
-                # }
+                {
+                    "name": "ollama",
+                    "path": "/root/.ollama",
+                    "size_gb": 10,
+                }
             ],
             "services": [
                 {
@@ -1514,8 +1539,8 @@ def create_machine(app_name, image_name, service_config):
                 "cpu_kind": "performance",
                 "cpus": 2,
                 "memory_mb": 8192,
-                "gpus": 1,
-                "gpu_kind": "a100-pcie-40gb",
+                # "gpus": 1,
+                # "gpu_kind": "a100-pcie-40gb",
             },
         }
     }
@@ -1563,8 +1588,7 @@ def deploy_image(image_name, service_dir):
     type=str,
 )
 def deploy(service):
-    # Pushes the newest version of the image to Dockerhub
-    # If there isn't a dockerfile for the image, we skip pushing the image
+    """Deploys & Rotates the versionId of the service (If the `prod` and `dev` aren't in sync)"""
     config = json.load(open(config_path))
     services_dir = config.get("create", {}).get("service_dir", {})
     service_path = os.path.join(services_dir, service)
