@@ -1,0 +1,12 @@
+{
+    "base_image": null,
+    "name": "ollama123123-7dc1de87e8b2441d9a2d5766cd80392c",
+    "cpu": "0.25",
+    "memory": "128MB",
+    "gpu": "none",
+    "ports": {
+        "5000": 80
+    },
+    "env": {},
+    "mounts": {}
+}

@@ -2,9 +2,11 @@
   "base_image": null,
   "name": "lala-EDC7BB630102401988279DD1D6ED306E-1",
   "cpu": "1",
-  "memory": "256MB",
+  "memory": "2048MB",
   "gpu": "auto",
   "ports": {},
-  "mounts": {},
+  "mounts": {
+    "rw": "/mnt/data"
+  },
   "env": {}
 }

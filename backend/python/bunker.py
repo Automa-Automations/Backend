@@ -92,12 +92,9 @@ def choose_service():
             json.dump(config, open(config_path, "w"), indent=4)
 
     services = os.listdir(service_dir)
-    service = questionary.select(
-        "Select a service: ", choices=services
-    ).ask()
+    service = questionary.select("Select a service: ", choices=services).ask()
 
     return service
-
 
 
 def ask_config_json_questions(config: dict[str, Any]):
@@ -1446,7 +1443,7 @@ def format():
 import requests
 
 headers = {
-    "Authorization": "Bearer fo1_EsFlhIwDIHpJX-ZJbInB6S82rbaIhAgY5TM3O93PwHQ"
+    "Authorization": "Bearer "
 }
 
 
@@ -1510,45 +1507,111 @@ def delete_machine(app_name, machine_id):
         print(response.json())
 
 
+def list_app_volumes(app_name):
+    url = f"https://api.machines.dev/v1/apps/{app_name}/volumes"
+    response = requests.get(url, headers=headers)
+    response_json = response.json()
+    volume_ids = [
+        {"id": volume["id"], "name": volume["name"]}
+        for volume in response_json
+    ]
+    return volume_ids
+
+
+def create_app_volume(app_name, volume_name, size):
+    url = f"https://api.machines.dev/v1/apps/{app_name}/volumes"
+    payload = {
+        "name": volume_name,
+        "size_gb": size,
+        "region": "jnb",  # Make the user be able to choose the region, as well as multi region deployments
+    }
+    response = requests.post(url, json=payload, headers=headers)
+    return response.json()["id"]
+
+
+def get_mounts(config, app_name):
+    mounts = []
+    existing_volumes = list_app_volumes(app_name)
+    for mount_name, mount_path in config.get("mounts", {}).items():
+        if mount_name in [volume["name"] for volume in existing_volumes]:
+            volume_id = [
+                volume["id"]
+                for volume in existing_volumes
+                if volume["name"] == mount_name
+            ][0]
+        else:
+            click.echo(
+                f"Volume {mount_name} does not exist. Creating volume..."
+            )
+            volume_id = create_app_volume(app_name, mount_name, 10)
+
+        mounts.append(
+            {
+                "volume": volume_id,
+                "path": mount_path,
+            }
+        )
+
+    return mounts
+
+
+def get_fly_services(config):
+    services = []
+    for internal, external in config.get("ports", {}).items():
+        services.append(
+            {
+                "ports": [
+                    {"port": int(external), "handlers": ["tls", "http"]},
+                ],
+                "protocol": "tcp",
+                "min_machines_running": 0,
+                "internal_port": int(internal),
+            }
+        )
+    return services
+
+
 def create_machine(app_name, image_name, service_config):
     config = service_config
     app_name = app_name.lower()
     url = f"https://api.machines.dev/v1/apps/{app_name}/machines"
 
-    payload = {
-        "config": {
-            "region": "jnb",
-            "init": {},
-            "image": f"ollama/ollama:latest",
-            "auto_destroy": True,
-            "restart": {"policy": "always"},
-            "mounts": [
-                {
-                    "name": "ollama",
-                    "path": "/root/.ollama",
-                    "size_gb": 10,
-                }
-            ],
-            "services": [
-                {
-                    "internal_port": 11434,
-                    "protocol": "tcp",
-                }
-            ],
-            "guest": {
-                "cpu_kind": "performance",
-                "cpus": 2,
-                "memory_mb": 8192,
-                # "gpus": 1,
-                # "gpu_kind": "a100-pcie-40gb",
-            },
+    image = image_name
+
+    mounts = get_mounts(config, app_name)
+    ports = get_fly_services(config)
+
+    memory_str = config["memory"].lower()
+    memory = 256
+    if memory_str.endswith("gb"):
+        memory = int(memory_str.replace("gb", "")) * 1024
+    elif memory_str.endswith("mb"):
+        memory = int(memory_str.replace("mb", ""))
+
+    for region in config.get("regions", ["jnb"]):
+        payload = {
+            "config": {
+                "region": region,  # Make the user be able to choose the region, as well as multi region deployments
+                "init": {},
+                "image": image,
+                "auto_destroy": True,
+                "restart": {"policy": "always"},
+                "mounts": mounts,
+                "services": ports,
+                "guest": {
+                    "cpu_kind": "performance",
+                    "cpus": 1,
+                    "memory_mb": memory,
+                    # "gpus": 1,
+                    # "gpu_kind": "a100-pcie-40gb",
+                },
+            }
         }
-    }
 
-    response = requests.post(url, json=payload, headers=headers)
+        response = requests.post(url, json=payload, headers=headers)
 
-    print(response.json())
-    return response.json()
+        print(response.json())
+        return response.json()
 
 
 def create_machines(app_name, image_name, app_config):
@@ -1601,8 +1664,8 @@ def deploy(service):
         return
     else:
         # Build the image
-        push_image(service)
-        deploy_image(service, service_path)
+        push_image(service.lower())
+        deploy_image(service.lower(), service_path)
 
 
 if __name__ == "__main__":
