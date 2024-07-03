@@ -1,0 +1,11 @@
+{
+    "base_image": null,
+    "name": "servicecrontest-15ccfd1e872a4d9caa7927aa5c6eee72",
+    "cpu": "0.25",
+    "memory": "NoneNone",
+    "gpu": "none",
+    "ports": {},
+    "env": {},
+    "schedule": null,
+    "mounts": {}
+}

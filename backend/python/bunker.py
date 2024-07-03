@@ -230,7 +230,7 @@ def ask_config_json_questions(config: dict[str, Any]):
 
     if "schedule" in config:
         cron = questionary.text(
-            f"Enter Crontab Expression ({config['cron']})"
+            f"Enter Crontab Expression ({config['schedule']})"
         ).ask()
         config["schedule"] = cron
 
@@ -1443,7 +1443,7 @@ def format():
 import requests
 
 headers = {
-    "Authorization": "Bearer "
+    "Authorization": "Bearer fo1_EsFlhIwDIHpJX-ZJbInB6S82rbaIhAgY5TM3O93PwHQ"
 }
 
 
@@ -1607,6 +1607,9 @@ def create_machine(app_name, image_name, service_config):
                 },
             }
         }
+
+        if schedule := config.get('schedule'):
+            payload['config']['schedule'] = schedule
 
         response = requests.post(url, json=payload, headers=headers)
 
