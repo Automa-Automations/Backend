@@ -229,9 +229,14 @@ def ask_config_json_questions(config: dict[str, Any]):
     config["env"] = env_vars
 
     if "schedule" in config:
-        cron = questionary.text(
-            f"Enter Crontab Expression ({config['schedule']})"
-        ).ask()
+        schedule_types = [
+            "hourly",
+            "daily",
+            "weekly",
+            "monthly"
+        ]
+        cron = questionary.select("How often should this service run?", choices=schedule_types).ask()
+
         config["schedule"] = cron
 
     return config
@@ -1236,8 +1241,15 @@ def cron_runner(service):
     service_config = json.load(open(service_config_path))
 
     container_builder(service, all=False)
+    
+    schedule = service_config["schedule"]
 
-    iter = croniter(service_config["schedule"])
+    schedule = "0 * * * *" if schedule == "hourly" else schedule
+    schedule = "0 0 * * *" if schedule == "daily" else schedule
+    schedule = "0 0 1 * *" if schedule == "monthly" else schedule
+    schedule = "0 0 * * 1" if schedule == "weekly" else schedule
+
+    iter = croniter(schedule)
     next = iter.get_next()
 
     while True:
