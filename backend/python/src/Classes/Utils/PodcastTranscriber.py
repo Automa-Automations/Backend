@@ -105,7 +105,7 @@ class AssemblyAI:
     def parse_transcript(self, transcript):
         """Function to parse transcript into full sentences."""
         logger.info("Parsing transcript...")
-        all_transcript_words = transcript["words"]
+        all_transcript_words = self.remove_filler_words(transcript["words"])
 
         full_sentences_transcript = []
         current_sentence_dict = {
@@ -146,6 +146,24 @@ class AssemblyAI:
 
         logger.info("Transcription parsing complete.")
         return full_sentences_transcript
+
+    def remove_filler_words(self, word_dicts_array):
+        filler_words = [
+            "um",
+            "uh",
+            "ah",
+            "literally",
+            "uh-huh",
+            "oh",
+            "uh-oh",
+            "hmm",
+        ]
+        final_word_dicts_array = []
+        for word_dict in word_dicts_array:
+            if not word_dict["text"] in filler_words:
+                final_word_dicts_array.append(word_dict)
+
+        return final_word_dicts_array
 
 
 class YoutubeTranscriptionAPITranscriber:
