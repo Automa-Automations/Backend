@@ -1,0 +1,11 @@
+{
+    "base_image": null,
+    "name": "testcron123-f2010bdb66c04617b505aea2696232e9",
+    "cpu": "0.25",
+    "memory": "128MB",
+    "gpu": "none",
+    "ports": {},
+    "env": {},
+    "schedule": "daily",
+    "mounts": {}
+}

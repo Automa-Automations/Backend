@@ -2,7 +2,7 @@
     "base_image": null,
     "name": "BlankTemplate",
     "cpu": "1",
-    "memory": "256MB",
+    "memory": "2048MB",
     "gpu": "auto",
     "ports": {
 

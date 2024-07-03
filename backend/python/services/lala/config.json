@@ -8,5 +8,6 @@
   "mounts": {
     "rw": "/mnt/data"
   },
-  "env": {}
+  "env": {},
+  "schedule": "hourly"
 }

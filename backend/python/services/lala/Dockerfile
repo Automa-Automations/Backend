@@ -1,3 +1,3 @@
-FROM ubuntu
+FROM alpine
 
 CMD bash

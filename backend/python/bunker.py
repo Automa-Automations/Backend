@@ -513,16 +513,18 @@ def build_container(
     client = docker.APIClient()
     try:
         stream = client.build(
-            path=path,
+            path=os.path.abspath("./"),
             tag=f"{os.environ['DOCKERHUB_USERNAME']}/{service.lower()}",
             dockerfile=dockerfile_path,
             decode=True,
-            platform="linux/amd64",
         )
 
         spinner = None
         for line in stream:
-            if "stream" in line:
+            if line.get("stream"):
+                if "stream" not in line.keys():
+                    continue
+
                 if "--->" in line["stream"]:
                     continue
 
@@ -575,12 +577,6 @@ def build_container(
                     spinner.text = f"{spinner.text.split(':')[0]}: {pretty_output[:50]}..."
 
             if "error" in line:
-                if "--->" in line["stream"]:
-                    continue
-
-                if line["stream"].strip() == "":
-                    continue
-
                 click.echo(f"{Fore.RED}Error: {line['error']}", err=True)
                 break
 
@@ -1656,7 +1652,6 @@ def deploy_image(image_name, service_dir):
 
     create_machines(app_name.lower(), repository, app_config)
 
-
 @builder.command()
 @click.option(
     "--service",
@@ -1679,6 +1674,7 @@ def deploy(service):
         return
     else:
         # Build the image
+        build_container(service.lower(), dockerfile_path, "./", should_stream_output=True)
         push_image(service.lower())
         deploy_image(service.lower(), service_path)
 

@@ -1,10 +1,11 @@
 {
     "base_image": null,
-    "name": "CronTemplate",
+    "name": "testservice1-3bd3db8259524dc0bb371f067dab8d65",
     "cpu": "1",
     "memory": "2048MB",
     "gpu": "none",
     "ports": {},
     "env": {},
-    "schedule": "hourly"
+    "schedule": "hourly",
+    "mounts": {}
 }
