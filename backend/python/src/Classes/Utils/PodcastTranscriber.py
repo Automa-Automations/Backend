@@ -174,7 +174,11 @@ class AssemblyAI:
                 current_sentence_dict["start_time"] = word_dict["start"]
                 current_sentence_dict["speaker"] = word_dict["speaker"]
 
-            if current_sentence_dict["sentence"].strip()[-1] in ["?", "!", "."]:
+            if current_sentence_dict["sentence"].strip()[-1] in [
+                "?",
+                "!",
+                ".",
+            ]:
                 current_sentence_dict["end_time"] = word_dict["end"]
                 current_sentence_dict["sentence"] = current_sentence_dict[
                     "sentence"
