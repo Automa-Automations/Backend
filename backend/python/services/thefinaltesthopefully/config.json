@@ -1,0 +1,19 @@
+{
+    "base_image": "ollama/ollama",
+    "name": "thefinaltesthopefully-1e40d3574cfe4646ba9996f5d44979569",
+    "cpu": "1",
+    "memory": "2048MB",
+    "gpu": "none",
+    "ports": {
+        "11434": "11434"
+    },
+    "mounts": {
+        "test": "/root/.ollama:10"
+    },
+    "env": {},
+    "init": [
+      "/bin/bash",
+      "-c",
+      "ollama serve & ollama ls | grep -q 'llama3' || ollama pull llama3"
+    ]
+}

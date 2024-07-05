@@ -26,11 +26,11 @@ dotenv.load_dotenv()
 config_path = "config.json"
 
 
-def global_options(func):
+def global_options(func: Any) -> Any:
     @click.option(
         "--config", type=click.Path(), help="Path to the config file."
     )
-    def new_func(config, *args, **kwargs):
+    def new_func(config: Any, *args: Any, **kwargs: Any):
         global config_path
 
         if config and not os.path.exists(config):
@@ -45,7 +45,7 @@ def global_options(func):
     return new_func
 
 
-def get_top_level_function_names(file_path):
+def get_top_level_function_names(file_path: str):
     with open(file_path, "r") as file:
         tree = ast.parse(file.read(), filename=file_path)
 
@@ -58,11 +58,11 @@ def get_top_level_function_names(file_path):
     return top_level_function_names
 
 
-def get_top_level_class_methods(file_path):
+def get_top_level_class_methods(file_path: str) -> list[str]:
     with open(file_path, "r") as file:
         tree = ast.parse(file.read(), filename=file_path)
 
-    class_methods = []
+    class_methods: list[str] = []
 
     for node in ast.walk(tree):
         if isinstance(node, ast.ClassDef):
@@ -100,6 +100,7 @@ def choose_service():
 def ask_config_json_questions(config: dict[str, Any]):
     config = config.copy()
 
+
     # CPU
     should_ask_cpu = True
     if (
@@ -111,13 +112,14 @@ def ask_config_json_questions(config: dict[str, Any]):
         should_ask_cpu = False
 
     if should_ask_cpu:
-        cpu_cores = ["0.25", "0.5", "1", "2", "4", "8", "16", "32"]
+        cpu_cores = ["1", "2", "4", "8", "16", "32"]
         cpu = questionary.select("Select CPU Cores:", choices=cpu_cores).ask()
         config["cpu"] = cpu
 
     # Memory
     # If there is already memory specified in config then ask the user if they want to change it
     should_ask_memory = True
+    can_ask_gpu = True
     if (
         config["memory"]
         and not questionary.confirm(
@@ -156,20 +158,31 @@ def ask_config_json_questions(config: dict[str, Any]):
 
         config["memory"] = f"{memory}{memory_unit}"
 
+        memory_amount = memory if memory_unit == "MB" else memory * 1024
+        if memory_amount < 2048:
+            can_ask_gpu = False
+            config["cpu_mode"] = "shared"
+            click.echo(
+                f"ℹ Memory is less than 2GB. GPU cannot be enabled for this service."
+            )
     # GPU
+    
+    
     should_ask_gpu = True
-    if (
-        config["gpu"]
-        and not questionary.confirm(
-            f"Would you like to change the GPU? ({config['gpu']})"
-        ).ask()
-    ):
-        should_ask_gpu = False
+    if can_ask_gpu:
+        if (
+            config["gpu"]
+            and not questionary.confirm(
+                f"Would you like to change the GPU? ({config['gpu']})"
+            ).ask()
+        ):
+            should_ask_gpu = False
 
-    if should_ask_gpu:
-        gpus = ["auto", "none", "a10", "l40s", "a100-40gb", "a100-80gb"]
-        gpu = questionary.select("Select GPU:", choices=gpus).ask()
-        config["gpu"] = gpu
+        if should_ask_gpu:
+            gpus = ["none", "a10", "l40s", "a100-40gb", "a100-80gb"]
+            gpu = questionary.select("Select GPU:", choices=gpus).ask()
+            config["gpu"] = gpu
+            config["cpu_mode"] = "performance" if gpu != "none" else "shared"
 
     mounts = config.get("mounts", {})
     should_ask_mounts = True
@@ -190,7 +203,9 @@ def ask_config_json_questions(config: dict[str, Any]):
         while True:
             mount_name = questionary.text("Mount Name:").ask()
             mount_path = questionary.text("Mount Path:").ask()
-            mounts[mount_name] = mount_path
+            mount_size = questionary.text("Mount Size (GB):").ask()
+
+            mounts[mount_name] = f"{mount_path}:{mount_size}"
             add_another = questionary.confirm("Add another mount?").ask()
             if not add_another:
                 break
@@ -229,20 +244,17 @@ def ask_config_json_questions(config: dict[str, Any]):
     config["env"] = env_vars
 
     if "schedule" in config:
-        schedule_types = [
-            "hourly",
-            "daily",
-            "weekly",
-            "monthly"
-        ]
-        cron = questionary.select("How often should this service run?", choices=schedule_types).ask()
+        schedule_types = ["hourly", "daily", "weekly", "monthly"]
+        cron = questionary.select(
+            "How often should this service run?", choices=schedule_types
+        ).ask()
 
         config["schedule"] = cron
 
     return config
 
 
-def get_exposed_ports(image_name):
+def get_exposed_ports(image_name: str):
     # Split the image name into repository and tag
     if ":" in image_name:
         repository, tag = image_name.split(":")
@@ -283,7 +295,7 @@ def dockerhub_quickstart(name: str, root_dir: str):
         return
 
     with yaspin(text=f"🔍 Searching for {image}") as sp:
-        response = client.images.search(image)
+        response: Any = client.images.search(image)
         if not response:
             sp.fail("No image found.")
             return
@@ -301,7 +313,7 @@ def dockerhub_quickstart(name: str, root_dir: str):
     click.echo(f"🚀 Creating {name} service from {image_to_use}")
 
     # Create the service
-    config = {
+    config: dict[str, Any] = {
         "base_image": image_to_use,
         "name": f"{name.lower()}-{uuid.uuid4().hex}".lower(),
         "cpu": 0,
@@ -334,7 +346,7 @@ def dockerhub_quickstart(name: str, root_dir: str):
     )
 
 
-def flask_quickstart(name, root_dir):
+def flask_quickstart(name: str, root_dir: str):
     os.system(f"cp -r templates/Flask/* {root_dir}")
     config = json.load(open(os.path.join(root_dir, "config.json")))
     config["name"] = f"{name}-{uuid.uuid4().hex}".lower()
@@ -376,7 +388,7 @@ def builder():
     pass
 
 
-def choose_or_make_dir(type: str, root_dir: str, make_new=True):
+def choose_or_make_dir(type: str, root_dir: str, make_new: bool = True):
     root_dir_files = os.listdir(root_dir)
     if make_new:
         create_or_choose = questionary.select(
@@ -399,7 +411,7 @@ def choose_or_make_dir(type: str, root_dir: str, make_new=True):
     return root_dir
 
 
-def cron_quickstart(name, service_path):
+def cron_quickstart(name: str, service_path: str):
     os.system(f"cp -r templates/Cron/* {service_path}")
     config = json.load(open(os.path.join(service_path, "config.json")))
     config["name"] = f"{name}-{uuid.uuid4().hex}".lower()
@@ -436,8 +448,6 @@ def create():
 
     # Service Name
     name = questionary.text("Service Name:").ask()
-    paths = os.listdir()
-    dirs = [x for x in paths if os.path.isdir(x)]
 
     # Ask which will be the root directory
     if not create_config["service_dir"]:
@@ -508,7 +518,7 @@ def create():
 
 
 def build_container(
-    service, dockerfile_path, path, should_stream_output=False
+    service: str, dockerfile_path: str, should_stream_output: bool = False
 ) -> str:
     client = docker.APIClient()
     try:
@@ -579,7 +589,8 @@ def build_container(
             if "error" in line:
                 click.echo(f"{Fore.RED}Error: {line['error']}", err=True)
                 break
-
+    # Ignore mypy error
+    # mypy: ignore
     except docker.errors.BuildError as e:
         click.echo(f"{Fore.RED}BuildError: {e}", err=True)
     except Exception as e:
@@ -592,7 +603,7 @@ def build_container(
     return ""
 
 
-def container_builder(service, all):
+def container_builder(service: str, all: bool):
     global config_path
     services = []
     # Get the services directory
@@ -727,7 +738,10 @@ def container_runner(service: str, rebuild=False):
         for mount_name, mount_location in mounts.items():
             mounts_transformed.append(
                 docker.types.Mount(
-                    target=mount_location, source=mount_name, type="volume"
+                    target=mount_location.split(":", 0),
+                    source=mount_name,
+                    type="volume",
+                    size=mount_location.split(":")[1],
                 )
             )
 
@@ -1237,7 +1251,7 @@ def cron_runner(service):
     service_config = json.load(open(service_config_path))
 
     container_builder(service, all=False)
-    
+
     schedule = service_config["schedule"]
 
     schedule = "0 * * * *" if schedule == "hourly" else schedule
@@ -1376,7 +1390,10 @@ def cron(service, test, new, type, all):
 
 def push_image(image_name):
     client = docker.from_env()
-    repository = f"{os.environ['DOCKERHUB_USERNAME']}/{image_name}"
+    if "/" not in image_name:
+        repository = f"{os.environ['DOCKERHUB_USERNAME']}/{image_name}"
+    else:
+        repository = image_name
 
     click.echo(f"Starting to push the image {repository}...")
 
@@ -1489,7 +1506,6 @@ def create_app(name):
     }
 
     response = requests.post(url, json=payload, headers=headers)
-    return response.json()["id"]
 
 
 def list_machine(app_name):
@@ -1551,12 +1567,13 @@ def get_mounts(config, app_name):
             click.echo(
                 f"Volume {mount_name} does not exist. Creating volume..."
             )
-            volume_id = create_app_volume(app_name, mount_name, 10)
+            size: int = int(mount_path.split(":")[1])
+            volume_id = create_app_volume(app_name, mount_name, size or 10)
 
         mounts.append(
             {
                 "volume": volume_id,
-                "path": mount_path,
+                "path": mount_path.split(":")[0],
             }
         )
 
@@ -1572,6 +1589,8 @@ def get_fly_services(config):
                     {"port": int(external), "handlers": ["tls", "http"]},
                 ],
                 "protocol": "tcp",
+                "autostop": True,
+                "autostart": True,
                 "min_machines_running": 0,
                 "internal_port": int(internal),
             }
@@ -1600,15 +1619,16 @@ def create_machine(app_name, image_name, service_config):
         payload = {
             "config": {
                 "region": region,  # Make the user be able to choose the region, as well as multi region deployments
-                "init": {},
+                "init": {
+                },
                 "image": image,
                 "auto_destroy": True,
                 "restart": {"policy": "always"},
                 "mounts": mounts,
                 "services": ports,
                 "guest": {
-                    "cpu_kind": "performance",
-                    "cpus": 1,
+                    "cpu_kind": config.get("cpu_mode", "shared"),
+                    "cpus": int(config.get("cpu", 1)),
                     "memory_mb": memory,
                     # "gpus": 1,
                     # "gpu_kind": "a100-pcie-40gb",
@@ -1616,8 +1636,8 @@ def create_machine(app_name, image_name, service_config):
             }
         }
 
-        if schedule := config.get('schedule'):
-            payload['config']['schedule'] = schedule
+        if schedule := config.get("schedule"):
+            payload["config"]["schedule"] = schedule
 
         response = requests.post(url, json=payload, headers=headers)
 
@@ -1641,16 +1661,23 @@ def create_machines(app_name, image_name, app_config):
 
 def deploy_image(image_name, service_dir):
     # Create Fly App if not exists
-    repository = f"{os.environ['DOCKERHUB_USERNAME']}/{image_name}"
+
     config_path = os.path.join(service_dir, "config.json")
     app_config = json.load(open(config_path))
     app_name = app_config["name"]
     app_exists = does_app_exist(app_name.lower())
+    image_name = image_name if not app_config['base_image'] else app_config['base_image']
+
+    if "/" not in image_name:
+        repository = f"{os.environ['DOCKERHUB_USERNAME']}/{image_name}"
+    else:
+        repository = image_name
 
     if not app_exists:
         create_app(app_name.lower())
 
     create_machines(app_name.lower(), repository, app_config)
+
 
 @builder.command()
 @click.option(
@@ -1667,16 +1694,14 @@ def deploy(service):
     service_path = os.path.join(services_dir, service)
 
     dockerfile_path = os.path.join(service_path, "Dockerfile")
-    if not os.path.exists(dockerfile_path):
-        click.echo(
-            f"❌ {Fore.RED}Error: Dockerfile doesn't exist, Skipping dockerhub pushing {dockerfile_path}"
+    if os.path.exists(dockerfile_path):
+        build_container(
+            service.lower(), dockerfile_path, "./", should_stream_output=True
         )
-        return
-    else:
-        # Build the image
-        build_container(service.lower(), dockerfile_path, "./", should_stream_output=True)
+
         push_image(service.lower())
-        deploy_image(service.lower(), service_path)
+
+    deploy_image(service.lower(), service_path)
 
 
 if __name__ == "__main__":
