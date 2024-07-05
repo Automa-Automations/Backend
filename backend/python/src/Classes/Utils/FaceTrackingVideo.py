@@ -1,4 +1,4 @@
-from typing import Any, AnyStr, Optional, Callable, List, TypedDict, Union
+from typing import Any, Optional, Callable, List, Union
 import cv2
 from moviepy.editor import CompositeVideoClip, VideoClip
 import numpy as np
@@ -214,7 +214,7 @@ class FaceTrackingVideo:
         - indice_index: str: The index of the frame in the video
         Returns FaceFramePositionDict - a dictionary with the face position if a face is detected, otherwise None
         """
-        if not frame:
+        if not len(frame):
             logger.warning("Received an empty frame.")
             return None
 
@@ -252,7 +252,7 @@ class FaceTrackingVideo:
             frame_result = self.collect_face_position(frame, fidx)
             if frame_result:
                 # see if frame type is FramePositionDict
-                if frame_result.get("frame_index"):
+                if "frame_index" in frame_result:
                     # since we know it is the correct type, since frame_index is a key in FaceFramePositionDict. Just doing this to remove type warnings
                     correct_type_frame_result: FaceFramePositionDict = json.loads(
                         json.dumps(frame_result)
@@ -261,12 +261,14 @@ class FaceTrackingVideo:
                 else:
                     # meaning the frame didn't detect a face
                     all_frame_results.append(None)
+            else:
+                logger.warning("The frame result is None")
 
         # Add a final position:
         final_frame_dict = self.collect_face_position(
-            video_clip.get_frame(nframes), nframes
+            video_clip.get_frame(nframes / video_fps), nframes
         )
-        if final_frame_dict and final_frame_dict.get("frame_index"):
+        if final_frame_dict and "frame_index" in final_frame_dict:
             final_frame: FaceFramePositionDict = json.loads(
                 json.dumps(final_frame_dict)
             )
@@ -277,25 +279,9 @@ class FaceTrackingVideo:
         self.all_frame_results = all_frame_results
 
         # Process each frame of the video:
-        self.frame_index = 0
+        self.frame_index = 1
 
         # Create an interpolation function
         processed_clip = video_clip.fl_image(self.process_frame)
 
         return processed_clip
-
-    def __interp_fcx_func(self, frame_index: int) -> _UnknownType:
-        interpolator = interp1d(
-            np.array(self.frame_indices),
-            np.array(self.face_pos_x),
-            kind=self.imode,
-        )
-        return interpolator(frame_index)
-
-    def __interp_fcy_func(self, frame_index: int) -> _UnknownType:
-        interpolator = interp1d(
-            np.array(self.frame_indices),
-            np.array(self.face_pos_y),
-            kind=self.imode,
-        )
-        return interpolator(frame_index)
