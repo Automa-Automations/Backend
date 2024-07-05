@@ -39,7 +39,6 @@ class FaceTrackingVideo:
         self.detect_face_func: Optional[Callable] = None
         self.interp_fcx_func: Optional[Callable] = None
         self.interp_fcy_func: Optional[Callable] = None
-        self.interp_fsize_func: Optional[Callable] = None
 
     def detect_faces(self, frame: np.ndarray) -> Optional[tuple]:
         """
@@ -63,14 +62,14 @@ class FaceTrackingVideo:
         else:
             return None
 
-    def process_frame(self, frame: np.ndarray) -> np.ndarray:
+    def process_frame(self, frame: np.ndarray) -> Union[np.ndarray, None]:
         """
         Function to process each frame of the video
         Parameters:
         - frame: np.ndarray: The frame to process
         """
-        self.current_indice = math.floor(self.frame_index / 90)
-        self.next_indice = math.ceil(self.frame_index / 90)
+        current_indice = math.floor(self.frame_index / 90)
+        next_indice = math.ceil(self.frame_index / 90)
 
         #
         # if self.frame_index % self.frame_correction_number == 0:
@@ -78,19 +77,51 @@ class FaceTrackingVideo:
         #     logger.info(f"Processing frame {self.frame_index}...")
         #
 
-        current_indice_dict = self.all_frame_results[self.current_indice]
-        next_indice_dict = self.all_frame_results[self.next_indice]
+        current_indice_dict = self.all_frame_results[current_indice]
+        next_indice_dict = self.all_frame_results[next_indice]
 
+        cx = 0
+        cy = 0
         # When the first indice do not have a face
-        if not current_indice_dict and self.current_indice == 0:
-            # center both the cx, cy, and fsize to be the center of the screen
+        if not current_indice_dict and current_indice == 0:
+            # center both the cx and cy to be the center of the screen
             cx = frame.shape[1] / 2
             cy = frame.shape[0] / 2
-            fsize = frame.shape[0] / 2
-        # Perform interpolation to get the face x/y position:
-        cx = self.__interp_fcx_func(self.frame_index)
-        cy = self.__interp_fcy_func(self.frame_index)
-        fsize = self.__interp_fsize_func(self.frame_index)
+        elif not current_indice_dict and current_indice > 0:
+            # meaning that it is in the body and the current_frame_indice doesn't have a face.
+            # look for the last face detected, and use that position
+            current_index = current_indice - 1
+            while current_index > 0:
+                last_face_dict = self.all_frame_results[current_index]
+                if last_face_dict:
+                    cx = last_face_dict["face_pos_x"]
+                    cy = last_face_dict["face_pos_y"]
+                    break
+                else:
+                    cx = frame.shape[1] / 2
+                    cy = frame.shape[0] / 2
+                current_index -= 1
+        elif current_indice_dict and not next_indice_dict:
+            cx = current_indice_dict["face_pos_x"]
+            cy = current_indice_dict["face_pos_y"]
+        else:
+            # meaning that the current frame has a face detected and it isn't the first frame.
+            current_indice_dict_correct_type: FaceFramePositionDict = json.loads(
+                json.dumps(current_indice_dict)
+            )
+            next_indice_dict_correct_type: FaceFramePositionDict = json.loads(
+                json.dumps(next_indice_dict)
+            )
+            cx, cy = self.calculate_face_pos(
+                current_indice_dict_correct_type, next_indice_dict_correct_type
+            )
+
+        if not cx:
+            logger.error("The face position is not defined, cx is undefined")
+            return
+        if not cy:
+            logger.error("The face position is not defined, cy is undefined")
+            return
 
         # Calculate the aspect ratio of the original frame
         original_aspect_ratio = frame.shape[1] / frame.shape[0]
@@ -104,15 +135,23 @@ class FaceTrackingVideo:
         # Center crop the frame
         x_start = int(cx - new_width / 2)
         x_end = int(cx + new_width / 2)
+
+        # keep the y the same, as it will always be full width and height
         y_start = 0
         y_end = frame.shape[0]
 
         # Ensure the cropping region is within bounds
-        x_start = max(0, x_start)
-        x_end = min(frame.shape[1], x_end)
-        if x_end - x_start < new_width:
-            x_start = frame.shape[1] - new_width
-            x_end = frame.shape[1]
+        x_start = max(0, x_start)  # make sure x_start is not less than 0
+        x_end = min(
+            frame.shape[1], x_end
+        )  # make sure that x_end is not greater than the width of the frame
+        if (
+            x_end - x_start < new_width
+        ):  # meaning if the frame has overlapped, the crop region is too small. It hase overlapped at the right side of the frame.
+            x_start = (
+                frame.shape[1] - new_width
+            )  # start the x_start new_width from the right
+            x_end = frame.shape[1]  # put x_end at the end of the frame
 
         # Crop the frame
         cropped_frame = frame[y_start:y_end, x_start:x_end]
@@ -127,13 +166,52 @@ class FaceTrackingVideo:
 
         return resized_frame
 
+    def calculate_face_pos(
+        self,
+        current_indice_dict: FaceFramePositionDict,
+        next_indice_dict: FaceFramePositionDict,
+    ) -> tuple[float, float]:
+        """
+        Function to calculate the current frame face positions
+        Parameters:
+        - current_indice_dict: FaceFramePositionDict: The dictionary of the face position for the current frame
+        - next_indice_dict: FaceFramePositionDict: The dictionary of the face position for the next frame
+        - frame_index: int: The index of the frame in the video
+        Returns tuple[cx, cy] - a tuple with the center face position of x and y
+        """
+        current_indice_index = current_indice_dict["frame_index"]
+        next_indice_index = next_indice_dict["frame_index"]
+
+        x_difference = (
+            next_indice_dict["face_pos_x"] - current_indice_dict["face_pos_x"]
+        )
+        y_difference = (
+            next_indice_dict["face_pos_y"] - current_indice_dict["face_pos_y"]
+        )
+        frame_difference = next_indice_index - current_indice_index
+
+        frame_increment_x = x_difference / frame_difference
+        frame_increment_y = y_difference / frame_difference
+        curr_frame_after_curr_index = self.frame_index - current_indice_index
+
+        cx: float = (
+            current_indice_dict["face_pos_x"]
+            + curr_frame_after_curr_index * frame_increment_x
+        )
+        cy: float = (
+            current_indice_dict["face_pos_y"]
+            + curr_frame_after_curr_index * frame_increment_y
+        )
+        return cx, cy
+
     def collect_face_position(
-        self, frame: np.ndarray
+        self, frame: np.ndarray, indice_index: int
     ) -> Optional[Union[FaceFramePositionDict, MessageReturnDict]]:
         """
         Collect the face position for a given frame
         Parameters:
         - frame: np.ndarray: The frame to collect the face position for
+        - indice_index: str: The index of the frame in the video
         Returns FaceFramePositionDict - a dictionary with the face position if a face is detected, otherwise None
         """
         if not frame:
@@ -145,13 +223,11 @@ class FaceTrackingVideo:
         if face_coordinates:
             left, top, right, bottom = face_coordinates
             center_x, center_y = (left + right) / 2.0, (top + bottom) / 2.0
-            size = max(abs(right - left), abs(top - bottom))
 
             return {
-                "frame_index": self.frame_index,
+                "frame_index": indice_index,
                 "face_pos_x": center_x,
                 "face_pos_y": center_y,
-                "face_size": size,
             }
         else:
             logger.info("No face detected in the frame")
@@ -173,7 +249,7 @@ class FaceTrackingVideo:
         all_frame_results: List[Union[FaceFramePositionDict, None]] = []
         for fidx in range(0, nframes, self.frame_correction_number):
             frame: np.ndarray = video_clip.get_frame(fidx / video_fps)
-            frame_result = self.collect_face_position(frame)
+            frame_result = self.collect_face_position(frame, fidx)
             if frame_result:
                 # see if frame type is FramePositionDict
                 if frame_result.get("frame_index"):
@@ -187,7 +263,9 @@ class FaceTrackingVideo:
                     all_frame_results.append(None)
 
         # Add a final position:
-        final_frame_dict = self.collect_face_position(video_clip.get_frame(nframes))
+        final_frame_dict = self.collect_face_position(
+            video_clip.get_frame(nframes), nframes
+        )
         if final_frame_dict and final_frame_dict.get("frame_index"):
             final_frame: FaceFramePositionDict = json.loads(
                 json.dumps(final_frame_dict)
@@ -196,10 +274,7 @@ class FaceTrackingVideo:
         else:
             all_frame_results.append(all_frame_results[-1])
 
-        self.current_fsize = self.face_sizes[0]
         self.all_frame_results = all_frame_results
-
-        logger.info(f"Done collecting {len(self.frame_indices)} face positions")
 
         # Process each frame of the video:
         self.frame_index = 0
@@ -221,14 +296,6 @@ class FaceTrackingVideo:
         interpolator = interp1d(
             np.array(self.frame_indices),
             np.array(self.face_pos_y),
-            kind=self.imode,
-        )
-        return interpolator(frame_index)
-
-    def __interp_fsize_func(self, frame_index: int) -> _UnknownType:
-        interpolator = interp1d(
-            np.array(self.frame_indices),
-            np.array(self.face_sizes),
             kind=self.imode,
         )
         return interpolator(frame_index)

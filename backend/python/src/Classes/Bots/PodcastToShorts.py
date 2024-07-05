@@ -46,7 +46,7 @@ class PodcastToShorts:
         self.ollama_base_url = ollama_base_url
         self.llm_api_key = llm_api_key
         self.debug_transcripts_feedback_path = f"./src/Classes/Bots/json_files/transcripts_feedback_{transcriptor_type}.json"
-        self.debug_shorts_final_transcripts_path = f"./src/Classes/Bots/json_files/_shorts_final_transcripts_{transcriptor_type}.json"
+        self.debug_shorts_final_transcripts_path = f"./src/Classes/Bots/json_files/shorts_final_transcripts_{transcriptor_type}.json"
 
     def get_shorts(self, debugging=False):
         self.__validate_params()
@@ -683,7 +683,7 @@ class PodcastToShorts:
                         indent=4,
                     )
                 )
-                logger.info("saved scores to transcripts_score.json")
+                logger.info(f"saved scores to {self.llm_type}_transcripts_score.json")
 
         return transcripts_feedback
 

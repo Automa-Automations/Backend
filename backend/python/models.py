@@ -18,7 +18,6 @@ class FaceFramePositionDict(TypedDict):
     frame_index: int
     face_pos_x: float
     face_pos_y: float
-    face_size: float
 
 
 class MessageReturnDict(TypedDict):
