@@ -658,7 +658,7 @@ def container_builder(service: str, all: bool):
             continue
 
         click.echo(
-            f'{Fore.GREEN}🎉 Built Image: {build_container(service_name, dockerfile_path, "./", should_stream_output=True)}'
+            f'{Fore.GREEN}🎉 Built Image: {build_container(service_name, dockerfile_path)}'
         )
 
 
@@ -675,6 +675,12 @@ def container_builder(service: str, all: bool):
     is_flag=True,
 )
 def build(service, all):
+    """
+    Builds a service from a Dockerfile.
+    """
+    if not service and not all:
+        service = choose_service()
+        
     container_builder(service, all)
 
 
@@ -1233,6 +1239,9 @@ def flask(service, new, test, type, route):
     is_flag=True,
 )
 def test(test, new, service, all):
+    """
+    Allows you to generate tests, run them and build them.
+    """
     if service and new:
         test_builder(type_="service", path=service)
 
@@ -1300,6 +1309,9 @@ def cron_runner(service):
     type=str,
 )
 def cron(service, test, new, type, all):
+    """
+    Allows you to generate cron services, run them, test them and build them.
+    """
     config = json.load(open(config_path))
     services_dir = config.get("create", {}).get("service_dir", {})
 

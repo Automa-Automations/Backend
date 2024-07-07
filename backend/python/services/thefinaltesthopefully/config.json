@@ -7,13 +7,9 @@
     "ports": {
         "11434": "11434"
     },
+    "cpu_mode": "shared",
     "mounts": {
         "test": "/root/.ollama:10"
     },
-    "env": {},
-    "init": [
-      "/bin/bash",
-      "-c",
-      "ollama serve & ollama ls | grep -q 'llama3' || ollama pull llama3"
-    ]
+    "env": {}
 }
