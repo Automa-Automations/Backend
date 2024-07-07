@@ -1,0 +1,11 @@
+- Make Scheduled Containers work
+- Make volumes have "size" property (fly.io deployment, in gb)
+- Make cpu be at min of 1
+- Make cpu use "performance" or "shared" (fly.io deployment) (Option when creating config)
+- Make cpu automatically be set to "performance" when gpu isn't "auto" or "none"
+- Allow user to select Region/s for deployment
+- Images aren't being built, fix it
+- Refactore entire Bunker codebase
+- Make Fly.io pypi package (so that bunker code can be clean)
+- Implement Fly.io pypi package into Bunker
+- Add more todos for bunker codebase (we have about 3600 lines of code left to get all of this done, so toodaloo)

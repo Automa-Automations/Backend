@@ -1,0 +1,10 @@
+{
+  "base_image": null,
+  "name": "cron6",
+  "cpu": "1",
+  "memory": "256MB",
+  "gpu": "none",
+  "ports": {},
+  "mounts": {},
+  "env": {}
+}

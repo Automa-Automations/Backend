@@ -1,0 +1,11 @@
+{
+  "base_image": null,
+  "name": "FlaskTemplate",
+  "cpu": "0.25",
+  "memory": "128MB",
+  "gpu": "none",
+  "ports": {
+    "5000": 80
+  },
+  "env": {}
+}

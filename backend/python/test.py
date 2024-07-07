@@ -5,7 +5,6 @@ dotenv.load_dotenv(".env")
 import os
 
 
-
 # from src.Classes.User import DatabaseSyncedProfile
 # import datetime
 #
@@ -109,19 +108,3 @@ bot = InstagramPlatformBot.new(
 
 bot.upload()
 
-# from src.Classes.Proxy import DatabaseSyncedProxy
-# proxy = DatabaseSyncedProxy.from_id(1)
-# proxy.host = "0.0.0.0"
-# from src.Classes.CreditTransaction import CreditTransaction
-# import uuid
-# import datetime
-#
-# transaction = CreditTransaction(
-#     id=str(uuid.uuid4()),
-#     created_at=datetime.datetime.now(),
-#     credits=100,
-#     head="Test",
-#     metadata={"test": "test"},
-#     user_id="a68c5905-205d-43e3-8bbb-0b6c87aea79e"
-# )
-# transaction.add()

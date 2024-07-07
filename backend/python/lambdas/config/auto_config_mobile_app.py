@@ -1,6 +1,7 @@
 import json
 import os
 
+
 def handler(event, context):
     print(event)
 
@@ -13,8 +14,7 @@ def handler(event, context):
 
     return {
         "statusCode": 200,
-        "body": json.dumps({
-            "supabase_url": supabase_url,
-            "supabase_key": supabase_key
-        })
+        "body": json.dumps(
+            {"supabase_url": supabase_url, "supabase_key": supabase_key}
+        ),
     }

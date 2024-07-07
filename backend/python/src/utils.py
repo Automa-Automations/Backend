@@ -9,7 +9,9 @@ import uuid
 import requests
 
 
-def update_value(table: str, line: Any, val: str, new_value: Any, line_name: str = 'id'):
+def update_value(
+    table: str, line: Any, val: str, new_value: Any, line_name: str = "id"
+):
     try:
         if isinstance(new_value, datetime.datetime):
             new_value = str(new_value)
@@ -19,9 +21,9 @@ def update_value(table: str, line: Any, val: str, new_value: Any, line_name: str
         print(e, traceback.format_exc())
 
 
-def get_value(table: str, line: Any, line_name: str = 'id') -> dict:
+def get_value(table: str, line: Any, line_name: str = "id") -> dict:
     try:
-        return supabase.table(table).select('*').eq(line_name, line).execute().data[0]
+        return supabase.table(table).select("*").eq(line_name, line).execute().data[0]
     except Exception as e:
         print(e, traceback.format_exc())
     return {}
@@ -29,24 +31,29 @@ def get_value(table: str, line: Any, line_name: str = 'id') -> dict:
 
 def insert_value(table: str, values: dict) -> Union[int, str]:
     try:
-        return supabase.table(table).insert(values).execute().data[0].get('id')
+        return supabase.table(table).insert(values).execute().data[0].get("id")
     except Exception as e:
         print(e, traceback.format_exc())
-    return ''
+    return ""
 
 
-def upload_file(bucket_name: str, path_on_bucket: str, content: bytes, extended_file_options=None) -> str:
+def upload_file(
+    bucket_name: str,
+    path_on_bucket: str,
+    content: bytes,
+    extended_file_options=None,
+) -> str:
 
     if extended_file_options is None:
         extended_file_options = {}
 
     new_file_name = uuid.uuid4()
-    file_path_segments = path_on_bucket.split('/')
-    filename, extension = file_path_segments[-1].split('.')
+    file_path_segments = path_on_bucket.split("/")
+    filename, extension = file_path_segments[-1].split(".")
     filename = f"{new_file_name}_{filename}_{datetime.datetime.now().timestamp()}"
     full_filename = f"{filename}.{extension}"
     joined_file_segments = "/".join(file_path_segments)
-    if len(joined_file_segments.split('/')) == 1:
+    if len(joined_file_segments.split("/")) == 1:
         full_file_path = full_filename
     else:
         full_file_path = f"{joined_file_segments}/{full_filename}"
@@ -113,14 +120,22 @@ def upload_file(bucket_name: str, path_on_bucket: str, content: bytes, extended_
         case "doc":
             file_options = {"content-type": "application/msword"}
         case "docx":
-            file_options = {"content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
-        
+            file_options = {
+                "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            }
+
     # TODO: Recursively create the folder if it doesn't exist.
     # TODO: Create the bucket if it doesn't exist (With full rls lockdown always, because we don't want user interacting with the buckets at all!)
     # We want that type of functionality because it will allow us to easily bootstrap an entire project.
-    supabase.storage.from_(bucket_name).upload(file=content, path=full_file_path, file_options={**file_options, **extended_file_options})
+    supabase.storage.from_(bucket_name).upload(
+        file=content,
+        path=full_file_path,
+        file_options={**file_options, **extended_file_options},
+    )
     # res = supabase.storage.from_(bucket_name).get_public_url(full_file_path)
-    res = supabase.storage.from_(bucket_name).create_signed_url(full_file_path, sys.maxsize)['signedURL']
+    res = supabase.storage.from_(bucket_name).create_signed_url(
+        full_file_path, sys.maxsize
+    )["signedURL"]
     return res
 
 

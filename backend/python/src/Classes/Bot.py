@@ -8,8 +8,6 @@ import os
 
 from dataclasses import dataclass
 from typing import Tuple, Any, Optional
-
-
 from src.Classes.BotSession import BotSession
 from src.utils import update_value
 from src.Classes.User import Profile, DatabaseSyncedProfile
@@ -19,7 +17,7 @@ from src.Classes.Enums import BotType, Platform
 
 
 @dataclass
-class Bot():
+class Bot:
     id: str
     """str: The unique identifier for the bot."""
 
@@ -35,7 +33,7 @@ class Bot():
     description: str
     """str: The description of the bot."""
 
-    proxy_id: int 
+    proxy_id: int
     """int: The unique identifier for the proxy of the bot."""
 
     metadata_dict: dict
@@ -50,7 +48,7 @@ class Bot():
     platform: Platform
     """Platform: The platform of the bot. This will define the schema for 'Bot().bot_configuration'."""
 
-    session_id: int 
+    session_id: int
     """int: The unique identifier for the session of the bot. This is used to authenticate the bot. Because a single `SocialAccount` can have multiple bots, the session_id will provide us with the information required"""
 
     currently_active: bool
@@ -62,12 +60,13 @@ class Bot():
     configuration: None = None
     """None: The configuration of the bot. This will be defined in the subclass."""
 
-
     @property
     def owner(self) -> Tuple[Profile, DatabaseSyncedProfile]:
         """Tuple[Profile, DatabaseSyncedProfile]: The owner of the bot. Useful for modifying the user account based on bot actions."""
-        return (Profile.from_id(self.owner_id), DatabaseSyncedProfile.from_id(self.owner_id))
-     
+        return (
+            Profile.from_id(self.owner_id),
+            DatabaseSyncedProfile.from_id(self.owner_id),
+        )
 
     @property
     def proxy(self) -> Proxy:
@@ -78,7 +77,6 @@ class Bot():
     def session(self) -> BotSession:
         """Session: The session of the bot. Useful for modifying the session based on bot actions. The session is just a dictionary!"""
         return BotSession.from_id(self.session_id)
-
 
     @staticmethod
     def from_id(id: int, type_: Any):
@@ -96,10 +94,21 @@ class Bot():
         pass
 
     @staticmethod
-    def new(friendly_name: str, description: str, owner_id: str, bot_type: BotType, platform: Platform, metadata_dict: dict, bot_configuration_dict: dict, session_id: int, proxy_id: int, currently_active: bool) -> Any:
+    def new(
+        friendly_name: str,
+        description: str,
+        owner_id: str,
+        bot_type: BotType,
+        platform: Platform,
+        metadata_dict: dict,
+        bot_configuration_dict: dict,
+        session_id: int,
+        proxy_id: int,
+        currently_active: bool,
+    ) -> Any:
         """new: This method will create a new bot."""
-        pass # Implement this on a bot level
-        
+        pass
+      
     def modify_schedule(self, name: str, new_value: str) -> None:
         """modify_schedule: This method will modify the schedule of the bot."""
         # Firstly we convert the configuration to a dictionary
@@ -119,12 +128,15 @@ class Bot():
         setattr(self.configuration, name, new_value)
         # Now we need to update the value
         self.bot_configuration_dict = self.configuration.__dict__
-        update_value("bots", self.id, "bot_configuration_dict", self.bot_configuration_dict)
-        
+        update_value(
+            "bots", self.id, "bot_configuration_dict", self.bot_configuration_dict
+        )
 
     @staticmethod
     def _create_cron(bot_id: str, cron: str, cron_name: str) -> Optional[dict]:
-        api_base_url = os.environ['API_BASE_URL'] + "/run_cron_job" # This is because a ton of the code will be super generic for this first version as it makes us build way faster!
+        api_base_url = (
+            os.environ["API_BASE_URL"] + "/run_cron_job"
+        )  # This is because a ton of the code will be super generic for this first version as it makes us build way faster!
         try:
             headers = {
                 "Content-Type": "application/json",
@@ -165,14 +177,13 @@ class Bot():
             response = requests.put(
                 "https://api.cron-job.org/jobs", headers=headers, json=json_data
             )
-            return response.json()['jobId']
+            return response.json()["jobId"]
         except Exception as e:
             print(e, traceback.format_exc())
             return None
 
-    
     @staticmethod
-    def _delete_schedule(cron_id: str): 
+    def _delete_schedule(cron_id: str):
         try:
             headers = {
                 "Content-Type": "application/json",
@@ -184,5 +195,3 @@ class Bot():
         except Exception as e:
             print(e)
             return False
-
-
