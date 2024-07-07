@@ -1,6 +1,6 @@
 import dataclasses
 import datetime
-from typing import BinaryIO, Any
+from typing import Any
 from src.utils import update_value, upload_file, download_file_url, get_value
 import base64
 

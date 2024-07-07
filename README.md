@@ -1,5 +1,5 @@
 # Backend
-This is a quick instruction guide on how to setup the project for yourself.
+This is a quick instruction guide on how to setup the project for yourself, if interested.
 This is an actionable guide, meaning you will copy-paste a couple of lines of code.
 And your development environment will be ready to go!
 
