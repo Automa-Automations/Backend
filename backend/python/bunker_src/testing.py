@@ -8,7 +8,7 @@ import unittest
 import click
 import questionary
 
-from bunker_src.utils import config_path
+from bunker_src.utils import config_path, get_service_dir
 from bunker_src.ui.choose_or_make_dir import choose_or_make_dir
 
 
@@ -47,12 +47,7 @@ def test_builder(type_, path, dir_path="", tests_path=""):
         click.echo(f"ℹ Generating Tests for {tests_path}")
 
     if not dir_path:
-        config = json.load(open(config_path))
-        services_dir = config.get("create", {}).get("service_dir", {})
-
-        if not services_dir:
-            services_dir = choose_or_make_dir("services", ".", False)
-
+        services_dir = get_service_dir()
         match type_:
             case "service":
                 dir_path = os.path.join(services_dir, path)
@@ -142,11 +137,7 @@ def test_builder(type_, path, dir_path="", tests_path=""):
 
 
 def test_runner(service: str, test_path="", all=False):
-    config = json.load(open(config_path))
-    services_dir = config.get("create", {}).get("service_dir", {})
-
-    if not services_dir:
-        services_dir = choose_or_make_dir("service", ".")
+    services_dir = get_service_dir()
 
     if not service and not test_path:
         services_dir = os.path.join(services_dir)

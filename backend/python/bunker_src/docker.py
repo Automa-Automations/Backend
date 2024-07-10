@@ -11,7 +11,7 @@ from yaspin import yaspin
 
 from bunker_src.ui.ask_config import ask_config_json_questions
 from bunker_src.ui.choose_or_make_dir import choose_or_make_dir
-from bunker_src.utils import get_exposed_ports, config_path
+from bunker_src.utils import get_exposed_ports, config_path, get_service_dir
 
 
 def dockerhub_quickstart(name: str, root_dir: str):
@@ -164,11 +164,7 @@ def container_builder(service: str, all: bool):
     global config_path
     services = []
     # Get the services directory
-    config = json.load(open(config_path))
-    services_dir = config.get("create", {}).get("service_dir", {})
-    if not services_dir:
-        services_dir = choose_or_make_dir("services", ".")
-
+    services_dir = get_service_dir()
     services_in_service_dir = os.listdir(services_dir)
 
     if all:
@@ -226,8 +222,7 @@ def container_runner(service: str, rebuild=False):
         )
         exit(1)
 
-    config = json.load(open(config_path))
-    services_dir = config.get("create", {}).get("service_dir", {})
+    services_dir = get_service_dir()
 
     client = docker.from_env()
 

@@ -6,7 +6,7 @@ import click
 import questionary
 from yaspin import yaspin
 
-from bunker_src.utils import config_path
+from bunker_src.utils import config_path, get_service_dir
 from bunker_src.ui.ask_config import ask_config_json_questions
 
 
@@ -62,9 +62,9 @@ def flask_route_builder(service, all, route=""):
     if routes[0] != "":
         routes = [""] + routes
 
-    config = json.load(open(config_path))
 
-    service_path = os.path.join(config["create"]["service_dir"], service)
+    services_dir = get_service_dir()
+    service_path = os.path.join(services_dir, service)
 
     routes_path = os.path.join(service_path, "pages")
     types_of_routes = ["post", "put", "get", "delete"]

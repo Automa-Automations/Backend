@@ -4,8 +4,27 @@ from typing import Any
 
 import click
 import requests
+from bunker_src.ui.choose_or_make_dir import choose_or_make_dir
+import questionary
 
 config_path = "config.json"
+
+def get_service_dir():
+    config = json.load(open(config_path))
+    service_dir = config.get("create", {}).get("service_dir", {})
+
+    if not service_dir:
+        service_dir = choose_or_make_dir("services", ".")
+
+        save_default = questionary.confirm(
+            "Would you like to save this as the default service directory?"
+        ).ask()
+
+        if save_default:
+            config["create"]["service_dir"] = service_dir
+            json.dump(config, open(config_path, "w"), indent=4)
+
+    return service_dir
 
 def global_options(func: Any) -> Any:
     @click.option(

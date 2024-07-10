@@ -14,9 +14,8 @@ from bunker_src.flask import flask_quickstart, flask_route_builder
 from bunker_src.fly_io import deploy_image
 from bunker_src.ngrok import ngrok_container
 from bunker_src.testing import test_builder, test_runner
-from bunker_src.ui.choose_or_make_dir import choose_or_make_dir
 from bunker_src.ui.choose_service import choose_service
-from bunker_src.utils import global_options
+from bunker_src.utils import global_options, get_service_dir
 
 init(autoreset=True)
 dotenv.load_dotenv()
@@ -32,28 +31,10 @@ def builder():
 @builder.command()
 def create():
     """Create a new service from template. Or from scratch."""
-    config = json.load(open(config_path))
-    create_config = config["create"]
-
     # Service Name
     name = questionary.text("Service Name:").ask()
 
-    # Ask which will be the root directory
-    if not create_config["service_dir"]:
-        # Ask them if they want to create or choose a root directory
-        root_dir = choose_or_make_dir("service", ".")
-        save_default = questionary.confirm(
-            "Would you like to save this as the default root directory?"
-        ).ask()
-        if save_default:
-            create_config["service_dir"] = root_dir
-            json.dump(config, open(config_path, "w"), indent=4)
-    else:
-        root_dir = create_config["service_dir"]
-        click.echo(f"⇝ Using root directory: {root_dir}")
-        if not os.path.exists(root_dir):
-            os.mkdir(root_dir)
-
+    root_dir = get_service_dir()
     service_path = os.path.join(root_dir, name)
     if os.path.exists(service_path) and len(os.listdir(service_path)) > 0:
         click.echo("Service already exists.")
@@ -174,11 +155,7 @@ def run(service, rebuild):
 )
 def flask(service, new, test, type, route):
     """Utility to generate flask templates, routes, files & tests"""
-    config = json.load(open(config_path))
-    services_dir = config.get("create", {}).get("service_dir", {})
-
-    if not services_dir or not os.path.exists(services_dir):
-        services_dir = choose_or_make_dir("service", ".")
+    services_dir = get_service_dir()
 
     if service and not service.endswith("Flask"):
         click.echo(
@@ -334,11 +311,7 @@ def cron(service, test, new, type, all):
     """
     Allows you to generate cron services, run them, test them and build them.
     """
-    config = json.load(open(config_path))
-    services_dir = config.get("create", {}).get("service_dir", {})
-
-    if not services_dir or not os.path.exists(services_dir):
-        services_dir = choose_or_make_dir("service", ".")
+    services_dir = get_service_dir()
 
     if service and not service.endswith("Cron"):
         click.echo(
@@ -464,8 +437,7 @@ def format():
 )
 def deploy(service):
     """Deploys & Rotates the versionId of the service (If the `prod` and `dev` aren't in sync)"""
-    config = json.load(open(config_path))
-    services_dir = config.get("create", {}).get("service_dir", {})
+    services_dir = get_service_dir()
     service_path = os.path.join(services_dir, service)
 
     dockerfile_path = os.path.join(service_path, "Dockerfile")
