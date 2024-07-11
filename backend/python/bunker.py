@@ -15,9 +15,11 @@ from bunker_src.flask import flask_quickstart, flask_route_builder
 from bunker_src.fly_io import deploy_image
 from bunker_src.ngrok import ngrok_container
 from bunker_src.testing import test_builder, test_runner
+from bunker_src.ui.ask_config import ask_config_json_questions
 from bunker_src.ui.choose_service import choose_service
 from bunker_src.utils import config_path, get_service_dir, global_options
 from colorama import init
+from pyngrok.ngrok import uuid
 
 init(autoreset=True)
 
@@ -44,6 +46,19 @@ dotenv.load_dotenv(".bunker.env")
 def builder():
     """Bunker's code building CLI."""
     pass
+
+
+def sqs_quickstart(service_name, service_path):
+    services_dir = get_service_dir()
+    os.system(f"cp -r templates/SqSTemplate/* {service_path}")
+
+    config_path = os.path.join(service_path, "config.json")
+    config = json.load(open(config_path, "r"))
+    config["name"] = f"{service_name}_{uuid.uuid4().hex}"
+
+    ask_config_json_questions(config)
+
+    json.dump(config, open(config_path, "w"), indent=4)
 
 
 @builder.command()
@@ -77,6 +92,7 @@ def create():
                 "DockerHub - Non-Modified Dockerhub Image",
                 "Flask - An Http Restful API",
                 "Cron - A Cron Job Service (Useful for mass data cleaning / processing)",
+                "SQS - A simple SQS Template that is very extendible + functional",
             ],
         ).ask()
         if template == "DockerHub - Non-Modified Dockerhub Image":
@@ -91,6 +107,12 @@ def create():
         ):
             os.mkdir(service_path + "Cron")
             cron_quickstart(name, service_path + "Cron")
+        if (
+            template
+            == "SQS - A simple SQS Template that is very extendible + functional"
+        ):
+            os.mkdir(service_path + "SQS")
+            sqs_quickstart(name, service_path + "SQS")
     else:
         os.mkdir(service_path)
         os.system(f"cp -r templates/BlankTemplate/* {service_path}")

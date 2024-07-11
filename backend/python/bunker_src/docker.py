@@ -6,12 +6,11 @@ from typing import Any
 import click
 import docker
 import questionary
-from colorama import Fore
-from yaspin import yaspin
-
 from bunker_src.ui.ask_config import ask_config_json_questions
 from bunker_src.ui.choose_or_make_dir import choose_or_make_dir
-from bunker_src.utils import get_exposed_ports, config_path, get_service_dir
+from bunker_src.utils import config_path, get_exposed_ports, get_service_dir
+from colorama import Fore
+from yaspin import yaspin
 
 
 def dockerhub_quickstart(name: str, root_dir: str):
@@ -57,9 +56,7 @@ def dockerhub_quickstart(name: str, root_dir: str):
     # PORTS (Auto Detectable)
     click.echo("🔍 Detecting ports...")
     ports_ = get_exposed_ports(image_to_use)
-    ports = {
-        str(port.split("/")[0]): str(port.split("/")[0]) for port in ports_
-    }
+    ports = {str(port.split("/")[0]): str(port.split("/")[0]) for port in ports_}
 
     for port in ports_:
         click.echo(f"   🛶 {Fore.YELLOW} Detected port {port}")
@@ -69,9 +66,7 @@ def dockerhub_quickstart(name: str, root_dir: str):
     config = ask_config_json_questions(config)
 
     click.echo("📝 Saving configuration...")
-    json.dump(
-        config, open(os.path.join(root_dir, "config.json"), "w"), indent=4
-    )
+    json.dump(config, open(os.path.join(root_dir, "config.json"), "w"), indent=4)
 
 
 def build_container(
@@ -99,9 +94,7 @@ def build_container(
                     if spinner:
                         spinner.stop()
                         spinner.ok("✅")
-                    return (
-                        line["stream"].split(" ")[-1].strip().replace("\n", "")
-                    )
+                    return line["stream"].split(" ")[-1].strip().replace("\n", "")
 
                 if not should_stream_output:
                     continue
@@ -110,10 +103,7 @@ def build_container(
                     continue
 
                 pretty_output = (
-                    line["stream"]
-                    .encode("utf-8")
-                    .decode("unicode-escape")
-                    .strip()
+                    line["stream"].encode("utf-8").decode("unicode-escape").strip()
                 )
                 pretty_output = pretty_output.replace("â", "").replace(
                     "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv",
@@ -141,7 +131,9 @@ def build_container(
                     spinner = yaspin(text=f"{pretty_output}")
                     spinner.start()
                 else:
-                    spinner.text = f"{spinner.text.split(':')[0]}: {pretty_output[:50]}..."
+                    spinner.text = (
+                        f"{spinner.text.split(':')[0]}: {pretty_output[:50]}..."
+                    )
 
             if "error" in line:
                 click.echo(f"{Fore.RED}Error: {line['error']}", err=True)
@@ -152,10 +144,6 @@ def build_container(
         click.echo(f"{Fore.RED}BuildError: {e}", err=True)
     except Exception as e:
         click.echo(f"Unexpected error: {e}", err=True)
-
-    if spinner:
-        spinner.ok("✅")
-        spinner.stop()
 
     return ""
 
@@ -187,9 +175,7 @@ def container_builder(service: str, all: bool):
         click.echo(f"{Fore.GREEN}Building Docker image for service: {service}")
         dockerfile_path = os.path.join(service_path, "Dockerfile")
         config_path_ = os.path.join(service_path, "config.json")
-        service_name = json.load(open(config_path_)).get(
-            "name", uuid.uuid4().hex
-        )
+        service_name = json.load(open(config_path_)).get("name", uuid.uuid4().hex)
 
         df_exists = os.path.exists(dockerfile_path)
         cf_exists = os.path.exists(config_path_)
@@ -211,7 +197,7 @@ def container_builder(service: str, all: bool):
             continue
 
         click.echo(
-            f'{Fore.GREEN}🎉 Built Image: {build_container(service_name, dockerfile_path)}'
+            f"{Fore.GREEN}🎉 Built Image: {build_container(service_name, dockerfile_path)}"
         )
 
 
@@ -229,8 +215,7 @@ def container_runner(service: str, rebuild=False):
     image = [
         i
         for i in client.images.list()
-        if i.attrs["RepoTags"]
-        and i.attrs["RepoTags"][0] == f"{service.lower()}:latest"
+        if i.attrs["RepoTags"] and i.attrs["RepoTags"][0] == f"{service.lower()}:latest"
     ]
 
     if not image or rebuild:
@@ -259,11 +244,7 @@ def container_runner(service: str, rebuild=False):
         env = service_config.get("env", {})
         base_image = service_config.get("base_image")
 
-        image = (
-            service_config.get("name").lower()
-            if not base_image
-            else base_image
-        )
+        image = service_config.get("name").lower() if not base_image else base_image
 
         ports_transformed = {
             str(internal) + "/tcp": str(external)
@@ -284,9 +265,7 @@ def container_runner(service: str, rebuild=False):
         containers = client.containers.list(all=True)
         for container in containers:
             if container.name == service:
-                sp.text = (
-                    "🐳 Container already existed. Killing Previous Instance"
-                )
+                sp.text = "🐳 Container already existed. Killing Previous Instance"
                 container.stop()
                 container.remove()
                 break
@@ -339,9 +318,7 @@ def push_image(image_name):
 
     try:
         with yaspin(text="Pushing image", color="cyan") as spinner:
-            push_output = client.images.push(
-                repository, stream=True, decode=True
-            )
+            push_output = client.images.push(repository, stream=True, decode=True)
             for line in push_output:
                 status_message = "Pushing image"
                 if "status" in line:
@@ -353,9 +330,7 @@ def push_image(image_name):
                     spinner.text = status_message
 
                 if "progress" in line:
-                    spinner.text = (
-                        f"{status_message} - Progress: {line['progress']}"
-                    )
+                    spinner.text = f"{status_message} - Progress: {line['progress']}"
 
                 if "error" in line:
                     spinner.fail("❌")
@@ -363,9 +338,7 @@ def push_image(image_name):
                     return
 
             spinner.ok("✅")
-            click.echo(
-                f"🎉 Finished pushing the image {Fore.GREEN}{repository}."
-            )
+            click.echo(f"🎉 Finished pushing the image {Fore.GREEN}{repository}.")
 
     except docker.errors.APIError as e:
         click.echo(f"APIError: {e}", err=True)
