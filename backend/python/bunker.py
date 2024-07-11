@@ -8,13 +8,9 @@ import dotenv
 import questionary
 from bunker_src.commands.bootstrap import command as bootstrap_command
 from bunker_src.cron import cron_quickstart, cron_runner
-from bunker_src.docker import (
-    build_container,
-    container_builder,
-    container_runner,
-    dockerhub_quickstart,
-    push_image,
-)
+from bunker_src.docker import (build_container, container_builder,
+                               container_runner, dockerhub_quickstart,
+                               push_image)
 from bunker_src.flask import flask_quickstart, flask_route_builder
 from bunker_src.fly_io import deploy_image
 from bunker_src.ngrok import ngrok_container
@@ -33,10 +29,10 @@ if not os.path.exists(".bunker.env"):
     )
     with open(".bunker.env", "w") as f:
         f.write(
-            """
-DOCKERHUB_USERNAME=""
-DOCKERHUB_PASSWORD=""
-FLY_IO_API_KEY=""
+            f"""
+DOCKERHUB_USERNAME="{questionary.text('What is your DockerHub username?').ask()}"
+DOCKERHUB_PASSWORD="{questionary.text('What is your DockerHub password?').ask()}"
+FLY_IO_API_KEY="{questionary.text('What is your fly.io API key?').ask()}"
         """
         )
     exit(1)
