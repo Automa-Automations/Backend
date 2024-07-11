@@ -31,7 +31,7 @@ class PodcastTranscriber:
         """
         logger.info(f"Converting {file_path} to mp3")
         mp4_audio = AudioSegment.from_file(file_path, format="mp4")
-        mp3_file_path = file_path.rsplit(".", 1)[0] + ".mp3"
+        mp3_file_path = ".".join(file_path.split(".")[:-1]) + ".mp3"
         mp4_audio.export(mp3_file_path, format="mp3")
         return mp3_file_path
 

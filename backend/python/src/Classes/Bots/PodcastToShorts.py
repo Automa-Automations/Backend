@@ -65,6 +65,10 @@ class PodcastToShorts:
             logger.error("Transcriptor type is not valid")
             raise ValueError("Transcriptor type is not valid")
 
+        if not transcriptor:
+            logger.error("Transcriptor is none")
+            return
+
         transcript = transcriptor.transcript
         logger.info(f"Transcript objects length: {len(transcript)}")
 
@@ -194,7 +198,7 @@ class PodcastToShorts:
 
     def __get_shorts_final_transcripts(self, shorts_transcripts: list[dict]):
         """
-        Method to get the final transcripts of the shorts, by removing the start and end sentences, to get the optimized short.
+        Method to get the final transcripts of the shorts, by removing the start, middle and end sentences, to get the optimized short.
         Parameters:
         - shorts_transcripts: list: The list of the shorts transcripts
         Returns:
@@ -231,9 +235,11 @@ class PodcastToShorts:
                 ) as f:
                     example_output = json.load(f)
 
-                # prompt = f"""{prompt_first_sentence}. I want you to only keep in only 5 - 15 sentences that will be the most engaging and get the most amount of views. Then, from that 5 - 15 sentences, I want you to exclude words/parts of the sentences if needed to make the flow of the transcript better for a short. Your response must be strictly in the following json format: ${json.dumps(example_output)}. Keep the 5 - 15 sentences the exact same as what it was from the transcript."""
+                # it works, but there are some minor flaws. The LLM sometimes puts sentences together that should be separated.
+                # prompt = f"""{prompt_first_sentence}. Give me only 15 - 20 sentences from the transcript I just gave you that will be the most engaging and get the most amount of views, you must stricly output in the following JSON format: {json.dumps({"sentences": ["sentence here", "another sentence here"]}, indent=4)}. Keep the sentences the exact same as what it was from the transcript."""
 
-                prompt = f"""{prompt_first_sentence}. Give me only 15 - 20 sentences from the transcript I just gave you that will be the most engaging and get the most amount of views, you must stricly output in the following JSON format: {json.dumps({"sentences": ["sentence here", "another sentence here"]}, indent=4)}. Keep the sentences the exact same as what it was from the transcript."""
+                # TODO: Change this prompt so that the LLM does not put more than one sentence in a string. Each string should be one sentence.
+                prompt = f"""{prompt_first_sentence}. Give me only 15 - 20 sentences from the transcript I just gave you that will be the most engaging and get the most amount of views. You must stricly output in the following JSON format: {json.dumps({"sentences": ["sentence here", "another sentence here"]}, indent=4)}. Keep the sentences the exact same as what it was from the transcript."""
             else:
                 logger.error("Transcriptor type invalid")
                 return []
