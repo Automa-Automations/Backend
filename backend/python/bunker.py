@@ -1,24 +1,40 @@
 # Bunker is a build, template, configuration and auto testing for unit tests, integration tests & production tests.
 # Bunker will allow you to generate templates for projects, allowing you to effectively test every single method of a class, every single module & every single package that you are developoing. bunker will also create a generic template for each service, and also create templates for any service your service depends on, in order to test them with each other "integration tests". bunker will also create a template for the production environment, and will allow you to test your service with the production environment, to ensure that your service is working as expected. bunker will also create a template for the production environment, and will allow you to test your service with the production environment, to ensure that your service is working as expected. bunker will also create a template for the production environment, and will allow you to test your service with the production environment, to ensure that your service is working as expected. bunker also effectively injects code into your project to do monitoring, bunker captures all logs into a single generic database, and also captures errors, uptime, usage & more.
-import dotenv
-import click
-import questionary
-import os
 import json
-from colorama import init
+import os
 
-from bunker_src.utils import config_path
+import click
+import dotenv
+import questionary
 from bunker_src.cron import cron_quickstart, cron_runner
-from bunker_src.docker import dockerhub_quickstart, build_container, container_builder, container_runner, push_image
+from bunker_src.docker import (build_container, container_builder,
+                               container_runner, dockerhub_quickstart,
+                               push_image)
 from bunker_src.flask import flask_quickstart, flask_route_builder
 from bunker_src.fly_io import deploy_image
 from bunker_src.ngrok import ngrok_container
 from bunker_src.testing import test_builder, test_runner
 from bunker_src.ui.choose_service import choose_service
-from bunker_src.utils import global_options, get_service_dir
+from bunker_src.utils import config_path, get_service_dir, global_options
+from colorama import init
 
 init(autoreset=True)
-dotenv.load_dotenv()
+dotenv.load_dotenv(".bunker.env")
+
+
+if not os.path.exists(".bunker.env"):
+    click.echo(
+        "Sorry, But it doesn't seem that you have your environment variables configured!"
+    )
+    with open(".bunker.env", "w") as f:
+        f.write(
+            """
+DOCKERHUB_USERNAME=""
+DOCKERHUB_PASSWORD=""
+FLY_IO_API_KEY=""
+        """
+        )
+    exit(1)
 
 
 @click.group()
@@ -51,9 +67,7 @@ def create():
         return
 
     # Create the service
-    should_use_template = questionary.confirm(
-        "Would you like to use a template?"
-    ).ask()
+    should_use_template = questionary.confirm("Would you like to use a template?").ask()
     if should_use_template:
         template = questionary.select(
             "Select a template:",
@@ -88,9 +102,7 @@ def create():
 
 
 @builder.command()
-@click.option(
-    "--service", "-s", help="The service to build.", required=False, type=str
-)
+@click.option("--service", "-s", help="The service to build.", required=False, type=str)
 @click.option(
     "--all",
     "-a",
@@ -105,14 +117,12 @@ def build(service, all):
     """
     if not service and not all:
         service = choose_service()
-        
+
     container_builder(service, all)
 
 
 @builder.command()
-@click.option(
-    "--service", "-s", help="The service to run.", required=True, type=str
-)
+@click.option("--service", "-s", help="The service to run.", required=True, type=str)
 @click.option(
     "--rebuild",
     "-r",
@@ -126,9 +136,7 @@ def run(service, rebuild):
 
 
 @builder.command()
-@click.option(
-    "--service", "-s", help="The service to run.", required=False, type=str
-)
+@click.option("--service", "-s", help="The service to run.", required=False, type=str)
 @click.option(
     "--route",
     "-r",
@@ -143,9 +151,7 @@ def run(service, rebuild):
     required=False,
     type=str,
 )
-@click.option(
-    "--new", "-n", help="Start a new service.", required=False, is_flag=True
-)
+@click.option("--new", "-n", help="Start a new service.", required=False, is_flag=True)
 @click.option(
     "--type",
     "-t",
@@ -158,9 +164,7 @@ def flask(service, new, test, type, route):
     services_dir = get_service_dir()
 
     if service and not service.endswith("Flask"):
-        click.echo(
-            "💔 You can't use the flask command to run non flask services!"
-        )
+        click.echo("💔 You can't use the flask command to run non flask services!")
         exit(1)
 
     if not test or not type:
@@ -172,9 +176,7 @@ def flask(service, new, test, type, route):
         if (
             not new
             and not service
-            and questionary.confirm(
-                "Would you like to create a new service?"
-            ).ask()
+            and questionary.confirm("Would you like to create a new service?").ask()
         ):
             service = questionary.text("Service Name:").ask()
             services_dir = os.path.join(services_dir, service)
@@ -183,9 +185,7 @@ def flask(service, new, test, type, route):
         elif not new and not service:
             service = questionary.select(
                 "Choose a service: ",
-                choices=os.listdir(
-                    [i for i in services_dir if i.endswith("Flask")]
-                ),
+                choices=os.listdir([i for i in services_dir if i.endswith("Flask")]),
             ).ask()
         elif new and not service:
             service = questionary.text("Service Name:").ask() + "Flask"
@@ -220,9 +220,7 @@ def flask(service, new, test, type, route):
         task = type
 
     if not service.endswith("Flask"):
-        click.echo(
-            "💔 You can't use the flask command to run non flask services!"
-        )
+        click.echo("💔 You can't use the flask command to run non flask services!")
         exit(1)
 
     if task == "route" or route:
@@ -249,9 +247,7 @@ def flask(service, new, test, type, route):
     required=False,
     type=str,
 )
-@click.option(
-    "--service", "-s", help="The service to run.", required=False, type=str
-)
+@click.option("--service", "-s", help="The service to run.", required=False, type=str)
 @click.option(
     "--new",
     "-test",
@@ -280,9 +276,7 @@ def test(test, new, service, all):
 
 
 @builder.command()
-@click.option(
-    "--service", "-s", help="The service to run.", required=False, type=str
-)
+@click.option("--service", "-s", help="The service to run.", required=False, type=str)
 @click.option(
     "--test",
     "-test",
@@ -290,9 +284,7 @@ def test(test, new, service, all):
     required=False,
     type=str,
 )
-@click.option(
-    "--new", "-n", help="Start a new service.", required=False, is_flag=True
-)
+@click.option("--new", "-n", help="Start a new service.", required=False, is_flag=True)
 @click.option(
     "--all",
     "-a",
@@ -314,9 +306,7 @@ def cron(service, test, new, type, all):
     services_dir = get_service_dir()
 
     if service and not service.endswith("Cron"):
-        click.echo(
-            "💔 You can't use the cron command to run non cron services!"
-        )
+        click.echo("💔 You can't use the cron command to run non cron services!")
         exit(1)
 
     if not test or not type:
@@ -328,9 +318,7 @@ def cron(service, test, new, type, all):
         if (
             not new
             and not service
-            and questionary.confirm(
-                "Would you like to create a new service?"
-            ).ask()
+            and questionary.confirm("Would you like to create a new service?").ask()
         ):
             service = questionary.text("Service Name:").ask()
             services_dir = os.path.join(services_dir, service)
@@ -339,16 +327,12 @@ def cron(service, test, new, type, all):
         elif not service:
             service = questionary.select(
                 "Choose a service: ",
-                choices=[
-                    i for i in os.listdir(services_dir) if i.endswith("Cron")
-                ],
+                choices=[i for i in os.listdir(services_dir) if i.endswith("Cron")],
             ).ask()
         elif not new and not service:
             service = questionary.select(
                 "Choose a service: ",
-                choices=os.listdir(
-                    [i for i in services_dir if i.endswith("Flask")]
-                ),
+                choices=os.listdir([i for i in services_dir if i.endswith("Flask")]),
             ).ask()
         elif new and not service:
             service = questionary.text("Service Name:").ask() + "Flask"
@@ -380,9 +364,7 @@ def cron(service, test, new, type, all):
         task = type
 
     if not service.endswith("Cron"):
-        click.echo(
-            "💔 You can't use the flask command to run non flask services!"
-        )
+        click.echo("💔 You can't use the flask command to run non flask services!")
         exit(1)
 
     elif task == "test-create":
@@ -412,9 +394,7 @@ def format():
     ]
 
     # Construct the exclude pattern for black
-    black_exclude_pattern = "|".join(
-        [f"{pattern}" for pattern in ignore_patterns]
-    )
+    black_exclude_pattern = "|".join([f"{pattern}" for pattern in ignore_patterns])
 
     # Define the formatter commands
     formatter_commands = [
@@ -442,9 +422,7 @@ def deploy(service):
 
     dockerfile_path = os.path.join(service_path, "Dockerfile")
     if os.path.exists(dockerfile_path):
-        build_container(
-            service.lower(), dockerfile_path, "./", should_stream_output=True
-        )
+        build_container(service.lower(), dockerfile_path, should_stream_output=True)
 
         push_image(service.lower())
 
