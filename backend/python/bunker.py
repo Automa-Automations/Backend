@@ -6,10 +6,15 @@ import os
 import click
 import dotenv
 import questionary
+from bunker_src.commands.bootstrap import command as bootstrap_command
 from bunker_src.cron import cron_quickstart, cron_runner
-from bunker_src.docker import (build_container, container_builder,
-                               container_runner, dockerhub_quickstart,
-                               push_image)
+from bunker_src.docker import (
+    build_container,
+    container_builder,
+    container_runner,
+    dockerhub_quickstart,
+    push_image,
+)
 from bunker_src.flask import flask_quickstart, flask_route_builder
 from bunker_src.fly_io import deploy_image
 from bunker_src.ngrok import ngrok_container
@@ -427,6 +432,11 @@ def deploy(service):
         push_image(service.lower())
 
     deploy_image(service.lower(), service_path)
+
+
+@builder.command()
+def bootstrap():
+    bootstrap_command()
 
 
 if __name__ == "__main__":
