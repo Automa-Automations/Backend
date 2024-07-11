@@ -20,7 +20,6 @@ from bunker_src.utils import config_path, get_service_dir, global_options
 from colorama import init
 
 init(autoreset=True)
-dotenv.load_dotenv(".bunker.env")
 
 
 if not os.path.exists(".bunker.env"):
@@ -35,7 +34,9 @@ DOCKERHUB_PASSWORD="{questionary.text('What is your DockerHub password?').ask()}
 FLY_IO_API_KEY="{questionary.text('What is your fly.io API key?').ask()}"
         """
         )
-    exit(1)
+
+
+dotenv.load_dotenv(".bunker.env")
 
 
 @click.group()
