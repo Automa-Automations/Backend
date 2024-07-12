@@ -71,12 +71,6 @@ class FaceTrackingVideo:
             current_indice = math.floor(self.frame_index / 90)
             next_indice = current_indice + 1
 
-            #
-            # if self.frame_index % self.frame_correction_number == 0:
-            #     # we are on a frame where face was checked
-            #     logger.info(f"Processing frame {self.frame_index}...")
-            #
-
             current_indice_dict = self.all_frame_results[current_indice]
             next_indice_dict = self.all_frame_results[next_indice]
 
