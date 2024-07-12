@@ -19,7 +19,7 @@ class FaceTrackingVideo:
 
     def __init__(self) -> None:
         self.frame_correction_number = (
-            15  # meaning after each x frames, it will detect if there is a face
+            60  # meaning after each x frames, it will detect if there is a face
         )
         self.frame_index = 0
         self.frame_indices = []

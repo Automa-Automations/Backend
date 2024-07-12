@@ -1,4 +1,9 @@
-from typing import List, TypedDict, Union, Literal
+from typing import Dict, List, Union, Literal
+from models import (
+    AssemblyAIParsedTranscriptType,
+    TranscriptDict,
+    YoutubeAPITranscriptDict,
+)
 from src.Classes.Utils.ChatCompletion import ChatCompletion
 from src.Classes.Utils.FaceTrackingVideo import FaceTrackingVideo
 from pytube import YouTube
@@ -16,12 +21,6 @@ import traceback
 logger = logging.getLogger(__name__)
 
 
-class TranscriptDict(TypedDict):
-    text: str
-    start: float
-    duration: float
-
-
 class PodcastToShorts:
     def __init__(
         self,
@@ -32,7 +31,7 @@ class PodcastToShorts:
         llm_model: str = "gpt-4o",
         ollama_base_url: str = "",
         llm_api_key: str = "",
-    ):
+    ) -> None:
         self.podcast_url = podcast_url
         self.transcriptor_type: Literal["assembly_ai", "yt_transcript_api"] = (
             transcriptor_type
@@ -48,10 +47,13 @@ class PodcastToShorts:
         self.debug_transcripts_feedback_path = f"./src/Classes/Bots/json_files/transcripts_feedback_{transcriptor_type}.json"
         self.debug_shorts_final_transcripts_path = f"./src/Classes/Bots/json_files/shorts_final_transcripts_{transcriptor_type}.json"
 
-    def get_shorts(self, debugging=False):
+    def get_shorts(self, debugging=False) -> List[ClipShortData]:
         self.__validate_params()
         """
         Method to generate the shorts from the podcast
+        Parameters:
+        - debugging: whether or not it should take shortcuts to increase speed, save results to json files for debugging purposes, ect...
+        Returns clip_shorts_data
         """
         if self.transcriptor_type == "assembly_ai":
             transcriptor = PodcastTranscriber.from_assembly(
@@ -66,22 +68,20 @@ class PodcastToShorts:
             raise ValueError("Transcriptor type is not valid")
 
         if not transcriptor:
-            logger.error("Transcriptor is none")
-            return
-
-        transcript = transcriptor.transcript
-        logger.info(f"Transcript objects length: {len(transcript)}")
+            raise Exception("Transcriptor is none")
 
         if self.transcriptor_type == "assembly_ai":
+            transcript = transcriptor.aai_transcript
             podcast_length = round(transcriptor.audio_duration / 60)
         elif self.transcriptor_type == "yt_transcript_api":
+            transcript = transcriptor.yt_transcript
             podcast_length = round(
                 (transcript[-1]["start"] + transcript[-1]["duration"]) / 60
             )
-
         else:
             raise ValueError("Transcriptor type is not valid")
 
+        logger.info(f"Transcript objects length: {len(transcript)}")
         logger.info(f"Podcast Length: {podcast_length} minutes")
 
         if (self.debugging or debugging) and os.path.exists(

@@ -1,5 +1,9 @@
 from typing import TypedDict, Optional
 
+class TranscriptDict(TypedDict):
+    text: str
+    start: float
+    duration: float
 
 class AssemblyAIParsedTranscriptType(TypedDict):
     sentence: str
@@ -23,3 +27,6 @@ class FaceFramePositionDict(TypedDict):
 class MessageReturnDict(TypedDict):
     message: str
     status: Optional[str]
+
+class ClipShortData(TypedDict):
+

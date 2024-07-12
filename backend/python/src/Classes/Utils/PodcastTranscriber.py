@@ -19,7 +19,8 @@ class PodcastTranscriber:
 
     def __init__(self, podcast_url) -> None:
         self.podcast_url = podcast_url
-        self.transcript = []
+        self.aai_transcript: List[AssemblyAIParsedTranscriptType] = []
+        self.yt_transcript: List[YoutubeAPITranscriptDict] = []
         self.audio_duration = 0
 
     def _convert_to_mp3(self, file_path: str) -> str:
@@ -84,7 +85,7 @@ class PodcastTranscriber:
                 transcript = assembly_ai.get_yt_podcast_transcription(podcast_mp3_path)
                 parsed_transcript = assembly_ai.parse_transcript(transcript)
 
-            podcast_transcriber.transcript = parsed_transcript
+            podcast_transcriber.aai_transcript = parsed_transcript
             if not transcript:
                 raise Exception("Transcription failed.")
             else:
@@ -105,7 +106,7 @@ class PodcastTranscriber:
         podcast_transcriber = cls(podcast_url)
         transcription_api = YoutubeTranscriptionAPITranscriber(podcast_url)
         transcription_api.debugging = debugging
-        podcast_transcriber.transcript = transcription_api.get_video_transcript()
+        podcast_transcriber.yt_transcript = transcription_api.get_video_transcript()
         return podcast_transcriber
 
 
