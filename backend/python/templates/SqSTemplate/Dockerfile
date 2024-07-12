@@ -2,9 +2,9 @@ ARG GO_VERSION=1.22
 FROM golang:${GO_VERSION}-bookworm as builder
 
 WORKDIR /usr/src/app
-COPY go.mod go.sum ./
+COPY <<service_dir>>/go.mod <<service_dir>>/go.sum ./
 RUN go mod download && go mod verify
-COPY . .
+COPY <<service_dir>>/. .
 RUN go build -v -o /run-app .
 
 EXPOSE 3000

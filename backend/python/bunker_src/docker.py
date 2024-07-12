@@ -75,7 +75,7 @@ def build_container(
     client = docker.APIClient()
     try:
         stream = client.build(
-            path=os.path.abspath("./"),
+            path=os.path.abspath("."),
             tag=f"{os.environ['DOCKERHUB_USERNAME']}/{service.lower()}",
             dockerfile=dockerfile_path,
             decode=True,

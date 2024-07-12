@@ -49,7 +49,6 @@ def builder():
 
 
 def sqs_quickstart(service_name, service_path):
-    services_dir = get_service_dir()
     os.system(f"cp -r templates/SqSTemplate/* {service_path}")
 
     config_path = os.path.join(service_path, "config.json")
@@ -59,6 +58,14 @@ def sqs_quickstart(service_name, service_path):
     ask_config_json_questions(config)
 
     json.dump(config, open(config_path, "w"), indent=4)
+
+    # Modify the Dockerfile
+    service_dockerpath = os.path.join(service_path, "Dockerfile")
+    dockerfile = open(service_dockerpath, "r").read()
+    dockerfile = dockerfile.replace("<<service_dir>>", service_path)
+
+    with open(service_dockerpath, "w") as f:
+        f.write(dockerfile)
 
 
 @builder.command()
@@ -146,7 +153,7 @@ def build(service, all):
 
 
 @builder.command()
-@click.option("--service", "-s", help="The service to run.", required=True, type=str)
+@click.option("--service", "-s", help="The service to run.", required=False, type=str)
 @click.option(
     "--rebuild",
     "-r",
@@ -156,6 +163,9 @@ def build(service, all):
 )
 def run(service, rebuild):
     """Allows you to run a service if it exists,"""
+    if not service:
+        service = choose_service()
+
     container_runner(service=service, rebuild=rebuild)
 
 
