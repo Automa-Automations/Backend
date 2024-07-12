@@ -19,7 +19,7 @@ class FaceTrackingVideo:
 
     def __init__(self) -> None:
         self.frame_correction_number = (
-            90  # meaning after each x frames, it will detect if there is a face
+            15  # meaning after each x frames, it will detect if there is a face
         )
         self.frame_index = 0
         self.frame_indices = []
@@ -68,11 +68,14 @@ class FaceTrackingVideo:
             Parameters:
             - frame: np.ndarray: The frame to process
             """
-            current_indice = math.floor(self.frame_index / 90)
+            current_indice = math.floor(self.frame_index / self.frame_correction_number)
             next_indice = current_indice + 1
 
             current_indice_dict = self.all_frame_results[current_indice]
-            next_indice_dict = self.all_frame_results[next_indice]
+            if next_indice > len(self.all_frame_results) - 1:
+                next_indice_dict = current_indice_dict
+            else:
+                next_indice_dict = self.all_frame_results[next_indice]
 
             cx = 0
             cy = 0
@@ -184,6 +187,10 @@ class FaceTrackingVideo:
             next_indice_dict["face_pos_y"] - current_indice_dict["face_pos_y"]
         )
         frame_difference = next_indice_index - current_indice_index
+
+        # do this so that it doesn't divide by zero, when the last frame in the video is a frame where we checked if there was a face detected
+        if frame_difference == 0:
+            frame_difference = 1
 
         frame_increment_x = x_difference / frame_difference
         frame_increment_y = y_difference / frame_difference
