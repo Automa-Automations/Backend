@@ -4,12 +4,10 @@ import os
 import uuid
 
 import click
-from croniter import croniter
-
-from bunker_src.utils import config_path
 from bunker_src.docker import container_builder, container_runner
-
 from bunker_src.ui.ask_config import ask_config_json_questions
+from bunker_src.utils import config_path
+from croniter import croniter
 
 
 def cron_quickstart(name: str, service_path: str):
@@ -19,9 +17,7 @@ def cron_quickstart(name: str, service_path: str):
 
     config = ask_config_json_questions(config)
     click.echo("📝 Saving configuration...")
-    json.dump(
-        config, open(os.path.join(service_path, "config.json"), "w"), indent=4
-    )
+    json.dump(config, open(os.path.join(service_path, "config.json"), "w"), indent=4)
 
     dockerfile_path = os.path.join(service_path, "Dockerfile")
     if not os.path.exists(dockerfile_path):
@@ -67,4 +63,4 @@ def cron_runner(service):
         if current_time >= next and current_time - next < 5:
             click.echo(f"🏃‍Running Cron Service at {current_time}")
             next = iter.get_next()
-            container_runner(service, detach=False)
+            container_runner(service)
