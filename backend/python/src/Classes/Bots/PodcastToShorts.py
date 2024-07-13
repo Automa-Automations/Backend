@@ -17,12 +17,7 @@ import random
 import logging
 import re
 from src.Classes.Utils.PodcastTranscriber import PodcastTranscriber
-from src.utils import (
-    format_video_url,
-    validate_string_similarity,
-    download_podcast,
-    is_compatible_with_typed_dict,
-)
+from src.utils import format_video_url, validate_string_similarity, download_podcast
 import traceback
 
 logger = logging.getLogger(__name__)

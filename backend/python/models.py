@@ -23,7 +23,7 @@ class FaceFramePosition(BaseModel):
     face_pos_y: float
 
 
-class MessageReturnDict(BaseModel):
+class ReturnMessage(BaseModel):
     message: str
     status: Optional[str]
 

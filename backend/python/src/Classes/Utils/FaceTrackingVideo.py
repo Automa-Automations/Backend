@@ -1,4 +1,4 @@
-from typing import Any, Optional, Callable, List, Union
+from typing import Any, List, Union
 import cv2
 from moviepy.editor import CompositeVideoClip, VideoClip
 import numpy as np
@@ -7,7 +7,8 @@ import logging
 import math
 import traceback
 
-from models import FaceFramePosition, MessageReturnDict
+from models import FaceFramePosition, ReturnMessage
+from aliases import FacePositions
 
 logger = logging.getLogger(__name__)
 
@@ -22,24 +23,11 @@ class FaceTrackingVideo:
             60  # meaning after each x frames, it will detect if there is a face
         )
         self.frame_index = 0
-        self.frame_indices = []
-        self.nframes = 0
-        self.face_pos_x: List[float] = []
-        self.face_pos_y: List[float] = []
-        self.face_sizes: List[float] = []
-        self.imode = "linear"
         self.all_frame_results: List[
             Union[FaceFramePosition, None]
         ]  # variable to keep all the frame indices data together
-        self.face_cx: Optional[float] = None
-        self.face_cy: Optional[float] = None
-        self.target_face_cx: Optional[float] = None
-        self.target_face_cy: Optional[float] = None
-        self.detect_face_func: Optional[Callable] = None
-        self.interp_fcx_func: Optional[Callable] = None
-        self.interp_fcy_func: Optional[Callable] = None
 
-    def detect_faces(self, frame: np.ndarray) -> Optional[tuple]:
+    def detect_faces(self, frame: np.ndarray) -> Union[tuple, None]:
         """
         Helper method to detect a face.
         Parameters:
@@ -91,16 +79,16 @@ class FaceTrackingVideo:
                 while current_index >= 0:
                     last_face_dict = self.all_frame_results[current_index]
                     if last_face_dict:
-                        cx = last_face_dict["face_pos_x"]
-                        cy = last_face_dict["face_pos_y"]
+                        cx = last_face_dict.face_pos_x
+                        cy = last_face_dict.face_pos_y
                         break
                     else:
                         cx = frame.shape[1] / 2
                         cy = frame.shape[0] / 2
                     current_index -= 1
             elif current_indice_dict and not next_indice_dict:
-                cx = current_indice_dict["face_pos_x"]
-                cy = current_indice_dict["face_pos_y"]
+                cx = current_indice_dict.face_pos_x
+                cy = current_indice_dict.face_pos_y
             else:
                 # meaning that the current frame has a face detected and it isn't the first frame.
                 if not current_indice_dict:
@@ -117,9 +105,6 @@ class FaceTrackingVideo:
             if not cy:
                 logger.error("The face position is not defined, cy is undefined")
                 return
-
-            # Calculate the aspect ratio of the original frame
-            original_aspect_ratio = frame.shape[1] / frame.shape[0]
 
             # Define the target aspect ratio for cropping
             target_aspect_ratio = 9 / 16
@@ -177,15 +162,11 @@ class FaceTrackingVideo:
         - frame_index: int: The index of the frame in the video
         Returns tuple[cx, cy] - a tuple with the center face position of x and y
         """
-        current_indice_index = current_indice_dict["frame_index"]
-        next_indice_index = next_indice_dict["frame_index"]
+        current_indice_index = current_indice_dict.frame_index
+        next_indice_index = next_indice_dict.frame_index
 
-        x_difference = (
-            next_indice_dict["face_pos_x"] - current_indice_dict["face_pos_x"]
-        )
-        y_difference = (
-            next_indice_dict["face_pos_y"] - current_indice_dict["face_pos_y"]
-        )
+        x_difference = next_indice_dict.face_pos_x - current_indice_dict.face_pos_x
+        y_difference = next_indice_dict.face_pos_y - current_indice_dict.face_pos_y
         frame_difference = next_indice_index - current_indice_index
 
         # do this so that it doesn't divide by zero, when the last frame in the video is a frame where we checked if there was a face detected
@@ -197,18 +178,18 @@ class FaceTrackingVideo:
         curr_frame_after_curr_index = self.frame_index - current_indice_index
 
         cx: float = (
-            current_indice_dict["face_pos_x"]
+            current_indice_dict.face_pos_x
             + curr_frame_after_curr_index * frame_increment_x
         )
         cy: float = (
-            current_indice_dict["face_pos_y"]
+            current_indice_dict.face_pos_y
             + curr_frame_after_curr_index * frame_increment_y
         )
         return cx, cy
 
     def collect_face_position(
         self, frame: np.ndarray, indice_index: int
-    ) -> Optional[Union[FaceFramePosition, MessageReturnDict]]:
+    ) -> FacePositions:
         """
         Collect the face position for a given frame
         Parameters:
@@ -226,17 +207,14 @@ class FaceTrackingVideo:
             left, top, right, bottom = face_coordinates
             center_x, center_y = (left + right) / 2.0, (top + bottom) / 2.0
 
-            return {
-                "frame_index": indice_index,
-                "face_pos_x": center_x,
-                "face_pos_y": center_y,
-            }
+            return FaceFramePosition(
+                frame_index=indice_index,
+                face_pos_x=center_x,
+                face_pos_y=center_y,
+            )
         else:
             logger.info("No face detected in the frame")
-            return {
-                "message": "No face detected",
-                "status": None,
-            }
+            return ReturnMessage(message="No face detected", status=None)
 
     def process_short(self, video_clip: Union[Any, VideoClip, CompositeVideoClip]):
         """Method called to process a short to have face detection, along with the right aspect ratio"""
@@ -246,30 +224,28 @@ class FaceTrackingVideo:
         if not video_fps:
             raise ValueError("The video clip must have a valid FPS value")
 
-        self.nframes = int(video_clip.duration * video_clip.fps)
+        nframes = int(video_clip.duration * video_clip.fps)
 
         all_frame_results: List[Union[FaceFramePosition, None]] = []
-        for fidx in range(0, self.nframes, self.frame_correction_number):
+        for fidx in range(0, nframes, self.frame_correction_number):
             frame: np.ndarray = video_clip.get_frame(fidx / video_fps)
             frame_result = self.collect_face_position(frame, fidx)
-            if frame_result:
-                # see if frame type is FramePositionDict
-                if "frame_index" in frame_result:
-                    # since we know it is the correct type, since frame_index is a key in FaceFramePositionDict. Just doing this to remove type warnings
-                    all_frame_results.append(frame_result)
-                else:
-                    # meaning the frame didn't detect a face
-                    all_frame_results.append(None)
+            # see if frame type is FramePositionDict
+            if isinstance(frame_result, FaceFramePosition):
+                # since we know it is the correct type, since frame_index is a key in FaceFramePositionDict. Just doing this to remove type warnings
+                all_frame_results.append(frame_result)
             else:
-                logger.warning("The frame result is None")
+                self.__handle_face_frame_empty(frame_result)
+                all_frame_results.append(None)
 
         # Add a final position:
         final_frame_dict = self.collect_face_position(
-            video_clip.get_frame(self.nframes / video_fps), self.nframes
+            video_clip.get_frame(nframes / video_fps), nframes
         )
-        if final_frame_dict and "frame_index" in final_frame_dict:
+        if isinstance(final_frame_dict, FaceFramePosition):
             all_frame_results.append(final_frame_dict)
         else:
+            self.__handle_face_frame_empty(final_frame_dict)
             all_frame_results.append(all_frame_results[-1])
 
         self.all_frame_results = all_frame_results
@@ -278,3 +254,9 @@ class FaceTrackingVideo:
         processed_clip = video_clip.fl_image(self.process_frame)
 
         return processed_clip
+
+    def __handle_face_frame_empty(self, frame_dict: FacePositions):
+        if not frame_dict:
+            logger.warning(
+                "Received an empty frame. This isn't suppose to happen. Appending None"
+            )
