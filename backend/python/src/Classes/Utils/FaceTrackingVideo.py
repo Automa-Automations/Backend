@@ -7,7 +7,7 @@ import logging
 import math
 import traceback
 
-from models import FaceFramePositionDict, MessageReturnDict
+from models import FaceFramePosition, MessageReturnDict
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class FaceTrackingVideo:
         self.face_sizes: List[float] = []
         self.imode = "linear"
         self.all_frame_results: List[
-            Union[FaceFramePositionDict, None]
+            Union[FaceFramePosition, None]
         ]  # variable to keep all the frame indices data together
         self.face_cx: Optional[float] = None
         self.face_cy: Optional[float] = None
@@ -166,8 +166,8 @@ class FaceTrackingVideo:
 
     def calculate_face_pos(
         self,
-        current_indice_dict: FaceFramePositionDict,
-        next_indice_dict: FaceFramePositionDict,
+        current_indice_dict: FaceFramePosition,
+        next_indice_dict: FaceFramePosition,
     ) -> tuple[float, float]:
         """
         Function to calculate the current frame face positions
@@ -208,7 +208,7 @@ class FaceTrackingVideo:
 
     def collect_face_position(
         self, frame: np.ndarray, indice_index: int
-    ) -> Optional[Union[FaceFramePositionDict, MessageReturnDict]]:
+    ) -> Optional[Union[FaceFramePosition, MessageReturnDict]]:
         """
         Collect the face position for a given frame
         Parameters:
@@ -248,7 +248,7 @@ class FaceTrackingVideo:
 
         self.nframes = int(video_clip.duration * video_clip.fps)
 
-        all_frame_results: List[Union[FaceFramePositionDict, None]] = []
+        all_frame_results: List[Union[FaceFramePosition, None]] = []
         for fidx in range(0, self.nframes, self.frame_correction_number):
             frame: np.ndarray = video_clip.get_frame(fidx / video_fps)
             frame_result = self.collect_face_position(frame, fidx)

@@ -1,8 +1,10 @@
-from typing import Dict, List, Union, Literal
+from typing import List, Union, Literal
+from aliases import PodcastTranscript
 from models import (
-    AssemblyAIParsedTranscriptType,
-    TranscriptDict,
-    YoutubeAPITranscriptDict,
+    AssemblyAIParsedTranscript,
+    TranscriptFeedback,
+    ClipShortData,
+    YoutubeAPITranscript,
 )
 from src.Classes.Utils.ChatCompletion import ChatCompletion
 from src.Classes.Utils.FaceTrackingVideo import FaceTrackingVideo
@@ -15,7 +17,12 @@ import random
 import logging
 import re
 from src.Classes.Utils.PodcastTranscriber import PodcastTranscriber
-from src.utils import format_video_url, validate_string_similarity, download_podcast
+from src.utils import (
+    format_video_url,
+    validate_string_similarity,
+    download_podcast,
+    is_compatible_with_typed_dict,
+)
 import traceback
 
 logger = logging.getLogger(__name__)
@@ -591,7 +598,12 @@ class PodcastToShorts:
             if transcription["stats"]["should_make_short"] == should_make_short
         ]
 
-    def __get_transcripts_feedback(self, full_sentences_transcript):
+    def __get_transcripts_feedback(
+        self,
+        full_sentences_transcript: Union[
+            List[AssemblyAIParsedTranscript], List[YoutubeAPITranscript]
+        ],
+    ) -> List[TranscriptFeedback]:
         """
         Method to get the feedback of the transcriptions
         Parameters:
@@ -601,7 +613,7 @@ class PodcastToShorts:
         """
         logger.info("Getting transcripts feedback...")
         chunked_transcript = self.__chunk_transcript(full_sentences_transcript)
-        transcripts_feedback = []
+        transcripts_feedback: List[TranscriptFeedback] = []
         for idx, chunk in enumerate(chunked_transcript):
             prompt = f"""
             Your job is to evaluate the following transcript chunk from a long-form podcast style video: {chunk}. Decide whether or not a specific part of the transcript or the whole transcript is valid for a short. Evaluate the short based off of this:
@@ -663,7 +675,10 @@ class PodcastToShorts:
             if not response:
                 raise ValueError("Response is empty")
 
-            feedback_chunk = {
+            if not isinstance(response, dict):
+                raise Exception("Response is not a dictionary!")
+
+            feedback_chunk: TranscriptFeedback = {
                 "transcript": chunk,
                 "stats": response,
             }
@@ -693,7 +708,15 @@ class PodcastToShorts:
 
         return transcripts_feedback
 
-    def __chunk_transcript(self, video_transcript: str, chunk_length: int = 4000):
+    test = List[Union[AssemblyAIParsedTranscript, List[YoutubeAPITranscript]]]
+
+    def __chunk_transcript(
+        self,
+        video_transcript: Union[
+            List[AssemblyAIParsedTranscript], List[YoutubeAPITranscript]
+        ],
+        chunk_length: int = 4000,
+    ) -> test:
         """
         Method to chunk the transcript
         Parameters:
@@ -703,7 +726,9 @@ class PodcastToShorts:
         - list: The list of the chunked transcript
         """
         # chunk the list of dictionaries into a final list of lists, each list having less than chunk_length amount of characters
-        chunk_transcript_list = []
+        chunk_transcript_list: List[
+            List[Union[AssemblyAIParsedTranscript, YoutubeAPITranscript]]
+        ] = []
         current_chunk = []
 
         for transcript_dict in video_transcript:
@@ -723,7 +748,7 @@ class PodcastToShorts:
         return chunk_transcript_list
 
     def __get_total_transcript_duration(
-        self, transcript: List[TranscriptDict]
+        self, transcript: PodcastTranscript
     ) -> Union[float, None]:
         if len(transcript) == 0:
             return

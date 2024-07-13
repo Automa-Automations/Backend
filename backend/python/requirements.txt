@@ -16,3 +16,4 @@ python-dotenv
 opencv-python
 pydub
 assemblyai
+pydantic

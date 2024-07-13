@@ -1,6 +1,6 @@
 import sys
 from src.supabase import supabase
-from typing import Any
+from typing import Any, TypedDict
 from pytube import YouTube
 import datetime
 import traceback
@@ -217,3 +217,12 @@ def validate_string_similarity(string1, string2, percentage=80):
             similarity_score = 100
 
     return similarity_score >= percentage
+
+
+def is_compatible_with_typed_dict(unknown_dict: dict, typed_dict: type) -> bool:
+    """See if an unknown dictionary can be cast to a TypedDict type."""
+    for key, value_type in typed_dict.__annotations__.items():
+        if key not in unknown_dict or not isinstance(unknown_dict[key], value_type):
+            return False
+
+    return True

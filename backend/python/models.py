@@ -1,32 +1,43 @@
-from typing import TypedDict, Optional
+from typing import Optional
+from pydantic import BaseModel
 
-class TranscriptDict(TypedDict):
-    text: str
-    start: float
-    duration: float
+from aliases import PodcastTranscript
 
-class AssemblyAIParsedTranscriptType(TypedDict):
+
+class AssemblyAIParsedTranscript(BaseModel):
     sentence: str
     start_time: int
     end_time: int
     speaker: Optional[str]
 
 
-class YoutubeAPITranscriptDict(TypedDict):
+class YoutubeAPITranscript(BaseModel):
     text: str
     start: float
     duration: float
 
 
-class FaceFramePositionDict(TypedDict):
+class FaceFramePosition(BaseModel):
     frame_index: int
     face_pos_x: float
     face_pos_y: float
 
 
-class MessageReturnDict(TypedDict):
+class MessageReturnDict(BaseModel):
     message: str
     status: Optional[str]
 
-class ClipShortData(TypedDict):
 
+class ClipShortData(BaseModel):
+    test: str
+
+
+class TranscriptStats(BaseModel):
+    score: int
+    should_make_short: bool
+    feedback: str
+
+
+class TranscriptFeedback(BaseModel):
+    stats: TranscriptStats
+    transcript: PodcastTranscript

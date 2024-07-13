@@ -6,7 +6,7 @@ from pydub import AudioSegment
 import assemblyai as aai
 import logging
 import json
-from models import AssemblyAIParsedTranscriptType, YoutubeAPITranscriptDict
+from models import AssemblyAIParsedTranscriptType, YoutubeAPITranscript
 from src.utils import download_podcast
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ class PodcastTranscriber:
     def __init__(self, podcast_url) -> None:
         self.podcast_url = podcast_url
         self.aai_transcript: List[AssemblyAIParsedTranscriptType] = []
-        self.yt_transcript: List[YoutubeAPITranscriptDict] = []
+        self.yt_transcript: List[YoutubeAPITranscript] = []
         self.audio_duration = 0
 
     def _convert_to_mp3(self, file_path: str) -> str:
@@ -237,14 +237,14 @@ class YoutubeTranscriptionAPITranscriber:
         self.debugging = False
         self.transcript_path = "./src/Classes/Bots/json_files/youtube_transcript.json"
 
-    def get_video_transcript(self) -> List[YoutubeAPITranscriptDict]:
+    def get_video_transcript(self) -> List[YoutubeAPITranscript]:
         """
         Method to get the video transcript from the video url
         Returns List[YoutubeAPITranscriptDict] - The transcript of the podcast
         """
         logger.info("Getting video transcript...")
         video_id = self.podcast_url.split("v=")[1]
-        video_transcript: List[YoutubeAPITranscriptDict] = json.loads(
+        video_transcript: List[YoutubeAPITranscript] = json.loads(
             json.dumps(YouTubeTranscriptApi.get_transcript(video_id))
         )
 
