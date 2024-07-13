@@ -4,9 +4,13 @@ import json
 import os
 
 import click
-import dotenv
 import questionary
+from bunker_src.initialization import main as initialization
+
+initialization()
+
 from bunker_src.commands.bootstrap import command as bootstrap_command
+from bunker_src.commands.sqs_quickstart import sqs_quickstart
 from bunker_src.cron import cron_quickstart, cron_runner
 from bunker_src.docker import (build_container, container_builder,
                                container_runner, dockerhub_quickstart,
@@ -15,30 +19,11 @@ from bunker_src.flask import flask_quickstart, flask_route_builder
 from bunker_src.fly_io import deploy_image
 from bunker_src.ngrok import ngrok_container
 from bunker_src.testing import test_builder, test_runner
-from bunker_src.ui.ask_config import ask_config_json_questions
 from bunker_src.ui.choose_service import choose_service
-from bunker_src.utils import config_path, get_service_dir, global_options
+from bunker_src.utils import get_service_dir, global_options
 from colorama import init
-from pyngrok.ngrok import uuid
 
 init(autoreset=True)
-
-
-if not os.path.exists(".bunker.env"):
-    click.echo(
-        "Sorry, But it doesn't seem that you have your environment variables configured!"
-    )
-    with open(".bunker.env", "w") as f:
-        f.write(
-            f"""
-DOCKERHUB_USERNAME="{questionary.text('What is your DockerHub username?').ask()}"
-DOCKERHUB_PASSWORD="{questionary.text('What is your DockerHub password?').ask()}"
-FLY_IO_API_KEY="{questionary.text('What is your fly.io API key?').ask()}"
-        """
-        )
-
-
-dotenv.load_dotenv(".bunker.env")
 
 
 @click.group()
@@ -46,26 +31,6 @@ dotenv.load_dotenv(".bunker.env")
 def builder():
     """Bunker's code building CLI."""
     pass
-
-
-def sqs_quickstart(service_name, service_path):
-    os.system(f"cp -r templates/SqSTemplate/* {service_path}")
-
-    config_path = os.path.join(service_path, "config.json")
-    config = json.load(open(config_path, "r"))
-    config["name"] = f"{service_name}_{uuid.uuid4().hex}"
-
-    ask_config_json_questions(config)
-
-    json.dump(config, open(config_path, "w"), indent=4)
-
-    # Modify the Dockerfile
-    service_dockerpath = os.path.join(service_path, "Dockerfile")
-    dockerfile = open(service_dockerpath, "r").read()
-    dockerfile = dockerfile.replace("<<service_dir>>", service_path)
-
-    with open(service_dockerpath, "w") as f:
-        f.write(dockerfile)
 
 
 @builder.command()
