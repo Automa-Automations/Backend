@@ -159,11 +159,15 @@ def create_machine(app_name, image_name, service_config):
                     "cpu_kind": config.get("cpu_mode", "shared"),
                     "cpus": int(config.get("cpu", 1)),
                     "memory_mb": memory,
-                    # "gpus": 1,
-                    # "gpu_kind": "a100-pcie-40gb",
                 },
             }
         }
+
+        if "gpu" in config:
+            payload["config"]["guest"]["gpus"] = 1
+            payload["config"]["guest"]["gpu_kind"] = (
+                config.get("gpu") or "a100-pcie-40gb"
+            )
 
         if schedule := config.get("schedule"):
             payload["config"]["schedule"] = schedule
