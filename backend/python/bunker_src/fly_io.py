@@ -4,9 +4,7 @@ import os
 import click
 import requests
 
-headers = {
-    "Authorization": "Bearer fo1_EsFlhIwDIHpJX-ZJbInB6S82rbaIhAgY5TM3O93PwHQ"
-}
+headers = {"Authorization": "Bearer fo1_EsFlhIwDIHpJX-ZJbInB6S82rbaIhAgY5TM3O93PwHQ"}
 
 
 def list_apps():
@@ -22,9 +20,7 @@ def list_apps():
 def does_app_exist(name):
     apps = list_apps()
     return (
-        True
-        if len([app for app in apps if app["name"] == name.lower()]) > 0
-        else False
+        True if len([app for app in apps if app["name"] == name.lower()]) > 0 else False
     )
 
 
@@ -73,8 +69,7 @@ def list_app_volumes(app_name):
     response = requests.get(url, headers=headers)
     response_json = response.json()
     volume_ids = [
-        {"id": volume["id"], "name": volume["name"]}
-        for volume in response_json
+        {"id": volume["id"], "name": volume["name"]} for volume in response_json
     ]
     return volume_ids
 
@@ -101,9 +96,7 @@ def get_mounts(config, app_name):
                 if volume["name"] == mount_name
             ][0]
         else:
-            click.echo(
-                f"Volume {mount_name} does not exist. Creating volume..."
-            )
+            click.echo(f"Volume {mount_name} does not exist. Creating volume...")
             size: int = int(mount_path.split(":")[1])
             volume_id = create_app_volume(app_name, mount_name, size or 10)
 
@@ -126,7 +119,7 @@ def get_fly_services(config):
                     {"port": int(external), "handlers": ["tls", "http"]},
                 ],
                 "protocol": "tcp",
-                "autostop": True,
+                "autostop": config.get("auto_stop", True),
                 "autostart": True,
                 "min_machines_running": 0,
                 "internal_port": int(internal),
@@ -156,8 +149,7 @@ def create_machine(app_name, image_name, service_config):
         payload = {
             "config": {
                 "region": region,  # Make the user be able to choose the region, as well as multi region deployments
-                "init": {
-                },
+                "init": {},
                 "image": image,
                 "auto_destroy": True,
                 "restart": {"policy": "always"},
@@ -167,11 +159,15 @@ def create_machine(app_name, image_name, service_config):
                     "cpu_kind": config.get("cpu_mode", "shared"),
                     "cpus": int(config.get("cpu", 1)),
                     "memory_mb": memory,
-                    # "gpus": 1,
-                    # "gpu_kind": "a100-pcie-40gb",
                 },
             }
         }
+
+        if "gpu" in config:
+            payload["config"]["guest"]["gpus"] = 1
+            payload["config"]["guest"]["gpu_kind"] = (
+                config.get("gpu") or "a100-pcie-40gb"
+            )
 
         if schedule := config.get("schedule"):
             payload["config"]["schedule"] = schedule
@@ -203,7 +199,9 @@ def deploy_image(image_name, service_dir):
     app_config = json.load(open(config_path))
     app_name = app_config["name"]
     app_exists = does_app_exist(app_name.lower())
-    image_name = image_name if not app_config['base_image'] else app_config['base_image']
+    image_name = (
+        image_name if not app_config["base_image"] else app_config["base_image"]
+    )
 
     if "/" not in image_name:
         repository = f"{os.environ['DOCKERHUB_USERNAME']}/{image_name}"

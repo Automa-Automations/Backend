@@ -1,9 +1,0 @@
-{
-  "base_image": null,
-  "name": "BlankTemplate",
-  "cpu": "1",
-  "memory": "256MB",
-  "gpu": "auto",
-  "ports": {},
-  "env": {}
-}

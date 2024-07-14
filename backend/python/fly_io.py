@@ -39,5 +39,5 @@ def create_app(name):
     return response.json()
 
 
-app_name = "8cbfd719-6c70-48b7-9be0-7bc0ae7cb227"
-create_app(app_name)
+# app_name = "8cbfd719-6c70-48b7-9be0-7bc0ae7cb227"
+# create_app(app_name)

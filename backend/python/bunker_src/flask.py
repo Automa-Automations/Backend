@@ -4,10 +4,9 @@ import uuid
 
 import click
 import questionary
-from yaspin import yaspin
-
-from bunker_src.utils import config_path, get_service_dir
 from bunker_src.ui.ask_config import ask_config_json_questions
+from bunker_src.utils import get_service_dir
+from yaspin import yaspin
 
 
 def flask_quickstart(name: str, root_dir: str):
@@ -17,9 +16,7 @@ def flask_quickstart(name: str, root_dir: str):
 
     config = ask_config_json_questions(config)
     click.echo("📝 Saving configuration...")
-    json.dump(
-        config, open(os.path.join(root_dir, "config.json"), "w"), indent=4
-    )
+    json.dump(config, open(os.path.join(root_dir, "config.json"), "w"), indent=4)
 
     dockerfile_path = os.path.join(root_dir, "Dockerfile")
     if not os.path.exists(dockerfile_path):
@@ -28,9 +25,7 @@ def flask_quickstart(name: str, root_dir: str):
 
     click.echo("📝 Modifying Dockerfile...")
     dockerfile = open(dockerfile_path).read()
-    dockerfile = dockerfile.replace(
-        "<<port>>", list(config["ports"].keys())[0]
-    )
+    dockerfile = dockerfile.replace("<<port>>", list(config["ports"].keys())[0])
     dockerfile = dockerfile.replace(
         "<<app_run>>", "cd " + os.path.join(root_dir) + "; "
     )
@@ -46,9 +41,7 @@ def flask_quickstart(name: str, root_dir: str):
 
 
 def ask_flask_route_config():
-    config = {
-        "route": questionary.text("What route would you like to create?").ask()
-    }
+    config = {"route": questionary.text("What route would you like to create?").ask()}
 
     return config
 
@@ -61,7 +54,6 @@ def flask_route_builder(service, all, route=""):
 
     if routes[0] != "":
         routes = [""] + routes
-
 
     services_dir = get_service_dir()
     service_path = os.path.join(services_dir, service)

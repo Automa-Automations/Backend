@@ -1,10 +1,11 @@
 {
-    "base_image": null,
-    "name": "CronTemplate",
-    "cpu": "1",
-    "memory": "2048MB",
-    "gpu": "none",
-    "ports": {},
-    "env": {},
-    "schedule": "hourly"
+  "base_image": null,
+  "name": "CronTemplate",
+  "cpu": "1",
+  "memory": "2048MB",
+  "gpu": "none",
+  "ports": {},
+  "env": {},
+  "schedule": "hourly",
+  "regions": ["mia"]
 }
