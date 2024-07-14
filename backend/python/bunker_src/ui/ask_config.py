@@ -7,7 +7,6 @@ import questionary
 def ask_config_json_questions(config: dict[str, Any]):
     config = config.copy()
 
-
     # CPU
     should_ask_cpu = True
     if (
@@ -66,14 +65,13 @@ def ask_config_json_questions(config: dict[str, Any]):
         config["memory"] = f"{memory}{memory_unit}"
 
         memory_amount = memory if memory_unit == "MB" else memory * 1024
-        if memory_amount < 2048:
+        if int(memory_amount) < 2048:
             can_ask_gpu = False
             config["cpu_mode"] = "shared"
             click.echo(
                 f"ℹ Memory is less than 2GB. GPU cannot be enabled for this service."
             )
     # GPU
-
 
     should_ask_gpu = True
     if can_ask_gpu:
@@ -93,18 +91,11 @@ def ask_config_json_questions(config: dict[str, Any]):
 
     mounts = config.get("mounts", {})
     should_ask_mounts = True
-    if (
-        mounts
-        and not questionary.confirm(
-            "Would you like to change the mounts?"
-        ).ask()
-    ):
+    if mounts and not questionary.confirm("Would you like to change the mounts?").ask():
         should_ask_mounts = False
 
     if should_ask_mounts:
-        should_ask_mounts = questionary.confirm(
-            "Would you like to add mounts?"
-        ).ask()
+        should_ask_mounts = questionary.confirm("Would you like to add mounts?").ask()
 
     if should_ask_mounts:
         while True:
@@ -138,13 +129,9 @@ def ask_config_json_questions(config: dict[str, Any]):
     if should_ask_env_vars:
         while True:
             env_var_name = questionary.text("Environment Variable Name:").ask()
-            env_var_value = questionary.text(
-                "Environment Variable Value:"
-            ).ask()
+            env_var_value = questionary.text("Environment Variable Value:").ask()
             env_vars[env_var_name] = env_var_value
-            add_another = questionary.confirm(
-                "Add another environment variable?"
-            ).ask()
+            add_another = questionary.confirm("Add another environment variable?").ask()
             if not add_another:
                 break
 
@@ -157,5 +144,10 @@ def ask_config_json_questions(config: dict[str, Any]):
         ).ask()
 
         config["schedule"] = cron
+
+    click.echo(
+        """🌍 If you would like to configure regions, take a look at the 'https://fly.io/docs/reference/regions/' page.
+As well as configuring regions in the config.json files as type 'dict.key(region as string[])"""
+    )
 
     return config

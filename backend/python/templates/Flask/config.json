@@ -1,11 +1,12 @@
 {
-    "base_image": null,
-    "name": "FlaskTemplate",
-    "cpu": "1",
-    "memory": "2048MB",
-    "gpu": "none",
-    "ports": {
-      "5000": 80
-    },
-    "env": {}
+  "base_image": null,
+  "name": "FlaskTemplate",
+  "cpu": "1",
+  "memory": "2048MB",
+  "gpu": "none",
+  "ports": {
+    "5000": 80
+  },
+  "env": {},
+  "regions": ["mia"]
 }

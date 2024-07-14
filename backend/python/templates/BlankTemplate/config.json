@@ -1,16 +1,11 @@
 {
-    "base_image": null,
-    "name": "BlankTemplate",
-    "cpu": "1",
-    "memory": "2048MB",
-    "gpu": "auto",
-    "ports": {
-
-    },
-    "env": {
-
-    },
-    "mounts": {
-
-    }
+  "base_image": null,
+  "name": "BlankTemplate",
+  "cpu": "1",
+  "memory": "2048MB",
+  "gpu": "auto",
+  "ports": {},
+  "env": {},
+  "mounts": {},
+  "regions": ["mia"]
 }

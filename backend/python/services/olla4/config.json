@@ -1,0 +1,11 @@
+{
+    "base_image": "librarytesting/muffin",
+    "name": "olla4-ae26b4333756454f9dda5aa4e42fd526",
+    "cpu": "1",
+    "memory": "256MB",
+    "gpu": "",
+    "ports": {},
+    "mounts": {},
+    "env": {},
+    "cpu_mode": "shared"
+}
