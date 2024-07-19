@@ -4,7 +4,7 @@ from aliases import VideoType, VideoEditingActionType
 
 class DownloadError(Exception):
     """
-    Custom error class for any error related to downloading something
+    Exception raised related to downloading something
     """
 
     def __init__(self, message: str, download_type: str):
@@ -26,7 +26,7 @@ class DownloadError(Exception):
 
 class EditVideoError(Exception):
     """
-    Custom error class for any error related to editing a video
+    Exception raised related to editing a video
     """
 
     def __init__(
@@ -51,3 +51,22 @@ class EditVideoError(Exception):
             indent=4,
         )
         super().__init__(message)
+
+
+class ImpossibleError(Exception):
+    """Exception raised for code paths that should be impossible"""
+
+    def __init__(self, message: str, explanation: str):
+        """
+        Parameters:
+        - message: str: The error message you want to show
+        - explanation: str: The explanation of why this error should be impossible
+        """
+        message = json.dumps(
+            {
+                "error_type": "Impossible Error",
+                "explanation": explanation,
+                "message": message,
+            },
+            indent=4,
+        )

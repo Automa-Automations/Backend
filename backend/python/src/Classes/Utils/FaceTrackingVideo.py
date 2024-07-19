@@ -7,7 +7,7 @@ import logging
 import math
 import traceback
 
-from errors import EditVideoError
+from errors import EditVideoError, ImpossibleError
 from models import FaceFramePosition, ReturnMessage
 from aliases import FacePositions
 
@@ -66,8 +66,8 @@ class FaceTrackingVideo:
             else:
                 next_indice_dict = self.all_frame_results[next_indice]
 
-            cx = 0
-            cy = 0
+            cx = 0.00
+            cy = 0.00
             # When the first indice do not have a face
             if not current_indice_dict and current_indice == 0:
                 # center both the cx and cy to be the center of the screen
@@ -93,19 +93,31 @@ class FaceTrackingVideo:
             else:
                 # meaning that the current frame has a face detected and it isn't the first frame.
                 if not current_indice_dict:
-                    raise Exception("Somehow current_indice_dict is None.")
+                    raise ImpossibleError(
+                        message="Somehow 'current_indice_dict' is None",
+                        explanation="This should not be possible, as if 'current_indice_dict' was None, it would have went down a different elif statement.",
+                    )
 
                 if not next_indice_dict:
-                    raise Exception("Somehow next_indice_dict is None.")
+                    raise ImpossibleError(
+                        message="Somehow 'next_indice_dict' is None",
+                        explanation="This should not be possible, as if 'next_indice_dict' was None, it would have went down a different elif statement.",
+                    )
 
                 cx, cy = self.calculate_face_pos(current_indice_dict, next_indice_dict)
 
             if not cx:
-                logger.error("The face position is not defined, cx is undefined")
-                return
+                raise EditVideoError(
+                    message=f"Face Center Position X is not valid. CX: {cx}",
+                    video_type="short",
+                    action_type="process frame",
+                )
             if not cy:
-                logger.error("The face position is not defined, cy is undefined")
-                return
+                raise EditVideoError(
+                    message=f"Face Center Position Y is not valid. CX: {cy}",
+                    video_type="short",
+                    action_type="process frame",
+                )
 
             # Define the target aspect ratio for cropping
             target_aspect_ratio = 9 / 16
@@ -147,7 +159,11 @@ class FaceTrackingVideo:
 
             return resized_frame
         except Exception as e:
-            traceback.print_exc()
+            raise EditVideoError(
+                message=f"An error occurred while processing the frame: {e}",
+                video_type="short",
+                action_type="process frame",
+            ) from e
 
     def calculate_face_pos(
         self,
@@ -177,11 +193,11 @@ class FaceTrackingVideo:
         frame_increment_y = y_difference / frame_difference
         curr_frame_after_curr_index = self.frame_index - current_indice_index
 
-        cx: float = (
+        cx = (
             current_indice_dict.face_pos_x
             + curr_frame_after_curr_index * frame_increment_x
         )
-        cy: float = (
+        cy = (
             current_indice_dict.face_pos_y
             + curr_frame_after_curr_index * frame_increment_y
         )
@@ -216,44 +232,52 @@ class FaceTrackingVideo:
             logger.info("No face detected in the frame")
             return ReturnMessage(message="No face detected", status=None)
 
-    def process_short(self, video_clip: Union[Any, VideoClip, CompositeVideoClip]):
+    def process_short(self, video_clip: Union[VideoClip, CompositeVideoClip]):
         """Method called to process a short to have face detection, along with the right aspect ratio"""
 
-        logger.info("Collecting face positions...")
-        video_fps = video_clip.fps
-        if not video_fps:
-            raise ValueError("The video clip must have a valid FPS value")
+        try:
+            logger.info("Collecting face positions...")
 
-        nframes = int(video_clip.duration * video_clip.fps)
+            video_fps = video_clip.fps
+            if not video_fps:
+                raise ValueError("The video clip must have a valid FPS value")
 
-        all_frame_results: List[Union[FaceFramePosition, None]] = []
-        for fidx in range(0, nframes, self.frame_correction_number):
-            frame: np.ndarray = video_clip.get_frame(fidx / video_fps)
-            frame_result = self.collect_face_position(frame, fidx)
-            # see if frame type is FramePositionDict
-            if isinstance(frame_result, FaceFramePosition):
-                # since we know it is the correct type, since frame_index is a key in FaceFramePositionDict. Just doing this to remove type warnings
-                all_frame_results.append(frame_result)
+            nframes = int(video_clip.duration * video_clip.fps)
+
+            all_frame_results: List[Union[FaceFramePosition, None]] = []
+            for fidx in range(0, nframes, self.frame_correction_number):
+                frame: np.ndarray = video_clip.get_frame(fidx / video_fps)
+                frame_result = self.collect_face_position(frame, fidx)
+                # see if frame type is FramePositionDict
+                if isinstance(frame_result, FaceFramePosition):
+                    # since we know it is the correct type, since frame_index is a key in FaceFramePositionDict. Just doing this to remove type warnings
+                    all_frame_results.append(frame_result)
+                else:
+                    self.__handle_face_frame_empty(frame_result)
+                    all_frame_results.append(None)
+
+            # Add a final position:
+            final_frame_dict = self.collect_face_position(
+                video_clip.get_frame(nframes / video_fps), nframes
+            )
+            if isinstance(final_frame_dict, FaceFramePosition):
+                all_frame_results.append(final_frame_dict)
             else:
-                self.__handle_face_frame_empty(frame_result)
-                all_frame_results.append(None)
+                self.__handle_face_frame_empty(final_frame_dict)
+                all_frame_results.append(all_frame_results[-1])
 
-        # Add a final position:
-        final_frame_dict = self.collect_face_position(
-            video_clip.get_frame(nframes / video_fps), nframes
-        )
-        if isinstance(final_frame_dict, FaceFramePosition):
-            all_frame_results.append(final_frame_dict)
-        else:
-            self.__handle_face_frame_empty(final_frame_dict)
-            all_frame_results.append(all_frame_results[-1])
+            self.all_frame_results = all_frame_results
+            self.frame_index = 1
 
-        self.all_frame_results = all_frame_results
-        self.frame_index = 1
+            processed_clip = video_clip.fl_image(self.process_frame)
 
-        processed_clip = video_clip.fl_image(self.process_frame)
-
-        return processed_clip
+            return processed_clip
+        except Exception as e:
+            raise EditVideoError(
+                message=f"Errror processing short: {e}",
+                video_type="short",
+                action_type="process short",
+            ) from e
 
     def __handle_face_frame_empty(self, frame_dict: FacePositions):
         if not frame_dict:
