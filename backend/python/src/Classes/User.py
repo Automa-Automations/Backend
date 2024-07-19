@@ -121,7 +121,9 @@ class DatabaseSyncedProfile:
             )
 
         supabase_url = upload_file(
-            bucket_name="avatars", path_on_bucket=f"{self._id}.png", content=file_object
+            bucket_name="avatars",
+            path_on_bucket=f"{self._id}.png",
+            content=file_object,
         )
         self._update("avatar_url", supabase_url)
         self._avatar_url = supabase_url
@@ -205,7 +207,11 @@ class DatabaseSyncedProfile:
         line_name = "id"
 
         update_value(
-            table=table, line=line, val=val, new_value=new_value, line_name=line_name
+            table=table,
+            line=line,
+            val=val,
+            new_value=new_value,
+            line_name=line_name,
         )
         if updated_at:
             update_value(

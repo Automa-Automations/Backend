@@ -17,7 +17,11 @@ import random
 import logging
 import re
 from src.Classes.Utils.PodcastTranscriber import PodcastTranscriber
-from src.utils import format_video_url, validate_string_similarity, download_podcast
+from src.utils import (
+    format_yt_video_url,
+    validate_string_similarity,
+    download_podcast,
+)
 import traceback
 
 logger = logging.getLogger(__name__)
@@ -42,7 +46,7 @@ class PodcastToShorts:
         self.llm_type: Literal["openai", "ollama"] = llm_type
         self.llm_model = llm_model
         self.debugging = True
-        self.podcast_url = format_video_url(self.podcast_url)
+        self.podcast_url = format_yt_video_url(self.podcast_url)
         self.yt = YouTube(self.podcast_url)
         self.ollama_base_url = ollama_base_url
         self.llm_api_key = llm_api_key
@@ -122,7 +126,9 @@ class PodcastToShorts:
             # Make a new list by putting only the highest scores in there, so that it is the length of round(podcast_length / 10)
             logger.info("Shorts transcripts length is too long...")
             highest_score_list = sorted(
-                shorts_transcripts, key=lambda x: x["stats"]["score"], reverse=True
+                shorts_transcripts,
+                key=lambda x: x["stats"]["score"],
+                reverse=True,
             )[: round(podcast_length / 10)]
 
             logger.info(
@@ -192,7 +198,9 @@ class PodcastToShorts:
 
         # sort the shorts_transcripts by the score, in descending order
         descending_sorted_shorts = sorted(
-            shorts_transcripts, key=lambda x: int(x["stats"]["score"]), reverse=True
+            shorts_transcripts,
+            key=lambda x: int(x["stats"]["score"]),
+            reverse=True,
         )
         best_shorts = descending_sorted_shorts[:total_shorts]
         logger.info(f"Got an extra {len(best_shorts)} shorts.")
@@ -518,7 +526,8 @@ class PodcastToShorts:
             all_sentences_clips = []
             for sentence_dict in short_transcript:
                 sentence_clip = VideoFileClip(podcast_path).subclip(
-                    sentence_dict["start_time"] / 1000, sentence_dict["end_time"] / 1000
+                    sentence_dict["start_time"] / 1000,
+                    sentence_dict["end_time"] / 1000,
                 )
                 all_sentences_clips.append(sentence_clip)
 
@@ -566,7 +575,9 @@ class PodcastToShorts:
         return FaceTrackingVideo().process_short(clipped_video)
 
     def __filter_transcripts(
-        self, transcriptions_feedback: List[dict], should_make_short: bool = True
+        self,
+        transcriptions_feedback: List[dict],
+        should_make_short: bool = True,
     ):
         """
         Method to filter the transcriptions based on the should_make_short value

@@ -90,7 +90,10 @@ class BotSession:
         # add the cookies
         current_metadata["cookies"] = new_metadata
         update_value(
-            table=table, line=self.id, val="metadata_dict", new_value=current_metadata
+            table=table,
+            line=self.id,
+            val="metadata_dict",
+            new_value=current_metadata,
         )
 
 
@@ -429,7 +432,8 @@ class InstagramPlatformBot(Bot):
         session_filepath = f"/tmp/{self.id}.json"
         if not session.metadata_dict["cookies"]:
             cl.login(
-                session.metadata_dict["username"], session.metadata_dict["password"]
+                session.metadata_dict["username"],
+                session.metadata_dict["password"],
             )
             cl.dump_settings(session_filepath)
 

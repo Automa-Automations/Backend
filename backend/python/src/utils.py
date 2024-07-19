@@ -1,6 +1,7 @@
 import sys
+from errors import DownloadError
 from src.supabase import supabase
-from typing import Any, Union
+from typing import Any, Optional
 from pytube import YouTube
 import datetime
 import traceback
@@ -8,7 +9,11 @@ import uuid
 import requests
 from fuzzywuzzy import fuzz
 import os
-from models import StatusReturn, DownloadPodcastResponse
+from models import DownloadPodcastResponse
+from aliases import ReturnStatus
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def update_value(
@@ -32,9 +37,11 @@ def get_value(table: str, line: Any, line_name: str = "id") -> dict:
 
 
 def upload_file(
-    bucket_name: str, path_on_bucket: str, content: bytes, extended_file_options=None
+    bucket_name: str,
+    path_on_bucket: str,
+    content: bytes,
+    extended_file_options=None,
 ) -> str:
-
     if extended_file_options is None:
         extended_file_options = {}
 
@@ -138,7 +145,13 @@ def download_file_url(from_: str) -> bytes:
     return file_object
 
 
-def format_video_url(video_url: str) -> str:
+def format_yt_video_url(video_url: str) -> str:
+    """
+    Function to format a Youtube video URL into a standard format
+    Parameters:
+    - video_url: str: The video URL
+    Returns str: The formatted video URL
+    """
     if "youtu.be" in video_url:
         video_url = f"https://youtube.com/watch?v={video_url.split("youtu.be/")[1].split("?")[0]}"
 
@@ -146,31 +159,46 @@ def format_video_url(video_url: str) -> str:
 
 
 def download_podcast(
-    podcast_url: str, output_path: str = "downloads/", filename: str = ""
-) -> Union[DownloadPodcastResponse, StatusReturn]:
+    podcast_url: str,
+    output_path: str = "downloads/",
+    filename: str = "",
+    debugging: Optional[bool] = False,
+) -> DownloadPodcastResponse:
     """
     Function to download a specific podcast
     Parameters:
     - podcast_url: str: The podcast URL
     - output_path: str: The output directory where you want to save the downloaded podcast
     - filename: str: The filename of the downloaded podcast
-    Returns Union[DownloadPodcastResponse, StatusReturn]: DownloadPodcastResponse if there aren't any errors
+    - debugging: bool: Whether to print debugging information, along with skipping the download entirely if it already exists.
+    Returns DownloadPodcastResponse: the download response
     """
-    print("Downloading podcast...")
-
+    logger.info("Downloading podcast...")
+    os.makedirs(output_path, exist_ok=True)
     try:
         yt = YouTube(podcast_url)
         if filename == "":
             filename = yt.title
 
         podcast_output_path = f"{output_path}{filename}"
-        if not os.path.exists(podcast_output_path):
-            if not os.path.exists(output_path):
-                os.makedirs(output_path)
 
+        should_download: bool = True
+        if os.path.exists(podcast_output_path):
+            if debugging:
+                should_download = False
+            else:
+                logger.info(f"Removing previous podcast at '{podcast_output_path}'")
+                os.remove(podcast_output_path)
+
+        if should_download:
             yt.streams.filter(progressive=True, file_extension="mp4").order_by(
                 "resolution"
             )[-1].download(output_path=output_path, filename=filename)
+            if not os.path.exists(podcast_output_path):
+                raise DownloadError(
+                    message=f"Error downloading podcast. URL: '{podcast_url}': Failed to save podcast to output path for some reason.",
+                    download_type="Podcast",
+                )
 
         return DownloadPodcastResponse(
             output_path=output_path,
@@ -178,8 +206,10 @@ def download_podcast(
             status="success",
         )
     except Exception as e:
-        traceback.print_exc()
-        raise Exception(f"")
+        raise DownloadError(
+            message=f"Error downloading podcast. URL: '{podcast_url}': {e}",
+            download_type="Podcast",
+        ) from e
 
 
 def validate_string_similarity(

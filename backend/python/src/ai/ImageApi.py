@@ -33,7 +33,11 @@ class ImageApi:
             return json.loads(urllib.request.urlopen(req).read())
 
         def get_image(filename, subfolder, folder_type):
-            data = {"filename": filename, "subfolder": subfolder, "type": folder_type}
+            data = {
+                "filename": filename,
+                "subfolder": subfolder,
+                "type": folder_type,
+            }
             url_values = urllib.parse.urlencode(data)
             with urllib.request.urlopen(
                 "http://{}/view?{}".format(self.server_address, url_values)
@@ -68,7 +72,9 @@ class ImageApi:
                         images_output = []
                         for image in node_output["images"]:
                             image_data = get_image(
-                                image["filename"], image["subfolder"], image["type"]
+                                image["filename"],
+                                image["subfolder"],
+                                image["type"],
                             )
                             images_output.append(image_data)
                     output_images[node_id] = images_output

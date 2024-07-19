@@ -8,8 +8,6 @@ import logging
 import json
 from models import (
     AssemblyAIParsedTranscript,
-    DownloadPodcastResponse,
-    ReturnMessage,
     YoutubeAPITranscript,
 )
 from src.utils import download_podcast
@@ -56,9 +54,9 @@ class PodcastTranscriber:
         podcast_transcriber = cls(podcast_url)
         download_output = download_podcast(podcast_url)
         logger.info(f"Download Output: {download_output}")
-        if download_output["status"] == "success":
+        if download_output.status == "success":
             download_path = os.path.join(
-                download_output["output_path"], download_output["filename"]
+                download_output.output_path, download_output.filename
             )
 
             assembly_ai = AssemblyAI(api_key)

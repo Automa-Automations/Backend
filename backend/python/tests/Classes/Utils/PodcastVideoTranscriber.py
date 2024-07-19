@@ -1,6 +1,6 @@
 import unittest
 from src.Classes.Utils.PodcastTranscriber import PodcastTranscriber
-from src.utils import format_video_url
+from src.utils import format_yt_video_url
 import os
 
 
@@ -12,7 +12,7 @@ class PodcastVideoTranscriber(unittest.TestCase):
         if not test_podcast_url or not self.assembly_api_key:
             raise Exception("Test podcast url or assembly api key is empty string")
 
-        self.podcast_url = format_video_url(test_podcast_url)
+        self.podcast_url = format_yt_video_url(test_podcast_url)
 
     def test_api_key_exists(self):
         self.assertNotEqual(
