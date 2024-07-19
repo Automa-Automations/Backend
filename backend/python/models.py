@@ -1,5 +1,6 @@
 from typing import Optional
 from pydantic import BaseModel
+from aliases import ReturnStatus
 
 from aliases import PodcastTranscript
 
@@ -41,3 +42,15 @@ class TranscriptStats(BaseModel):
 class TranscriptFeedback(BaseModel):
     stats: TranscriptStats
     transcript: PodcastTranscript
+
+
+class StatusReturn(BaseModel):
+    status: ReturnStatus
+    error: Optional[str] = None
+    message: Optional[str] = None
+
+
+class DownloadPodcastResponse(BaseModel):
+    output_path: str
+    filename: str
+    status: ReturnStatus

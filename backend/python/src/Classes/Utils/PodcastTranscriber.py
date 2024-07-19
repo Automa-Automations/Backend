@@ -6,7 +6,12 @@ from pydub import AudioSegment
 import assemblyai as aai
 import logging
 import json
-from models import AssemblyAIParsedTranscriptType, YoutubeAPITranscript
+from models import (
+    AssemblyAIParsedTranscript,
+    DownloadPodcastResponse,
+    ReturnMessage,
+    YoutubeAPITranscript,
+)
 from src.utils import download_podcast
 
 logger = logging.getLogger(__name__)
@@ -19,7 +24,7 @@ class PodcastTranscriber:
 
     def __init__(self, podcast_url) -> None:
         self.podcast_url = podcast_url
-        self.aai_transcript: List[AssemblyAIParsedTranscriptType] = []
+        self.aai_transcript: List[AssemblyAIParsedTranscript] = []
         self.yt_transcript: List[YoutubeAPITranscript] = []
         self.audio_duration = 0
 
@@ -51,7 +56,6 @@ class PodcastTranscriber:
         podcast_transcriber = cls(podcast_url)
         download_output = download_podcast(podcast_url)
         logger.info(f"Download Output: {download_output}")
-
         if download_output["status"] == "success":
             download_path = os.path.join(
                 download_output["output_path"], download_output["filename"]
@@ -76,9 +80,7 @@ class PodcastTranscriber:
             ):
                 logger.info("Transcript already exist, no need to transcribe podcast.")
                 with open(assembly_ai.parsed_transcript_path, "r") as f:
-                    parsed_transcript: List[AssemblyAIParsedTranscriptType] = json.load(
-                        f
-                    )
+                    parsed_transcript: List[AssemblyAIParsedTranscript] = json.load(f)
                 with open(assembly_ai.transcript_path, "r") as f:
                     transcript = json.load(f)
             else:
@@ -126,71 +128,68 @@ class AssemblyAI:
 
     def get_yt_podcast_transcription(
         self, podcast_download_path: str
-    ) -> Union[TranscriptResponse, None]:
+    ) -> TranscriptResponse:
         """
         Function to transcribe the podcast, using Youtube Transcript API
         Parameters:
         - podcast_download_path: str: The path to the downloaded podcast
-        Returns Union[TranscriptResponse, None] - The transcript of the podcast
+        Returns Union[TranscriptResponse] - The transcript of the podcast
         """
         logger.info("Transcribing podcast...")
         transcriber = aai.Transcriber()
         transcript = transcriber.transcribe(podcast_download_path)
         transcript = transcript.wait_for_completion()
-        if transcript.json_response and "text" in transcript.json_response:
-            logger.info(
-                f"Transcript word length: {len(transcript.json_response["text"])}"
-            )
+        if transcript.json_response:
+            if "text" in transcript.json_response:
+                logger.info(
+                    f"Transcript word length: {len(transcript.json_response["text"])}"
+                )
 
-            if self.debugging:
-                with open(self.transcript_path, "w") as f:
-                    f.write(json.dumps(transcript.json_response, indent=4))
+                if self.debugging:
+                    with open(self.transcript_path, "w") as f:
+                        f.write(json.dumps(transcript.json_response, indent=4))
 
-            transcript_response: TranscriptResponse = json.loads(
-                json.dumps(transcript.json_response)
-            )
-            return transcript_response
+                transcript_response: TranscriptResponse = json.loads(
+                    json.dumps(transcript.json_response)
+                )
+                return transcript_response
+            else:
+                raise Exception(
+                    f"Transcription failed! It doesn't have 'text' as a key. Transcript: {transcript.json_response}"
+                )
         else:
-            logger.error("Transcription failed.")
+            raise Exception(f"Transcription failed! 'json_response' is None.")
 
-    def parse_transcript(self, transcript) -> List[AssemblyAIParsedTranscriptType]:
+    def parse_transcript(self, transcript) -> List[AssemblyAIParsedTranscript]:
         """Function to parse transcript into full sentences."""
         logger.info("Parsing transcript...")
         all_transcript_words = self.remove_filler_words(transcript["words"])
 
-        full_sentences_transcript: List[AssemblyAIParsedTranscriptType] = []
-        current_sentence_dict: AssemblyAIParsedTranscriptType = {
-            "sentence": "",
-            "start_time": 0,
-            "end_time": 0,
-            "speaker": "",
-        }
+        current_sentence_dict = AssemblyAIParsedTranscript(
+            sentence="", start_time=0, end_time=0, speaker=""
+        )
 
+        full_sentences_transcript: List[AssemblyAIParsedTranscript] = []
         for word_dict in all_transcript_words:
-            current_sentence_dict["sentence"] += word_dict["text"] + " "
-            if (
-                word_dict["text"][0].isupper()
-                and not current_sentence_dict["start_time"]
-            ):
-                current_sentence_dict["start_time"] = word_dict["start"]
-                current_sentence_dict["speaker"] = word_dict["speaker"]
+            current_sentence_dict.sentence += word_dict["text"] + " "
+            if word_dict["text"][0].isupper() and not current_sentence_dict.start_time:
+                current_sentence_dict.start_time = word_dict["start"]
+                current_sentence_dict.speaker = word_dict["speaker"]
 
-            if current_sentence_dict["sentence"].strip()[-1] in [
+            if current_sentence_dict.sentence.strip()[-1] in [
                 "?",
                 "!",
                 ".",
             ]:
-                current_sentence_dict["end_time"] = word_dict["end"]
-                current_sentence_dict["sentence"] = current_sentence_dict[
-                    "sentence"
-                ].strip()
+                current_sentence_dict.end_time = word_dict["end"]
+                current_sentence_dict.sentence = current_sentence_dict.sentence.strip()
                 full_sentences_transcript.append(current_sentence_dict)
-                current_sentence_dict = {
-                    "sentence": "",
-                    "start_time": 0,
-                    "end_time": 0,
-                    "speaker": "",
-                }
+                current_sentence_dict = AssemblyAIParsedTranscript(
+                    sentence="",
+                    start_time=0,
+                    end_time=0,
+                    speaker="",
+                )
 
         logger.info(
             f"Full sentences transcript length: {len(full_sentences_transcript)}"

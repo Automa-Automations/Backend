@@ -1,6 +1,6 @@
 import sys
 from src.supabase import supabase
-from typing import Any, TypedDict
+from typing import Any, Union
 from pytube import YouTube
 import datetime
 import traceback
@@ -8,6 +8,7 @@ import uuid
 import requests
 from fuzzywuzzy import fuzz
 import os
+from models import StatusReturn, DownloadPodcastResponse
 
 
 def update_value(
@@ -144,7 +145,17 @@ def format_video_url(video_url: str) -> str:
     return video_url
 
 
-def download_podcast(podcast_url, output_path: str = "downloads/", filename: str = ""):
+def download_podcast(
+    podcast_url: str, output_path: str = "downloads/", filename: str = ""
+) -> Union[DownloadPodcastResponse, StatusReturn]:
+    """
+    Function to download a specific podcast
+    Parameters:
+    - podcast_url: str: The podcast URL
+    - output_path: str: The output directory where you want to save the downloaded podcast
+    - filename: str: The filename of the downloaded podcast
+    Returns Union[DownloadPodcastResponse, StatusReturn]: DownloadPodcastResponse if there aren't any errors
+    """
     print("Downloading podcast...")
 
     try:
@@ -161,34 +172,38 @@ def download_podcast(podcast_url, output_path: str = "downloads/", filename: str
                 "resolution"
             )[-1].download(output_path=output_path, filename=filename)
 
-        return {
-            "output_path": output_path,
-            "filename": filename,
-            "status": "success",
-        }
-
+        return DownloadPodcastResponse(
+            output_path=output_path,
+            filename=filename,
+            status="success",
+        )
     except Exception as e:
-        return {
-            "error": str(e),
-            "status": "error",
-        }
+        traceback.print_exc()
+        raise Exception(f"")
 
 
-def validate_string_similarity(string1, string2, percentage=80):
+def validate_string_similarity(
+    string1: str, string2: str, percentage: int = 80
+) -> bool:
     """
     Method to validate the similarity between two strings
     Parameters:
     - string1: str: The first string
     - string2: str: The second string
     - percentage: int: The percentage of similarity
-    Returns:
-    - bool: The value of the similarity
+    Returns bool: Whehter the strings are similar or not
     """
 
-    def get_similarity_score(string1, string2):
+    def get_similarity_score(string1: str, string2: str) -> int:
+        """
+        Internal function to get similarity score
+        Parameters:
+        - string1: str: The first string
+        - string2: str: The second string
+        Returns int: The similarity score
+        """
         return fuzz.token_sort_ratio(string1, string2)
 
-    # check if strings are above 80% similar
     similarity_score = get_similarity_score(string1, string2)
 
     if (
@@ -217,12 +232,3 @@ def validate_string_similarity(string1, string2, percentage=80):
             similarity_score = 100
 
     return similarity_score >= percentage
-
-
-def is_compatible_with_typed_dict(unknown_dict: dict, typed_dict: type) -> bool:
-    """See if an unknown dictionary can be cast to a TypedDict type."""
-    for key, value_type in typed_dict.__annotations__.items():
-        if key not in unknown_dict or not isinstance(unknown_dict[key], value_type):
-            return False
-
-    return True
