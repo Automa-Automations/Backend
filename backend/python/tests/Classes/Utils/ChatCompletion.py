@@ -17,7 +17,9 @@ class OllamaChatCompletion(unittest.TestCase):
 
     def test_ollama_chat_completion_text(self):
         chat_completion = ChatCompletion(
-            llm_type="ollama", llm_model="llama3", ollama_base_url=self.ollama_base_url
+            llm_type="ollama",
+            llm_model="llama3",
+            ollama_base_url=self.ollama_base_url,
         )
         response = chat_completion.generate("Hello, how are you?")
         if response is not None:
@@ -28,7 +30,9 @@ class OllamaChatCompletion(unittest.TestCase):
 
     def test_ollama_chat_completion_json(self):
         chat_completion = ChatCompletion(
-            llm_type="ollama", llm_model="llama3", ollama_base_url=self.ollama_base_url
+            llm_type="ollama",
+            llm_model="llama3",
+            ollama_base_url=self.ollama_base_url,
         )
         response = chat_completion.generate(
             "Generate me a json object of a cat, and how a cat looks like.",
@@ -62,7 +66,9 @@ class OpenAIChatCompletion(unittest.TestCase):
 
     def test_openai_chat_completion_text(self):
         chat_completion = ChatCompletion(
-            llm_type="openai", llm_model="gpt-3.5-turbo", api_key=self.openai_api_key
+            llm_type="openai",
+            llm_model="gpt-3.5-turbo",
+            api_key=self.openai_api_key,
         )
         response = chat_completion.generate("Hello, how are you?")
         if response is not None:
@@ -73,7 +79,9 @@ class OpenAIChatCompletion(unittest.TestCase):
 
     def test_openai_chat_completion_text_with_system_prompt(self):
         chat_completion = ChatCompletion(
-            llm_type="openai", llm_model="gpt-3.5-turbo", api_key=self.openai_api_key
+            llm_type="openai",
+            llm_model="gpt-3.5-turbo",
+            api_key=self.openai_api_key,
         )
         response = chat_completion.generate(
             "Hello, how are you?",

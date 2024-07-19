@@ -10,7 +10,6 @@ import requests
 from fuzzywuzzy import fuzz
 import os
 from models import DownloadPodcastResponse
-from aliases import ReturnStatus
 import logging
 
 logger = logging.getLogger(__name__)
@@ -195,10 +194,11 @@ def download_podcast(
                 "resolution"
             )[-1].download(output_path=output_path, filename=filename)
             if not os.path.exists(podcast_output_path):
-                raise DownloadError(
-                    message=f"Error downloading podcast. URL: '{podcast_url}': Failed to save podcast to output path for some reason.",
-                    download_type="Podcast",
-                )
+                # raise DownloadError(
+                #     message=f"Error downloading podcast. URL: '{podcast_url}': Failed to save podcast to output path for some reason.",
+                #     download_type="Podcast",
+                # )
+                raise DownloadError(message="Test13", download_type="test132")
 
         return DownloadPodcastResponse(
             output_path=output_path,

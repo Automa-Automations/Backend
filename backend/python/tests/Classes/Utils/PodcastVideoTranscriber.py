@@ -21,7 +21,9 @@ class PodcastVideoTranscriber(unittest.TestCase):
 
     def test_assembly_ai_transcription(self):
         transcriber = PodcastTranscriber.from_assembly(
-            podcast_url=self.podcast_url, api_key=self.assembly_api_key, debugging=True
+            podcast_url=self.podcast_url,
+            api_key=self.assembly_api_key,
+            debugging=True,
         )
         transcription = transcriber.transcript
         self.assertIsNotNone(transcription)

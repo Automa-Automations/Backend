@@ -7,6 +7,7 @@ import logging
 import math
 import traceback
 
+from errors import EditVideoError
 from models import FaceFramePosition, ReturnMessage
 from aliases import FacePositions
 
@@ -146,7 +147,6 @@ class FaceTrackingVideo:
 
             return resized_frame
         except Exception as e:
-            logger.error(f"Error processing frame index {self.frame_index}. Error: {e}")
             traceback.print_exc()
 
     def calculate_face_pos(

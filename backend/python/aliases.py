@@ -13,3 +13,7 @@ PodcastTranscript: TypeAlias = List[
 FacePositions: TypeAlias = Union[FaceFramePosition, ReturnMessage, None]
 
 ReturnStatus: TypeAlias = Literal["error", "success", "warning"]
+
+VideoEditingActionType: TypeAlias = Literal["process frame", "clip video"]
+
+VideoType: TypeAlias = Literal["short", "long video"]
