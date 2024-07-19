@@ -1,15 +1,13 @@
-from typing import Any, List, Union
+from typing import List, Union
 import cv2
-from moviepy.editor import CompositeVideoClip, VideoClip
 import numpy as np
 import face_recognition
 import logging
 import math
-import traceback
-
-from errors import EditVideoError, ImpossibleError
+from moviepy.editor import CompositeVideoClip, VideoClip
+from errors import ClassTypeError, EditVideoError, ImpossibleError
 from models import FaceFramePosition, ReturnMessage
-from aliases import FacePositions
+from aliases import FacePositions, MoviePyClip
 
 logger = logging.getLogger(__name__)
 
@@ -232,8 +230,13 @@ class FaceTrackingVideo:
             logger.info("No face detected in the frame")
             return ReturnMessage(message="No face detected", status=None)
 
-    def process_short(self, video_clip: Union[VideoClip, CompositeVideoClip]):
-        """Method called to process a short to have face detection, along with the right aspect ratio"""
+    def process_short(self, video_clip: MoviePyClip) -> MoviePyClip:
+        """
+        Method called to process a short to have face detection, along with the right aspect ratio.
+        Parameters:
+        - video_clip: MoviePyClip: The video clip
+        Returns MoviePyClip - the processed video clip
+        """
 
         try:
             logger.info("Collecting face positions...")
@@ -270,8 +273,17 @@ class FaceTrackingVideo:
             self.frame_index = 1
 
             processed_clip = video_clip.fl_image(self.process_frame)
-
-            return processed_clip
+            type_checker = (CompositeVideoClip, VideoClip)
+            processed_clip_type = type(processed_clip)
+            if not isinstance(processed_clip_type, type_checker):
+                raise ClassTypeError(
+                    message=f"Processed Short Clip is not a valid type.",
+                    types=type_checker,
+                    got_class_type=processed_clip_type,
+                )
+            else:
+                processed_clip: MoviePyClip = processed_clip
+                return processed_clip
         except Exception as e:
             raise EditVideoError(
                 message=f"Errror processing short: {e}",

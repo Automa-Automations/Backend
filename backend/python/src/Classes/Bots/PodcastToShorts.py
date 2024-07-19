@@ -1,5 +1,5 @@
 from typing import List, Union, Literal
-from aliases import PodcastTranscript
+from aliases import PodcastTranscript, MoviePyClip
 from models import (
     AssemblyAIParsedTranscript,
     TranscriptFeedback,
@@ -571,7 +571,7 @@ class PodcastToShorts:
             traceback.print_exc()
             return {}
 
-    def _clip_and_follow_faces_mobile_ratio(self, clipped_video):
+    def _clip_and_follow_faces_mobile_ratio(self, clipped_video: MoviePyClip):
         return FaceTrackingVideo().process_short(clipped_video)
 
     def __filter_transcripts(

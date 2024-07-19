@@ -262,3 +262,9 @@ def validate_string_similarity(
             similarity_score = 100
 
     return similarity_score >= percentage
+
+
+def format_type_checker(types) -> str:
+    """Function to format tuple of classes into a string with the class names"""
+    types_names = [t.__name__ for t in types]
+    return f"({', '.join(types_names)})"

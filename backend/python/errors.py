@@ -1,5 +1,7 @@
 import json
 from aliases import VideoType, VideoEditingActionType
+from typing import Tuple, Any
+from utils import format_type_checker
 
 
 class DownloadError(Exception):
@@ -70,3 +72,25 @@ class ImpossibleError(Exception):
             },
             indent=4,
         )
+        super().__init__(message)
+
+
+class ClassTypeError(Exception):
+    """Exception raised when the class type of something is invalid"""
+
+    def __init__(self, message: str, types: Tuple, got_class_type: Any):
+        """
+        Parameters:
+        - message: str: The error message you want to show
+        - types: Tuple(Any): A tuple of any all of the types it should be
+        """
+        message = json.dumps(
+            {
+                "error_type": "Invalid Class Type",
+                "message": message,
+                "expected_class_type": format_type_checker(types),
+                "got_class_type": got_class_type,
+            },
+            indent=4,
+        )
+        super().__init__(message)

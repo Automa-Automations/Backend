@@ -1,4 +1,5 @@
 from typing import Literal, TypeAlias, Union, List
+from moviepy.editor import CompositeVideoClip, VideoClip
 
 from models import (
     AssemblyAIParsedTranscript,
@@ -19,3 +20,5 @@ VideoEditingActionType: TypeAlias = Literal[
 ]
 
 VideoType: TypeAlias = Literal["short", "long video"]
+
+MoviePyClip: TypeAlias = Union[VideoClip, CompositeVideoClip]
