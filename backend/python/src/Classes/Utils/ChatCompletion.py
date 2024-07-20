@@ -1,18 +1,19 @@
-from typing import Literal, Union, TypeVar, Type
+from typing import Literal, Union, Type, overload
 from ollama import Client
 from typing import Optional
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 from openai import OpenAI
 import logging
 
 from errors import GenerationError, ImpossibleError
+from models import BaseModelType
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar('T', bound=BaseModel)
 
 class ChatCompletion:
     """A class to do chat completion using different providers"""
+
     def __init__(
         self,
         llm_type: Literal["openai", "ollama"] = "openai",
@@ -32,12 +33,28 @@ class ChatCompletion:
         self.ollama_base_url = ollama_base_url
         self.max_retries = max_retries
 
+    @overload
     def generate(
         self,
         user_message: str,
+        return_type: Type[BaseModelType],
         system_prompt: Optional[str] = None,
-        return_type: Optional[Type[T]] = None,
-    ) -> Union[str, T]:
+    ) -> BaseModelType: ...
+
+    @overload
+    def generate(
+        self,
+        user_message: str,
+        return_type: None = None,
+        system_prompt: Optional[str] = None,
+    ) -> str: ...
+
+    def generate(
+        self,
+        user_message: str,
+        return_type: Optional[Type[BaseModelType]] = None,
+        system_prompt: Optional[str] = None,
+    ) -> Union[str, BaseModelType]:
         """
         Generate a completion for a given user message
         Parameters:
@@ -48,19 +65,22 @@ class ChatCompletion:
         """
         if self.llm_type == "openai":
             return self._openai_generate(
-                user_message, system_prompt, return_type=return_type)
+                user_message, system_prompt, return_type=return_type
             )
         elif self.llm_type == "ollama":
             return self._ollama_generate(user_message, return_type=return_type)
         else:
-            raise ImpossibleError(message="Invalid LLM Type!", explanation="When class was instantiated, user was supposed to pass in valid llm_type.")
+            raise ImpossibleError(
+                message="Invalid LLM Type!",
+                explanation="When class was instantiated, user was supposed to pass in valid llm_type.",
+            )
 
     def _openai_generate(
         self,
         user_message: str,
         system_prompt: Optional[str] = None,
-        return_type: Optional[Type[T]] = None,
-    ) -> Union[str, T]:
+        return_type: Optional[Type[BaseModelType]] = None,
+    ) -> Union[str, BaseModelType]:
         """
         Generate a completion using OpenAI
         Parameters:
@@ -91,7 +111,9 @@ class ChatCompletion:
                     logger.warning("Empty response. Trying again.")
                 else:
                     try:
-                        response_data = return_type.model_validate_json(completion_message)
+                        response_data = return_type.model_validate_json(
+                            completion_message
+                        )
                         return response_data
                     except:
                         logger.error("Error parsing json. Trying again.")
@@ -110,8 +132,8 @@ class ChatCompletion:
     def _ollama_generate(
         self,
         user_message: str,
-        return_type: Optional[Type[T]] = None,
-    ) -> Union[str, T]:
+        return_type: Optional[Type[BaseModelType]] = None,
+    ) -> Union[str, BaseModelType]:
         """
         Generate a completion using Ollama
         Parameters:
@@ -130,10 +152,18 @@ class ChatCompletion:
                     format="json",
                     keep_alive="1m",
                 )
-                if not isinstance(ollama_response, dict) or not "response" in ollama_response or not isinstance(ollama_response["response"], str):
-                    raise GenerationError(message="Ollama response does not contain 'response' key")
+                if (
+                    not isinstance(ollama_response, dict)
+                    or not "response" in ollama_response
+                    or not isinstance(ollama_response["response"], str)
+                ):
+                    raise GenerationError(
+                        message="Ollama response does not contain 'response' key"
+                    )
                 try:
-                    correct_type_ollama_response = return_type.model_validate_json(ollama_response["response"])
+                    correct_type_ollama_response = return_type.model_validate_json(
+                        ollama_response["response"]
+                    )
                     logger.info(f"Ollama Response: {ollama_response}")
                     return correct_type_ollama_response
                 except ValidationError as e:
@@ -147,7 +177,13 @@ class ChatCompletion:
                 keep_alive="1m",
             )
 
-            if not isinstance(ollama_response, dict) or not "response" in ollama_response or not isinstance(ollama_response["response"], str):
-                raise GenerationError(message="Ollama response does not contain 'response' key")
+            if (
+                not isinstance(ollama_response, dict)
+                or not "response" in ollama_response
+                or not isinstance(ollama_response["response"], str)
+            ):
+                raise GenerationError(
+                    message="Ollama response does not contain 'response' key"
+                )
             logger.info(f"Ollama Response: {ollama_response}")
             return ollama_response["response"]

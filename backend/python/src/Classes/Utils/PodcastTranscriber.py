@@ -6,6 +6,7 @@ from pydub import AudioSegment
 import assemblyai as aai
 import logging
 import json
+from aliases import PodcastTranscript
 from models import (
     AssemblyAIParsedTranscript,
     YoutubeAPITranscript,
@@ -22,9 +23,8 @@ class PodcastTranscriber:
 
     def __init__(self, podcast_url) -> None:
         self.podcast_url = podcast_url
-        self.aai_transcript: List[AssemblyAIParsedTranscript] = []
-        self.yt_transcript: List[YoutubeAPITranscript] = []
-        self.audio_duration = 0
+        self.transcript: PodcastTranscript = []
+        self.audio_duration: int = 0
 
     def _convert_to_mp3(self, file_path: str) -> str:
         """
@@ -80,16 +80,20 @@ class PodcastTranscriber:
                 with open(assembly_ai.parsed_transcript_path, "r") as f:
                     parsed_transcript: List[AssemblyAIParsedTranscript] = json.load(f)
                 with open(assembly_ai.transcript_path, "r") as f:
-                    transcript = json.load(f)
+                    transcript: TranscriptResponse = json.load(f)
             else:
                 transcript = assembly_ai.get_yt_podcast_transcription(podcast_mp3_path)
                 parsed_transcript = assembly_ai.parse_transcript(transcript)
 
-            podcast_transcriber.aai_transcript = parsed_transcript
+            podcast_transcriber.transcript = parsed_transcript
             if not transcript:
                 raise Exception("Transcription failed.")
             else:
-                podcast_transcriber.audio_duration = transcript["audio_duration"]
+                audio_duration = transcript.audio_duration
+                if not audio_duration:
+                    raise Exception("Transcription failed. Audio duration is None.")
+
+                podcast_transcriber.audio_duration = audio_duration
         return podcast_transcriber
 
     @classmethod
@@ -106,7 +110,7 @@ class PodcastTranscriber:
         podcast_transcriber = cls(podcast_url)
         transcription_api = YoutubeTranscriptionAPITranscriber(podcast_url)
         transcription_api.debugging = debugging
-        podcast_transcriber.yt_transcript = transcription_api.get_video_transcript()
+        podcast_transcriber.transcript = transcription_api.get_video_transcript()
         return podcast_transcriber
 
 

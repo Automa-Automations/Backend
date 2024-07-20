@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List, TypeVar
 from pydantic import BaseModel, field_validator
 from aliases import ReturnStatus
 
@@ -48,9 +48,14 @@ class TranscriptStats(BaseModel):
             return v
 
 
-class TranscriptFeedback(BaseModel):
+class AssemblyTranscriptFeedback(BaseModel):
     stats: TranscriptStats
-    transcript: PodcastTranscript
+    transcript: List[AssemblyAIParsedTranscript]
+
+
+class YoutubeTranscriptFeedback(BaseModel):
+    stats: TranscriptStats
+    transcript: List[YoutubeAPITranscript]
 
 
 class StatusReturn(BaseModel):
@@ -63,3 +68,20 @@ class DownloadPodcastResponse(BaseModel):
     output_path: str
     filename: str
     status: ReturnStatus
+
+
+class AssemblyShortFinalTranscript(BaseModel):
+    sentences: List[str]
+
+
+#######
+
+BaseModelType = TypeVar("BaseModelType", bound=BaseModel)
+
+AssemblyShortFinalTranscriptType = TypeVar(
+    "AssemblyShortFinalTranscriptType", bound=AssemblyShortFinalTranscript
+)
+
+YoutubeTranscriptFeedbackType = TypeVar(
+    "YoutubeTranscriptFeedbackType", bound=YoutubeTranscriptFeedback
+)

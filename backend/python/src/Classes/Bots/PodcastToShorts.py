@@ -1,11 +1,22 @@
-from typing import List, Union, Literal
-from aliases import PodcastTranscript, MoviePyClip
-from models import (
-    AssemblyAIParsedTranscript,
+from typing import List, Union, overload, Type
+from aliases import (
+    PodcastTranscript,
+    TranscriptorType,
+    LLMType,
+    MoviePyClip,
+    ShortsFinalTranscripts,
     TranscriptFeedback,
+    TranscriptFeedbackList,
+)
+from models import (
+    AssemblyTranscriptFeedback,
     ClipShortData,
-    TranscriptStats,
+    YoutubeTranscriptFeedbackType,
+    AssemblyShortFinalTranscript,
+    AssemblyShortFinalTranscriptType,
     YoutubeAPITranscript,
+    TranscriptStats,
+    YoutubeTranscriptFeedback,
 )
 from src.Classes.Utils.ChatCompletion import ChatCompletion
 from src.Classes.Utils.FaceTrackingVideo import FaceTrackingVideo
@@ -32,19 +43,17 @@ class PodcastToShorts:
     def __init__(
         self,
         podcast_url: str,
-        llm_type: Literal["openai", "ollama"] = "openai",
-        transcriptor_type: Literal["assembly_ai", "yt_transcript_api"] = "assembly_ai",
+        llm_type: LLMType = "openai",
+        transcriptor_type: TranscriptorType = "assembly_ai",
         assembly_api_key: str = "",
         llm_model: str = "gpt-4o",
         ollama_base_url: str = "",
         llm_api_key: str = "",
     ) -> None:
         self.podcast_url = podcast_url
-        self.transcriptor_type: Literal["assembly_ai", "yt_transcript_api"] = (
-            transcriptor_type
-        )
+        self.transcriptor_type = transcriptor_type
         self.assembly_api_key = assembly_api_key
-        self.llm_type: Literal["openai", "ollama"] = llm_type
+        self.llm_type = llm_type
         self.llm_model = llm_model
         self.debugging = True
         self.podcast_url = format_yt_video_url(self.podcast_url)
@@ -77,15 +86,16 @@ class PodcastToShorts:
         if not transcriptor:
             raise Exception("Transcriptor is none")
 
+        transcript = transcriptor.transcript
         if self.transcriptor_type == "assembly_ai":
-            transcript = transcriptor.aai_transcript
             podcast_length = round(transcriptor.audio_duration / 60)
-        elif self.transcriptor_type == "yt_transcript_api":
-            transcript = transcriptor.yt_transcript
+        else:
+            transcript = [
+                YoutubeAPITranscript.model_validate(dict) for dict in transcript
+            ]
             podcast_length = round(
                 (transcript[-1].start + transcript[-1].duration) / 60
             )
-        else:
             raise ValueError("Transcriptor type is not valid")
 
         logger.info(f"Transcript objects length: {len(transcript)}")
@@ -96,7 +106,14 @@ class PodcastToShorts:
         ):
             with open(self.debug_transcripts_feedback_path, "r") as f:
                 logger.info("Loading from transcripts_feedback.json...")
-                transcriptions_feedback = [TranscriptFeedback.model_validate(dict) for dict in json.load(f)]
+                transcriptions_feedback: List[TranscriptFeedback] = [
+                    (
+                        YoutubeTranscriptFeedback.model_validate(dict)
+                        if self.transcriptor_type == "yt_transcript_api"
+                        else AssemblyTranscriptFeedback.model_validate(dict)
+                    )
+                    for dict in json.load(f)
+                ]
         else:
             transcriptions_feedback = self.__get_transcripts_feedback(transcript)
         logger.info(
@@ -128,7 +145,7 @@ class PodcastToShorts:
             logger.info("Shorts transcripts length is too long...")
             highest_score_list = sorted(
                 shorts_transcripts,
-                key=lambda x: x["stats"]["score"],
+                key=lambda x: x.stats.score,
                 reverse=True,
             )[: round(podcast_length / 10)]
 
@@ -143,7 +160,7 @@ class PodcastToShorts:
         ):
             logger.info("Loading from shorts_final_transcripts.json...")
             with open(self.debug_shorts_final_transcripts_path, "r") as f:
-                shorts_final_transcripts: list = json.load(f)
+                shorts_final_transcripts: ShortsFinalTranscripts = json.load(f)
         else:
             logger.info("Getting shorts final transcripts...")
             shorts_final_transcripts = self.__get_shorts_final_transcripts(
@@ -187,7 +204,9 @@ class PodcastToShorts:
 
         return transcript_with_timestamps
 
-    def __get_best_shorts(self, shorts_transcripts: List[dict], total_shorts: int):
+    def __get_best_shorts(
+        self, shorts_transcripts: List[TranscriptFeedback], total_shorts: int
+    ):
         """
         Method to get the best shorts from the passed in shorts
         Parameters:
@@ -200,14 +219,16 @@ class PodcastToShorts:
         # sort the shorts_transcripts by the score, in descending order
         descending_sorted_shorts = sorted(
             shorts_transcripts,
-            key=lambda x: int(x["stats"]["score"]),
+            key=lambda x: int(x.stats.score),
             reverse=True,
         )
         best_shorts = descending_sorted_shorts[:total_shorts]
         logger.info(f"Got an extra {len(best_shorts)} shorts.")
         return best_shorts
 
-    def __get_shorts_final_transcripts(self, shorts_transcripts: list[dict]):
+    def __get_shorts_final_transcripts(
+        self, shorts_transcripts: TranscriptFeedbackList
+    ) -> ShortsFinalTranscripts:
         """
         Method to get the final transcripts of the shorts, by removing the start, middle and end sentences, to get the optimized short.
         Parameters:
@@ -217,128 +238,44 @@ class PodcastToShorts:
         """
         final_transcripts = []
 
-        for index, short in enumerate(shorts_transcripts):
+        def get_prompt_first_sentence(short: TranscriptFeedback):
             if self.llm_type == "ollama":
-                prompt_first_sentence = f"I want to make a great 15 - 55 seconds long short from the following transcript: {json.dumps(short['transcript'])}"
-            elif self.llm_type == "openai":
-                prompt_first_sentence = f"I want to make a great 15 - 55 seconds long short from the transcript part given to you."
+                return f"I want to make a great 15 - 55 seconds long short from the following transcript: {json.dumps(short.transcript)}"
             else:
-                logger.error("LLM type is not valid")
-                return []
+                return f"I want to make a great 15 - 55 seconds long short from the transcript part given to you."
 
-            if self.transcriptor_type == "yt_transcript_api":
-                prompt = f"""{prompt_first_sentence}. Give me the perfect start text and end text from the transcript that will be the perfect start and end for making an engaging short (DON'T USE THE FIRST TEXT AND THE LAST TEXT FROM THE TRANSCRIPT I GAVE YOU, IT MUST START A LITTLE BIT LATER ON.) Note, the start and end text must be from the transcript. The start text must be before the end text. The start text must be the best starting sentence from the transcript for a short, and the end text must be a the best ending sentence from the transcript for a short. The start text must be the beginning of a sentence, and the end text must end a sentence (meaning first character for start text must be a capital letter, indicating it is the start of a sentence, and the end sentence should be ending with an ending character - '?.!'. Keep the start and end text the exact same as what it was from the transcript.
+        if self.transcriptor_type == "assembly_ai":
+            shorts_transcripts = [
+                AssemblyTranscriptFeedback.model_validate(dict)
+                for dict in shorts_transcripts
+            ]
+            with open("./src/Classes/Bots/json_files/examples/1_input.json", "r") as f:
+                example_input = json.load(f)
 
-                The start text may not be "{short["transcript"][0]["text"]}", and the end text may not be '{short['transcript'][-1]['text']}'.
+            with open("./src/Classes/Bots/json_files/examples/1_output.json", "r") as f:
+                example_output = json.load(f)
+            # it works, but there are some minor flaws. The LLM sometimes puts sentences together that should be separated.
+            # prompt = f"""{prompt_first_sentence}. Give me only 15 - 20 sentences from the transcript I just gave you that will be the most engaging and get the most amount of views, you must stricly output in the following JSON format: {json.dumps({"sentences": ["sentence here", "another sentence here"]}, indent=4)}. Keep the sentences the exact same as what it was from the transcript."""
+
+            # TODO: Change this prompt so that the LLM does not put more than one sentence in a string. Each string should be one sentence.
+            prompt = f"""{get_prompt_first_sentence(shorts_transcripts[0])}. Give me only 15 - 20 sentences from the transcript I just gave you that will be the most engaging and get the most amount of views. You must stricly output in the following JSON format: {json.dumps({"sentences": ["sentence here", "another sentence here"]}, indent=4)}. Keep the sentences the exact same as what it was from the transcript."""
+        else:
+            shorts_transcripts = [
+                YoutubeTranscriptFeedback.model_validate(dict)
+                for dict in shorts_transcripts
+            ]
+            for index, short in enumerate(shorts_transcripts):
+                prompt = f"""{get_prompt_first_sentence(shorts_transcripts[0])}. Give me the perfect start text and end text from the transcript that will be the perfect start and end for making an engaging short (DON'T USE THE FIRST TEXT AND THE LAST TEXT FROM THE TRANSCRIPT I GAVE YOU, IT MUST START A LITTLE BIT LATER ON.) Note, the start and end text must be from the transcript. The start text must be before the end text. The start text must be the best starting sentence from the transcript for a short, and the end text must be a the best ending sentence from the transcript for a short. The start text must be the beginning of a sentence, and the end text must end a sentence (meaning first character for start text must be a capital letter, indicating it is the start of a sentence, and the end sentence should be ending with an ending character - '?.!'. Keep the start and end text the exact same as what it was from the transcript.
+
+                The start text may not be "{short.transcript[0].text}", and the end text may not be '{short.transcript[0].text}'.
                 Your output in the following format (ignore the values):
                 {json.dumps({
                     'start_text': 'the exact start text',
                     'end_text': 'the exact end text'
                 }, indent=4)}"""
-            elif self.transcriptor_type == "assembly_ai":
-                with open(
-                    "./src/Classes/Bots/json_files/examples/1_input.json", "r"
-                ) as f:
-                    example_input = json.load(f)
 
-                with open(
-                    "./src/Classes/Bots/json_files/examples/1_output.json", "r"
-                ) as f:
-                    example_output = json.load(f)
-
-                # it works, but there are some minor flaws. The LLM sometimes puts sentences together that should be separated.
-                # prompt = f"""{prompt_first_sentence}. Give me only 15 - 20 sentences from the transcript I just gave you that will be the most engaging and get the most amount of views, you must stricly output in the following JSON format: {json.dumps({"sentences": ["sentence here", "another sentence here"]}, indent=4)}. Keep the sentences the exact same as what it was from the transcript."""
-
-                # TODO: Change this prompt so that the LLM does not put more than one sentence in a string. Each string should be one sentence.
-                prompt = f"""{prompt_first_sentence}. Give me only 15 - 20 sentences from the transcript I just gave you that will be the most engaging and get the most amount of views. You must stricly output in the following JSON format: {json.dumps({"sentences": ["sentence here", "another sentence here"]}, indent=4)}. Keep the sentences the exact same as what it was from the transcript."""
-            else:
-                logger.error("Transcriptor type invalid")
-                return []
-
-            # logger.info(f"Prompt: {prompt}")
-            max_retries = 8
-            llm_response = ""
-            valid_response = False
-            while max_retries:
-                max_retries -= 1
-                if self.llm_type == "openai":
-                    chat_completion = ChatCompletion(
-                        llm_type=self.llm_type,
-                        llm_model=self.llm_model,
-                        api_key=self.llm_api_key,
-                    )
-                    llm_response = chat_completion.generate(
-                        system_prompt=prompt,
-                        user_message=f"Here is the transcript: {short['transcript']}",
-                        json_format=True,
-                    )
-                elif self.llm_type == "ollama":
-                    chat_completion = ChatCompletion(
-                        llm_type=self.llm_type,
-                        llm_model=self.llm_model,
-                        ollama_base_url=self.ollama_base_url,
-                    )
-                    llm_response = chat_completion.generate(
-                        user_message=prompt, json_format=True
-                    )
-                else:
-                    raise ValueError("LLM type is not valid")
-
-                if (
-                    (self.transcriptor_type == "assembly_ai")
-                    and isinstance(llm_response, dict)
-                    and ("sentences" in llm_response)
-                    and (isinstance(llm_response["sentences"], list))
-                ):
-                    invalid_sentences = False
-                    for sentence in llm_response["sentences"]:
-                        if not isinstance(sentence, str):
-                            invalid_sentences = True
-                            break
-
-                    if not invalid_sentences:
-                        logger.info("Response format valid. Breaking while loop...")
-                        valid_response = True
-                        break
-                    logger.info("Response invalid, regenerating response...")
-                elif (
-                    (self.transcriptor_type == "yt_transcript_api")
-                    and isinstance(llm_response, dict)
-                    and "start_text" in llm_response
-                    and "end_text" in llm_response
-                    and isinstance(llm_response["start_text"], str)
-                    and isinstance(llm_response["end_text"], str)
-                ):
-                    logger.info("Response format valid. Breaking while loop...")
-                    valid_response = True
-                    break
-
-                logger.info("Response invalid, regenerating response...")
-
-            if not valid_response or not llm_response:
-                logger.warning("Response is empty, or is invalid")
-                continue
-
-            final_transcript_chunk = self._cleanup_shortened_transcript_response(
-                llm_response, short
-            )
-
-            if final_transcript_chunk != -1:
-                logger.info(
-                    f"[{index+1}/{len(shorts_transcripts)}]. Appending response to final transcripts"
-                )
-                final_transcripts.append(final_transcript_chunk)
-            else:
-                logger.warning(
-                    "Final transcript chunk empty. Nothing appended to 'final_transcripts'."
-                )
-
-            with open(self.debug_shorts_final_transcripts_path, "w") as f:
-                f.write(json.dumps(final_transcripts, indent=4))
-                logger.info(
-                    f"saved shorts final transcripts to {self.debug_shorts_final_transcripts_path}"
-                )
-
+        # logger.info(f"Prompt: {prompt}")
+        # TODO: call this function "get_final_transcript()" in the two statements above
         logger.info("Returning final transcripts...")
         return final_transcripts
 
@@ -588,7 +525,7 @@ class PodcastToShorts:
         Returns list[TranscriptFeedback]: The list of the transcriptions that have the should_make_short value
         """
 
-        cleaned_transcripts_feedback : List[TranscriptFeedback] = []
+        cleaned_transcripts_feedback: List[TranscriptFeedback] = []
         for transcription in transcriptions_feedback:
             new_transcription = transcription
             cleaned_transcripts_feedback.append(new_transcription)
@@ -600,9 +537,7 @@ class PodcastToShorts:
         ]
 
     def __get_transcripts_feedback(
-        self,
-        full_sentences_transcript: PodcastTranscript
-    ],
+        self, full_sentences_transcript: PodcastTranscript
     ) -> List[TranscriptFeedback]:
         """
         Method to get the feedback of the transcriptions
@@ -613,7 +548,7 @@ class PodcastToShorts:
         """
         logger.info("Getting transcripts feedback...")
         chunked_transcript = self.__chunk_transcript(full_sentences_transcript)
-        transcripts_feedback: List[TranscriptFeedback] = []
+        transcripts_with_feedback: List[TranscriptFeedback] = []
         for idx, chunk in enumerate(chunked_transcript):
             prompt = f"""
             Your job is to evaluate the following transcript chunk from a long-form podcast style video: {chunk}. Decide whether or not a specific part of the transcript or the whole transcript is valid for a short. Evaluate the short based off of this:
@@ -639,57 +574,41 @@ class PodcastToShorts:
                 "feedback": "Any feedback on the short, what is good and bad about the transcript, how to make it better."
             }, indent=4)}
             """
-            max_retries = 5
-            while max_retries:
-                max_retries -= 1
-                try:
-                    if self.llm_type == "openai":
-                        chat_completion = ChatCompletion(
-                            llm_type=self.llm_type,
-                            llm_model=self.llm_model,
-                            api_key=self.llm_api_key,
-                        )
-                        response = chat_completion.generate(
-                            system_prompt=prompt,
-                            user_message=f"Here is the transcript chunk: {chunk}",
-                            json_format=True,
-                            returnType=TranscriptStats
-                        )
-                    elif self.llm_type == "ollama":
-                        chat_completion = ChatCompletion(
-                            llm_type=self.llm_type,
-                            llm_model=self.llm_model,
-                            ollama_base_url=self.ollama_base_url,
-                        )
-                        response = chat_completion.generate(
-                            user_message=prompt, json_format=True
-                        )
-                    else:
-                        raise ValueError("LLM type is not valid")
+            if self.llm_type == "openai":
+                chat_completion = ChatCompletion(
+                    llm_type=self.llm_type,
+                    llm_model=self.llm_model,
+                    api_key=self.llm_api_key,
+                )
+                response = chat_completion.generate(
+                    system_prompt=prompt,
+                    user_message=f"Here is the transcript chunk: {chunk}",
+                    return_type=TranscriptStats,
+                )
+            elif self.llm_type == "ollama":
+                chat_completion = ChatCompletion(
+                    llm_type=self.llm_type,
+                    llm_model=self.llm_model,
+                    ollama_base_url=self.ollama_base_url,
+                )
+                response = chat_completion.generate(
+                    user_message=prompt, return_type=TranscriptStats
+                )
+            else:
+                raise ValueError("LLM type is not valid")
 
-                    logger.info("Successfully got response")
-                    break
-                except Exception as e:  # If there is an error, just skip this chunk
-                    logger.warning(f"Error occurred: {e}. Trying again")
+            logger.info("Successfully got response")
 
-            if not response:
-                raise ValueError("Response is empty")
-
-            if not isinstance(response, dict):
-                raise Exception("Response is not a dictionary!")
-
-            feedback_chunk = TranscriptFeedback(
+            transcript_and_feedback_chunk = TranscriptFeedback(
                 transcript=chunk,
                 stats=response,
             )
 
-            logger.info(
-                f"{idx+1}. Feedback Chunk Stats Length: {len(feedback_chunk["stats"])}"
-            )
+            logger.info(f"{idx+1}. Feedback generated successfully.")
 
-            transcripts_feedback.append(feedback_chunk)
+            transcripts_with_feedback.append(transcript_and_feedback_chunk)
             with open(self.debug_transcripts_feedback_path, "w") as f:
-                f.write(json.dumps(transcripts_feedback, indent=4))
+                f.write(json.dumps(transcripts_with_feedback, indent=4))
                 logger.info(
                     f"saved transcripts feedback for this chunk to {self.debug_transcripts_feedback_path}"
                 )
@@ -700,13 +619,13 @@ class PodcastToShorts:
             ) as f:
                 f.write(
                     json.dumps(
-                        [transcript["stats"] for transcript in transcripts_feedback],
+                        [transcript.stats for transcript in transcripts_with_feedback],
                         indent=4,
                     )
                 )
                 logger.info(f"saved scores to {self.llm_type}_transcripts_score.json")
 
-        return transcripts_feedback
+        return transcripts_with_feedback
 
     def __chunk_transcript(
         self,
@@ -747,11 +666,7 @@ class PodcastToShorts:
         if len(transcript) == 0:
             return
 
-        return (
-            transcript[-1]["start"]
-            + transcript[-1]["duration"]
-            - transcript[0]["start"]
-        )
+        return transcript[-1].start + transcript[-1].duration - transcript[0].start
 
     def __validate_params(self):
         invalid_params = False
@@ -778,3 +693,114 @@ class PodcastToShorts:
             invalid_params = True
         if invalid_params:
             raise ValueError("Invalid parameters passed")
+
+    # @overload
+    # def __get_final_transcript(
+    #     self,
+    #     prompt: str,
+    #     short: TranscriptFeedback,
+    # ) -> AssemblyShortFinalTranscript: ...
+    #
+    # @overload
+    # def __get_final_transcript(
+    #     self,
+    #     prompt: str,
+    #     short: TranscriptFeedback,
+    # ) -> YoutubeTranscriptFeedback: ...
+    #
+    # def __get_final_transcript(
+    #     self,
+    #     prompt: str,
+    #     short: TranscriptFeedback,
+    # ) -> Union[AssemblyShortFinalTranscript, YoutubeTranscriptFeedback]:
+    #     """
+    #     Internal method to get final transcript for a short
+    #     """
+    #     if self.transcriptor_type == "assembly_ai":
+    #         short = AssemblyTranscriptFeedback.model_validate(short)
+    #     else:
+    #         short = YoutubeTranscriptFeedback.model_validate(short)
+    #
+    #     max_retries = 5
+    #     valid_response = False
+    #     while max_retries:
+    #         max_retries -= 1
+    #         if self.llm_type == "openai":
+    #             chat_completion = ChatCompletion(
+    #                 llm_type=self.llm_type,
+    #                 llm_model=self.llm_model,
+    #                 api_key=self.llm_api_key,
+    #             )
+    #             llm_response = chat_completion.generate(
+    #                 system_prompt=prompt,
+    #                 user_message=f"Here is the transcript: {short.transcript}",
+    #                 return_type=TranscriptStats,
+    #             )
+    #         elif self.llm_type == "ollama":
+    #             chat_completion = ChatCompletion(
+    #                 llm_type=self.llm_type,
+    #                 llm_model=self.llm_model,
+    #                 ollama_base_url=self.ollama_base_url,
+    #             )
+    #             llm_response = chat_completion.generate(
+    #                 user_message=prompt, json_format=True
+    #             )
+    #         else:
+    #             raise ValueError("LLM type is not valid")
+    #
+    #         if (
+    #             (self.transcriptor_type == "assembly_ai")
+    #             and isinstance(llm_response, dict)
+    #             and ("sentences" in llm_response)
+    #             and (isinstance(llm_response["sentences"], list))
+    #         ):
+    #             invalid_sentences = False
+    #             for sentence in llm_response["sentences"]:
+    #                 if not isinstance(sentence, str):
+    #                     invalid_sentences = True
+    #                     break
+    #
+    #             if not invalid_sentences:
+    #                 logger.info(
+    #                     "Response format valid. Breaking while loop..."
+    #                 )
+    #                 valid_response = True
+    #                 break
+    #             logger.info("Response invalid, regenerating response...")
+    #         elif (
+    #             (self.transcriptor_type == "yt_transcript_api")
+    #             and isinstance(llm_response, dict)
+    #             and "start_text" in llm_response
+    #             and "end_text" in llm_response
+    #             and isinstance(llm_response["start_text"], str)
+    #             and isinstance(llm_response["end_text"], str)
+    #         ):
+    #             logger.info("Response format valid. Breaking while loop...")
+    #             valid_response = True
+    #             break
+    #
+    #         logger.info("Response invalid, regenerating response...")
+    #
+    #     if not valid_response or not llm_response:
+    #         logger.warning("Response is empty, or is invalid")
+    #         continue
+    #
+    #     final_transcript_chunk = self._cleanup_shortened_transcript_response(
+    #         llm_response, short
+    #     )
+    #
+    #     if final_transcript_chunk != -1:
+    #         logger.info(
+    #             f"[{index+1}/{len(shorts_transcripts)}]. Appending response to final transcripts"
+    #         )
+    #         final_transcripts.append(final_transcript_chunk)
+    #     else:
+    #         logger.warning(
+    #             "Final transcript chunk empty. Nothing appended to 'final_transcripts'."
+    #         )
+    #
+    #     with open(self.debug_shorts_final_transcripts_path, "w") as f:
+    #         f.write(json.dumps(final_transcripts, indent=4))
+    #         logger.info(
+    #             f"saved shorts final transcripts to {self.debug_shorts_final_transcripts_path}"
+    #         )
