@@ -292,6 +292,11 @@ class FaceTrackingVideo:
             ) from e
 
     def __handle_face_frame_empty(self, frame_dict: FacePositions):
+        """
+        Handle an empty face frame
+        Parameters:
+        - frame_dict: FacePositions: The dictionary of the face position for the frame
+        """
         if not frame_dict:
             logger.warning(
                 "Received an empty frame. This isn't suppose to happen. Appending None"

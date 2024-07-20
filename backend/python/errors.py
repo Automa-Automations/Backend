@@ -1,7 +1,7 @@
 import json
 from aliases import VideoType, VideoEditingActionType
 from typing import Tuple, Any
-from utils import format_type_checker
+from src.utils import format_type_checker
 
 
 class DownloadError(Exception):
