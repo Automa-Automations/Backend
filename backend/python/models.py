@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from aliases import ReturnStatus
 
 from aliases import PodcastTranscript
@@ -37,6 +37,15 @@ class TranscriptStats(BaseModel):
     score: int
     should_make_short: bool
     feedback: str
+
+    @field_validator("should_make_short")
+    def convert_should_make_short(cls, v):
+        if v.lower() == "true":
+            return True
+        elif v.lower() == "false":
+            return False
+        else:
+            return v
 
 
 class TranscriptFeedback(BaseModel):

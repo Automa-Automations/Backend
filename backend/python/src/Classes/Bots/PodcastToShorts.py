@@ -4,6 +4,7 @@ from models import (
     AssemblyAIParsedTranscript,
     TranscriptFeedback,
     ClipShortData,
+    TranscriptStats,
     YoutubeAPITranscript,
 )
 from src.Classes.Utils.ChatCompletion import ChatCompletion
@@ -82,7 +83,7 @@ class PodcastToShorts:
         elif self.transcriptor_type == "yt_transcript_api":
             transcript = transcriptor.yt_transcript
             podcast_length = round(
-                (transcript[-1]["start"] + transcript[-1]["duration"]) / 60
+                (transcript[-1].start + transcript[-1].duration) / 60
             )
         else:
             raise ValueError("Transcriptor type is not valid")
@@ -95,7 +96,7 @@ class PodcastToShorts:
         ):
             with open(self.debug_transcripts_feedback_path, "r") as f:
                 logger.info("Loading from transcripts_feedback.json...")
-                transcriptions_feedback = json.load(f)
+                transcriptions_feedback = [TranscriptFeedback.model_validate(dict) for dict in json.load(f)]
         else:
             transcriptions_feedback = self.__get_transcripts_feedback(transcript)
         logger.info(
@@ -576,39 +577,32 @@ class PodcastToShorts:
 
     def __filter_transcripts(
         self,
-        transcriptions_feedback: List[dict],
+        transcriptions_feedback: List[TranscriptFeedback],
         should_make_short: bool = True,
-    ):
+    ) -> List[TranscriptFeedback]:
         """
         Method to filter the transcriptions based on the should_make_short value
         Parameters:
         - transcriptions_feedback: list: The list of the feedback of the transcriptions
         - should_make_short: bool: The value to filter the transcriptions
-        Returns:
-        - list: The list of the transcriptions that have the should_make_short value
+        Returns list[TranscriptFeedback]: The list of the transcriptions that have the should_make_short value
         """
 
-        cleaned_transcripts_feedback = []
+        cleaned_transcripts_feedback : List[TranscriptFeedback] = []
         for transcription in transcriptions_feedback:
             new_transcription = transcription
-            if transcription["stats"]["should_make_short"] == "False":
-                new_transcription["stats"]["should_make_short"] = False
-            elif transcription["stats"]["should_make_short"] == "True":
-                new_transcription["stats"]["should_make_short"] = False
-
             cleaned_transcripts_feedback.append(new_transcription)
 
         return [
             transcription
             for transcription in cleaned_transcripts_feedback
-            if transcription["stats"]["should_make_short"] == should_make_short
+            if transcription.stats.should_make_short == should_make_short
         ]
 
     def __get_transcripts_feedback(
         self,
-        full_sentences_transcript: Union[
-            List[AssemblyAIParsedTranscript], List[YoutubeAPITranscript]
-        ],
+        full_sentences_transcript: PodcastTranscript
+    ],
     ) -> List[TranscriptFeedback]:
         """
         Method to get the feedback of the transcriptions
@@ -646,7 +640,6 @@ class PodcastToShorts:
             }, indent=4)}
             """
             max_retries = 5
-            response = ""
             while max_retries:
                 max_retries -= 1
                 try:
@@ -660,6 +653,7 @@ class PodcastToShorts:
                             system_prompt=prompt,
                             user_message=f"Here is the transcript chunk: {chunk}",
                             json_format=True,
+                            returnType=TranscriptStats
                         )
                     elif self.llm_type == "ollama":
                         chat_completion = ChatCompletion(
@@ -684,10 +678,10 @@ class PodcastToShorts:
             if not isinstance(response, dict):
                 raise Exception("Response is not a dictionary!")
 
-            feedback_chunk: TranscriptFeedback = {
-                "transcript": chunk,
-                "stats": response,
-            }
+            feedback_chunk = TranscriptFeedback(
+                transcript=chunk,
+                stats=response,
+            )
 
             logger.info(
                 f"{idx+1}. Feedback Chunk Stats Length: {len(feedback_chunk["stats"])}"
@@ -714,15 +708,11 @@ class PodcastToShorts:
 
         return transcripts_feedback
 
-    test = List[Union[AssemblyAIParsedTranscript, List[YoutubeAPITranscript]]]
-
     def __chunk_transcript(
         self,
-        video_transcript: Union[
-            List[AssemblyAIParsedTranscript], List[YoutubeAPITranscript]
-        ],
+        video_transcript: PodcastTranscript,
         chunk_length: int = 4000,
-    ) -> test:
+    ) -> List[PodcastTranscript]:
         """
         Method to chunk the transcript
         Parameters:
@@ -732,9 +722,7 @@ class PodcastToShorts:
         - list: The list of the chunked transcript
         """
         # chunk the list of dictionaries into a final list of lists, each list having less than chunk_length amount of characters
-        chunk_transcript_list: List[
-            List[Union[AssemblyAIParsedTranscript, YoutubeAPITranscript]]
-        ] = []
+        chunk_transcript_list: List[PodcastTranscript] = []
         current_chunk = []
 
         for transcript_dict in video_transcript:

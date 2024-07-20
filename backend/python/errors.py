@@ -94,3 +94,21 @@ class ClassTypeError(Exception):
             indent=4,
         )
         super().__init__(message)
+
+
+class GenerationError(Exception):
+    """Exception raised when the generation is not successful"""
+
+    def __init__(self, message: str):
+        """
+        Parameters:
+        - message: str: The error message you want to show
+        """
+        message = json.dumps(
+            {
+                "error_type": "Generation Error",
+                "message": message,
+            },
+            indent=4,
+        )
+        super().__init__(message)
