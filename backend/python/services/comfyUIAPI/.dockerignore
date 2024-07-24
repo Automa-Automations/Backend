@@ -1,0 +1,23 @@
+# flyctl launch added from ComfyUI/.gitignore
+ComfyUI/**/__pycache__
+ComfyUI/**/*.py[cod]
+ComfyUI/output
+ComfyUI/input
+!ComfyUI/input/example.png
+ComfyUI/models
+ComfyUI/temp
+ComfyUI/custom_nodes
+!ComfyUI/**/custom_nodes/example_node.py.example
+ComfyUI/**/extra_model_paths.yaml
+ComfyUI/.vs
+ComfyUI/**/.idea
+ComfyUI/**/venv
+ComfyUI/web/extensions/*
+!ComfyUI/web/extensions/logging.js.example
+!ComfyUI/web/extensions/core
+ComfyUI/tests-ui/data/object_info.json
+ComfyUI/user
+
+# flyctl launch added from ComfyUI/tests-ui/.gitignore
+ComfyUI/tests-ui/**/node_modules
+fly.toml

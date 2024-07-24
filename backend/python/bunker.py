@@ -10,12 +10,16 @@ from bunker_src.initialization import main as initialization
 
 initialization()
 
+import os
+
 from bunker_src.commands.bootstrap import command as bootstrap_command
 from bunker_src.docker import container_builder, container_runner
 from bunker_src.testing import test_builder, test_runner
 from bunker_src.ui.choose_service import choose_service
 from bunker_src.utils import global_options
 from colorama import init
+
+os.environ["DOCKER_BUILDKIT"] = "1"
 
 init(autoreset=True)
 
@@ -166,9 +170,16 @@ def format():
     required=False,
     type=str,
 )
-def deploy(service):
+@click.option(
+    "--build",
+    "-b",
+    help="If we should directly build the container, or use a cached version",
+    required=False,
+    type=bool,
+)
+def deploy(service, build=True):
     """Deploys & Rotates the versionId of the service (If the `prod` and `dev` aren't in sync)"""
-    deploy_command(service)
+    deploy_command(service, build)
 
 
 @builder.command()
