@@ -1,4 +1,4 @@
-from typing import List, Union, overload, Type
+from typing import List, Union, overload, Optional
 from aliases import (
     PodcastTranscript,
     TranscriptorType,
@@ -7,16 +7,17 @@ from aliases import (
     ShortsFinalTranscripts,
     TranscriptFeedback,
     TranscriptFeedbackList,
+    FinalTranscript,
 )
 from models import (
-    AssemblyTranscriptFeedback,
+    FinalTranscriptModel,
     ClipShortData,
-    YoutubeTranscriptFeedbackType,
     AssemblyShortFinalTranscript,
-    AssemblyShortFinalTranscriptType,
     YoutubeAPITranscript,
+    AssemblyAIParsedTranscript,
     TranscriptStats,
     YoutubeTranscriptFeedback,
+    AssemblyTranscriptFeedback,
 )
 from src.Classes.Utils.ChatCompletion import ChatCompletion
 from src.Classes.Utils.FaceTrackingVideo import FaceTrackingVideo
@@ -228,7 +229,7 @@ class PodcastToShorts:
 
     def __get_shorts_final_transcripts(
         self, shorts_transcripts: TranscriptFeedbackList
-    ) -> ShortsFinalTranscripts:
+    ) -> List[FinalTranscript]:
         """
         Method to get the final transcripts of the shorts, by removing the start, middle and end sentences, to get the optimized short.
         Parameters:
@@ -245,10 +246,6 @@ class PodcastToShorts:
                 return f"I want to make a great 15 - 55 seconds long short from the transcript part given to you."
 
         if self.transcriptor_type == "assembly_ai":
-            shorts_transcripts = [
-                AssemblyTranscriptFeedback.model_validate(dict)
-                for dict in shorts_transcripts
-            ]
             with open("./src/Classes/Bots/json_files/examples/1_input.json", "r") as f:
                 example_input = json.load(f)
 
@@ -259,12 +256,30 @@ class PodcastToShorts:
 
             # TODO: Change this prompt so that the LLM does not put more than one sentence in a string. Each string should be one sentence.
             prompt = f"""{get_prompt_first_sentence(shorts_transcripts[0])}. Give me only 15 - 20 sentences from the transcript I just gave you that will be the most engaging and get the most amount of views. You must stricly output in the following JSON format: {json.dumps({"sentences": ["sentence here", "another sentence here"]}, indent=4)}. Keep the sentences the exact same as what it was from the transcript."""
-        else:
-            shorts_transcripts = [
-                YoutubeTranscriptFeedback.model_validate(dict)
-                for dict in shorts_transcripts
+            final_transcripts = []
+            all_shorts_transcripts = [short.transcript for short in shorts_transcripts]
+            correct_type_transcripts: List[List[AssemblyAIParsedTranscript]] = []
+            for short_transcript in all_shorts_transcripts:
+                correct_type_short_transcript: List[AssemblyAIParsedTranscript] = []
+                for transcript_model in short_transcript:
+                    if isinstance(transcript_model, AssemblyAIParsedTranscript):
+                        correct_type_short_transcript.append(transcript_model)
+                    else:
+                        raise ValueError(
+                            "Short is not a AssemblyAIParsedTranscript object"
+                        )
+                correct_type_transcripts.append(correct_type_short_transcript)
+
+            final_transcripts = [
+                self.__get_final_transcript(prompt, correct_type_transcript)
+                for correct_type_transcript in correct_type_transcripts
             ]
-            for index, short in enumerate(shorts_transcripts):
+        else:
+            final_transcripts = []
+            for short in enumerate(shorts_transcripts):
+                if not isinstance(short, YoutubeTranscriptFeedback):
+                    raise ValueError("Short is not a YoutubeTranscriptFeedback object")
+
                 prompt = f"""{get_prompt_first_sentence(shorts_transcripts[0])}. Give me the perfect start text and end text from the transcript that will be the perfect start and end for making an engaging short (DON'T USE THE FIRST TEXT AND THE LAST TEXT FROM THE TRANSCRIPT I GAVE YOU, IT MUST START A LITTLE BIT LATER ON.) Note, the start and end text must be from the transcript. The start text must be before the end text. The start text must be the best starting sentence from the transcript for a short, and the end text must be a the best ending sentence from the transcript for a short. The start text must be the beginning of a sentence, and the end text must end a sentence (meaning first character for start text must be a capital letter, indicating it is the start of a sentence, and the end sentence should be ending with an ending character - '?.!'. Keep the start and end text the exact same as what it was from the transcript.
 
                 The start text may not be "{short.transcript[0].text}", and the end text may not be '{short.transcript[0].text}'.
@@ -274,8 +289,8 @@ class PodcastToShorts:
                     'end_text': 'the exact end text'
                 }, indent=4)}"""
 
-        # logger.info(f"Prompt: {prompt}")
-        # TODO: call this function "get_final_transcript()" in the two statements above
+                final_transcripts.append(self.__get_final_transcript(prompt))
+
         logger.info("Returning final transcripts...")
         return final_transcripts
 
@@ -564,7 +579,7 @@ class PodcastToShorts:
             9. A "badass" moment, or how someone is talking about how badass they are, something that could inspire and motivate people to do hard things, to push themselves. This is a moment that will make people feel like they can do anything, and they are unstoppable.
             10. Someone talking about how they went through difficult times, something that could resonate with the audience.
             should_make_short: True or False. True, if the score is above or equal to 70, false if it is below 70
-            feedback: Any feedback on the short, what is good and bad about the transcript, how to make it better. Note: only evaluate it based off of the transcript. Don't give feedback saying that there could be visuals or animations. 
+            feedback: Any feedback on the short, what is good and bad about the transcript, how to make it better. Note: only evaluate it based off of the transcript. Don't give feedback saying that there could be visuals or animations.
 ###
             Please output in the following format (ignore the values, just use the structure):
             {json.dumps(
@@ -666,7 +681,8 @@ class PodcastToShorts:
         if len(transcript) == 0:
             return
 
-        return transcript[-1].start + transcript[-1].duration - transcript[0].start
+        if isinstance(transcript[0], YoutubeAPITranscript):
+            return transcript[-1].start + transcript[-1].duration - transcript[0].start
 
     def __validate_params(self):
         invalid_params = False
@@ -694,113 +710,73 @@ class PodcastToShorts:
         if invalid_params:
             raise ValueError("Invalid parameters passed")
 
-    # @overload
-    # def __get_final_transcript(
-    #     self,
-    #     prompt: str,
-    #     short: TranscriptFeedback,
-    # ) -> AssemblyShortFinalTranscript: ...
-    #
-    # @overload
-    # def __get_final_transcript(
-    #     self,
-    #     prompt: str,
-    #     short: TranscriptFeedback,
-    # ) -> YoutubeTranscriptFeedback: ...
-    #
-    # def __get_final_transcript(
-    #     self,
-    #     prompt: str,
-    #     short: TranscriptFeedback,
-    # ) -> Union[AssemblyShortFinalTranscript, YoutubeTranscriptFeedback]:
-    #     """
-    #     Internal method to get final transcript for a short
-    #     """
-    #     if self.transcriptor_type == "assembly_ai":
-    #         short = AssemblyTranscriptFeedback.model_validate(short)
-    #     else:
-    #         short = YoutubeTranscriptFeedback.model_validate(short)
-    #
-    #     max_retries = 5
-    #     valid_response = False
-    #     while max_retries:
-    #         max_retries -= 1
-    #         if self.llm_type == "openai":
-    #             chat_completion = ChatCompletion(
-    #                 llm_type=self.llm_type,
-    #                 llm_model=self.llm_model,
-    #                 api_key=self.llm_api_key,
-    #             )
-    #             llm_response = chat_completion.generate(
-    #                 system_prompt=prompt,
-    #                 user_message=f"Here is the transcript: {short.transcript}",
-    #                 return_type=TranscriptStats,
-    #             )
-    #         elif self.llm_type == "ollama":
-    #             chat_completion = ChatCompletion(
-    #                 llm_type=self.llm_type,
-    #                 llm_model=self.llm_model,
-    #                 ollama_base_url=self.ollama_base_url,
-    #             )
-    #             llm_response = chat_completion.generate(
-    #                 user_message=prompt, json_format=True
-    #             )
-    #         else:
-    #             raise ValueError("LLM type is not valid")
-    #
-    #         if (
-    #             (self.transcriptor_type == "assembly_ai")
-    #             and isinstance(llm_response, dict)
-    #             and ("sentences" in llm_response)
-    #             and (isinstance(llm_response["sentences"], list))
-    #         ):
-    #             invalid_sentences = False
-    #             for sentence in llm_response["sentences"]:
-    #                 if not isinstance(sentence, str):
-    #                     invalid_sentences = True
-    #                     break
-    #
-    #             if not invalid_sentences:
-    #                 logger.info(
-    #                     "Response format valid. Breaking while loop..."
-    #                 )
-    #                 valid_response = True
-    #                 break
-    #             logger.info("Response invalid, regenerating response...")
-    #         elif (
-    #             (self.transcriptor_type == "yt_transcript_api")
-    #             and isinstance(llm_response, dict)
-    #             and "start_text" in llm_response
-    #             and "end_text" in llm_response
-    #             and isinstance(llm_response["start_text"], str)
-    #             and isinstance(llm_response["end_text"], str)
-    #         ):
-    #             logger.info("Response format valid. Breaking while loop...")
-    #             valid_response = True
-    #             break
-    #
-    #         logger.info("Response invalid, regenerating response...")
-    #
-    #     if not valid_response or not llm_response:
-    #         logger.warning("Response is empty, or is invalid")
-    #         continue
-    #
-    #     final_transcript_chunk = self._cleanup_shortened_transcript_response(
-    #         llm_response, short
-    #     )
-    #
-    #     if final_transcript_chunk != -1:
-    #         logger.info(
-    #             f"[{index+1}/{len(shorts_transcripts)}]. Appending response to final transcripts"
-    #         )
-    #         final_transcripts.append(final_transcript_chunk)
-    #     else:
-    #         logger.warning(
-    #             "Final transcript chunk empty. Nothing appended to 'final_transcripts'."
-    #         )
-    #
-    #     with open(self.debug_shorts_final_transcripts_path, "w") as f:
-    #         f.write(json.dumps(final_transcripts, indent=4))
-    #         logger.info(
-    #             f"saved shorts final transcripts to {self.debug_shorts_final_transcripts_path}"
-    #         )
+    @overload
+    def __get_final_transcript(
+        self,
+        prompt: str,
+        short_transcript: List[AssemblyAIParsedTranscript],
+    ) -> AssemblyShortFinalTranscript: ...
+
+    @overload
+    def __get_final_transcript(
+        self,
+        prompt: str,
+    ) -> List[YoutubeAPITranscript]: ...
+
+    def __get_final_transcript(
+        self,
+        prompt: str,
+        short_transcript: Optional[
+            PodcastTranscript
+        ] = None,  # If it is provided, we are using assembly ai.
+    ) -> FinalTranscript:
+        """
+        Internal method to get final transcript for a short
+        """
+        if self.llm_type == "openai":
+            chat_completion = ChatCompletion(
+                llm_type=self.llm_type,
+                llm_model=self.llm_model,
+                api_key=self.llm_api_key,
+            )
+        elif self.llm_type == "ollama":
+            chat_completion = ChatCompletion(
+                llm_type=self.llm_type,
+                llm_model=self.llm_model,
+                ollama_base_url=self.ollama_base_url,
+            )
+        else:
+            raise ValueError("LLM type is not valid")
+
+        if short_transcript:  # assembly transcript
+            llm_response = chat_completion.generate(
+                system_prompt=prompt,
+                user_message=f"Here is the transcript: {short_transcript}",
+                return_type=FinalTranscriptModel,
+            )
+        else:  # youtube transcript
+            llm_response = chat_completion.generate(
+                user_message=prompt,
+                return_type=FinalTranscriptModel,
+            )
+        final_transcript = llm_response.final_transcript
+
+        final_transcript_chunk = self._cleanup_shortened_transcript_response(
+            final_transcript, short
+        )
+
+        if final_transcript_chunk != -1:
+            logger.info(
+                f"[{index+1}/{len(shorts_transcripts)}]. Appending response to final transcripts"
+            )
+            final_transcripts.append(final_transcript_chunk)
+        else:
+            logger.warning(
+                "Final transcript chunk empty. Nothing appended to 'final_transcripts'."
+            )
+
+        with open(self.debug_shorts_final_transcripts_path, "w") as f:
+            f.write(json.dumps(final_transcripts, indent=4))
+            logger.info(
+                f"saved shorts final transcripts to {self.debug_shorts_final_transcripts_path}"
+            )

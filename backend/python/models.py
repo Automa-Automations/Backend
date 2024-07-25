@@ -1,8 +1,6 @@
 from typing import Optional, List, TypeVar
 from pydantic import BaseModel, field_validator
-from aliases import ReturnStatus
-
-from aliases import PodcastTranscript
+from aliases import ReturnStatus, FinalTranscript
 
 
 class AssemblyAIParsedTranscript(BaseModel):
@@ -44,8 +42,10 @@ class TranscriptStats(BaseModel):
             return True
         elif v.lower() == "false":
             return False
-        else:
+        elif isinstance(v, bool):
             return v
+        else:
+            raise ValueError("should_make_short must be a boolean value")
 
 
 class AssemblyTranscriptFeedback(BaseModel):
@@ -72,6 +72,10 @@ class DownloadPodcastResponse(BaseModel):
 
 class AssemblyShortFinalTranscript(BaseModel):
     sentences: List[str]
+
+
+class FinalTranscriptModel(BaseModel):
+    final_transcript: FinalTranscript
 
 
 #######

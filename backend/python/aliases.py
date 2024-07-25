@@ -1,4 +1,4 @@
-from typing import Literal, Sequence, TypeAlias, Union, List, Sequence
+from typing import Literal, TypeAlias, Union, List
 from moviepy.editor import CompositeVideoClip, VideoClip
 
 from models import (
@@ -9,10 +9,15 @@ from models import (
     ReturnMessage,
     DownloadPodcastResponse,
     YoutubeTranscriptFeedback,
+    AssemblyShortFinalTranscript,
 )
 
-PodcastTranscript: TypeAlias = Sequence[
-    Union[AssemblyAIParsedTranscript, YoutubeAPITranscript]
+PodcastTranscript: TypeAlias = Union[
+    List[AssemblyAIParsedTranscript], List[YoutubeAPITranscript]
+]
+
+FinalTranscript: TypeAlias = Union[
+    AssemblyShortFinalTranscript, List[YoutubeAPITranscript]
 ]
 FacePositions: TypeAlias = Union[FaceFramePosition, ReturnMessage, None]
 
@@ -26,12 +31,12 @@ VideoType: TypeAlias = Literal["short", "long video"]
 
 MoviePyClip: TypeAlias = Union[VideoClip, CompositeVideoClip]
 
-ShortsFinalTranscripts: TypeAlias = List[
-    Union[YoutubeAPITranscript, DownloadPodcastResponse]
-]
 TranscriptFeedback: TypeAlias = Union[
     YoutubeTranscriptFeedback, AssemblyTranscriptFeedback
 ]
-TranscriptFeedbackList: TypeAlias = Sequence[TranscriptFeedback]
+
+TranscriptFeedbackList: TypeAlias = Union[
+    List[YoutubeTranscriptFeedback], List[AssemblyTranscriptFeedback]
+]
 TranscriptorType: TypeAlias = Literal["assembly_ai", "yt_transcript_api"]
 LLMType: TypeAlias = Literal["openai", "ollama"]

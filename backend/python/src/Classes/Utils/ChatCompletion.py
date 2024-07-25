@@ -48,7 +48,6 @@ class ChatCompletion:
         return_type: None = None,
         system_prompt: Optional[str] = None,
     ) -> str: ...
-
     def generate(
         self,
         user_message: str,
