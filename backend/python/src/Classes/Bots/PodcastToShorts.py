@@ -1,4 +1,4 @@
-from typing import List, Union, overload, Optional
+from typing import List, Union, overload, Optional, TypeVar
 from aliases import (
     PodcastTranscript,
     TranscriptorType,
@@ -39,6 +39,10 @@ from src.utils import (
 import traceback
 
 logger = logging.getLogger(__name__)
+
+TranscriptFeedbackType = TypeVar(
+    "TranscriptFeedbackType", YoutubeTranscriptFeedback, AssemblyTranscriptFeedback
+)
 
 
 class PodcastToShorts:
@@ -108,14 +112,18 @@ class PodcastToShorts:
         ):
             with open(self.debug_transcripts_feedback_path, "r") as f:
                 logger.info("Loading from transcripts_feedback.json...")
-                transcriptions_feedback: List[TranscriptFeedback] = [
-                    (
-                        YoutubeTranscriptFeedback.model_validate(dict)
-                        if self.transcriptor_type == "yt_transcript_api"
-                        else AssemblyTranscriptFeedback.model_validate(dict)
-                    )
-                    for dict in json.load(f)
-                ]
+                data = json.load(f)
+                transcriptions_feedback: TranscriptFeedbackList = []
+                if self.transcriptor_type == "assembly_ai":
+                    transcriptions_feedback = [
+                        (YoutubeTranscriptFeedback.model_validate(dict))
+                        for dict in data
+                    ]
+                else:
+                    transcriptions_feedback = [
+                        (AssemblyTranscriptFeedback.model_validate(dict))
+                        for dict in data
+                    ]
         else:
             transcriptions_feedback = self.__get_transcripts_feedback(transcript)
         logger.info(
@@ -139,7 +147,7 @@ class PodcastToShorts:
                 shorts_transcripts=other_shorts,
                 total_shorts=round(podcast_length / 10) - len(shorts_transcripts),
             )
-            shorts_transcripts.extend(extra_shorts)
+            shorts_transcripts = shorts_transcripts + extra_shorts
             logger.info(f"New shorts transcripts length: {len(shorts_transcripts)}")
 
         elif len(shorts_transcripts) > round(podcast_length / 10):
@@ -207,8 +215,8 @@ class PodcastToShorts:
         return transcript_with_timestamps
 
     def __get_best_shorts(
-        self, shorts_transcripts: List[TranscriptFeedback], total_shorts: int
-    ):
+        self, shorts_transcripts: List[TranscriptFeedbackType], total_shorts: int
+    ) -> List[TranscriptFeedbackType]:
         """
         Method to get the best shorts from the passed in shorts
         Parameters:
@@ -219,17 +227,22 @@ class PodcastToShorts:
         """
 
         # sort the shorts_transcripts by the score, in descending order
-        descending_sorted_shorts = sorted(
-            shorts_transcripts,
-            key=lambda x: int(x.stats.score),
-            reverse=True,
+        # since we know that the list of children will be the same type always, (all will be youtube or assembly transcript type, it will never be a mixture of both), I am going to use json.loads(json.dumps) to make it be of type TranscriptFeedbackList.
+        descending_sorted_shorts: TranscriptFeedbackList = json.loads(
+            json.dumps(
+                sorted(
+                    shorts_transcripts,
+                    key=lambda x: int(x.stats.score),
+                    reverse=True,
+                )
+            )
         )
         best_shorts = descending_sorted_shorts[:total_shorts]
         logger.info(f"Got an extra {len(best_shorts)} shorts.")
         return best_shorts
 
     def __get_shorts_final_transcripts(
-        self, shorts_transcripts: TranscriptFeedbackList
+        self, shorts_transcripts: List[TranscriptFeedbackType]
     ) -> List[FinalTranscript]:
         """
         Method to get the final transcripts of the shorts, by removing the start, middle and end sentences, to get the optimized short.
@@ -524,9 +537,9 @@ class PodcastToShorts:
 
     def __filter_transcripts(
         self,
-        transcriptions_feedback: List[TranscriptFeedback],
+        transcriptions_feedback: TranscriptFeedbackList,
         should_make_short: bool = True,
-    ) -> List[TranscriptFeedback]:
+    ) -> TranscriptFeedbackList:
         """
         Method to filter the transcriptions based on the should_make_short value
         Parameters:
@@ -548,7 +561,7 @@ class PodcastToShorts:
 
     def __get_transcripts_feedback(
         self, full_sentences_transcript: PodcastTranscript
-    ) -> List[TranscriptFeedback]:
+    ) -> List[TranscriptFeedbackType]:
         """
         Method to get the feedback of the transcriptions
         Parameters:
