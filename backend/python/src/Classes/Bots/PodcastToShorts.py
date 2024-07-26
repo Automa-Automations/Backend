@@ -10,7 +10,8 @@ from aliases import (
     FinalTranscript,
 )
 from models import (
-    FinalTranscriptModel,
+    FinalTranscriptChunk,
+    YouTubeAPIStartEndTimes,
     ClipShortData,
     AssemblyShortFinalTranscript,
     YoutubeAPITranscript,
@@ -256,7 +257,6 @@ class PodcastToShorts:
 
             # TODO: Change this prompt so that the LLM does not put more than one sentence in a string. Each string should be one sentence.
             prompt = f"""{get_prompt_first_sentence(shorts_transcripts[0])}. Give me only 15 - 20 sentences from the transcript I just gave you that will be the most engaging and get the most amount of views. You must stricly output in the following JSON format: {json.dumps({"sentences": ["sentence here", "another sentence here"]}, indent=4)}. Keep the sentences the exact same as what it was from the transcript."""
-            final_transcripts = []
             all_shorts_transcripts = [short.transcript for short in shorts_transcripts]
             correct_type_transcripts: List[List[AssemblyAIParsedTranscript]] = []
             for short_transcript in all_shorts_transcripts:
@@ -287,125 +287,120 @@ class PodcastToShorts:
                 {json.dumps({
                     'start_text': 'the exact start text',
                     'end_text': 'the exact end text'
-                }, indent=4)}"""
+                }, indent=3)}"""
 
                 final_transcripts.append(self.__get_final_transcript(prompt))
 
         logger.info("Returning final transcripts...")
         return final_transcripts
 
-    def _cleanup_shortened_transcript_response(self, llm_response, short):
+    def _cleanup_shortened_transcript_response(
+        self,
+        llm_response: YouTubeAPIStartEndTimes,
+        short_transcript: List[YoutubeAPITranscript],
+    ) -> Union[FinalTranscriptChunk, None]:
         logger.info("Cleaning up shortened transcript response...")
-        if self.transcriptor_type == "assembly_ai":
-            return llm_response
-        elif self.transcriptor_type == "yt_transcript_api":
-            llm_response["start_text"] = llm_response["start_text"].replace("\n", " ")
-            llm_response["end_text"] = llm_response["end_text"].replace("\n", " ")
-            logger.info("Successfully got response")
+        llm_response.start_text = llm_response.start_text.replace("\n", " ")
+        llm_response.end_text = llm_response.end_text.replace("\n", " ")
+        logger.info("Successfully got response")
 
-            shortened_transcript = []
-            logger.info("\n")
-            for idx, dict in enumerate(short["transcript"]):
-                dict["text"] = dict["text"].replace("\n", " ")
+        shortened_transcript: List[YoutubeAPITranscript] = []
+        logger.info("\n")
+        for idx, dict in enumerate(short_transcript):
+            dict.text = dict.text.replace("\n", " ")
 
-                current_text = dict["text"]
-                is_similar = validate_string_similarity(
-                    current_text, llm_response["start_text"], 80
-                )
-                logger.info(
-                    f'{idx+1}. "{current_text}" == "{llm_response["start_text"]}": {is_similar}'
-                )
-                if is_similar:
-                    count = 0
-                    while not validate_string_similarity(
-                        current_text, llm_response["end_text"]
-                    ) and len(shortened_transcript) < len(short["transcript"]) - (
-                        idx + 1
-                    ):
-                        try:
-                            regex = r"\[.*?\]"
-                            pattern = r"\b[A-Z]{4,}\b(:\s*)?"
+            current_text = dict.text
+            is_similar = validate_string_similarity(
+                current_text, llm_response.start_text, 80
+            )
+            logger.info(
+                f'{idx+1}. "{current_text}" == "{llm_response.start_text}": {is_similar}'
+            )
+            if is_similar:
+                count = 0
+                while not validate_string_similarity(
+                    current_text, llm_response.end_text
+                ) and len(shortened_transcript) < len(short_transcript) - (idx + 1):
+                    try:
+                        regex = r"\[.*?\]"
+                        pattern = r"\b[A-Z]{4,}\b(:\s*)?"
 
-                            current_text = short["transcript"][idx + count]["text"]
-                            current_text = re.sub(pattern, "", current_text)
-                            current_text = re.sub(r"\s+", " ", current_text).strip()
+                        current_text = short_transcript[idx + count].text
+                        current_text = re.sub(pattern, "", current_text)
+                        current_text = re.sub(r"\s+", " ", current_text).strip()
 
-                            logger.info(f"Current Text: {current_text}")
+                        logger.info(f"Current Text: {current_text}")
 
-                            current_text = re.sub(regex, "", current_text).replace(
-                                "\n", " "
-                            )
-                            append_dict = short["transcript"][idx + count]
-                            append_dict["text"] = current_text
+                        current_text = re.sub(regex, "", current_text).replace(
+                            "\n", " "
+                        )
+                        append_model = short_transcript[idx + count]
+                        append_model.text = current_text
 
-                            shortened_transcript.append(append_dict)
-                            count = count + 1
-                        except Exception as e:
-                            logger.info("Exception occured: ", e)
-                            break
-                    break
+                        shortened_transcript.append(append_model)
+                        count = count + 1
+                    except Exception as e:
+                        raise Exception(
+                            "Error occured while getting shortened final transcript: ",
+                            e,
+                        ) from e
+                break
 
-            try:
-                random_duration = random.randint(50, 60)
-                while True:
-                    total_transcript_duration = self.__get_total_transcript_duration(
-                        shortened_transcript
-                    )
-
-                    if (
-                        total_transcript_duration
-                        and total_transcript_duration > random_duration
-                    ):
-                        shortened_transcript = shortened_transcript[:-1]
-                    else:
-                        break
-
-                # Keeps on removing the last dictionary if it doesn't end with as full stop
-                regex = r"[.!?]"
-                max_remove_count = 3
-                while True:
-                    if (
-                        re.match(regex, shortened_transcript[-1]["text"][-1])
-                        or not max_remove_count
-                    ):
-                        break
-
-                    shortened_transcript = shortened_transcript[:-1]
-                    max_remove_count -= 1
-
-                # Keep on removing the first dictionary if it doesn't end with a capital letter (not start of a sentence)
-                max_remove_count = 1
-                while True:
-                    if (
-                        shortened_transcript[0]["text"][0].isupper()
-                        or not max_remove_count
-                    ):
-                        break
-
-                    shortened_transcript = shortened_transcript[1:]
-                    max_remove_count -= 1
-
-                transcript_duration = self.__get_total_transcript_duration(
+        try:
+            random_duration = random.randint(50, 60)
+            while True:
+                total_transcript_duration = self.__get_total_transcript_duration(
                     shortened_transcript
                 )
 
-                if not transcript_duration or transcript_duration < 15:
-                    return -1
+                if (
+                    total_transcript_duration
+                    and total_transcript_duration > random_duration
+                ):
+                    shortened_transcript = shortened_transcript[:-1]
+                else:
+                    break
 
-                final_transcript_chunk = {
-                    "transcript": shortened_transcript,
-                    "stats": short["stats"],
-                }
-                final_transcript_chunk["stats"][
-                    "transcript_duration"
-                ] = transcript_duration
+            # Keeps on removing the last dictionary if it doesn't end with as full stop
+            regex = r"[.!?]"
+            max_remove_count = 3
+            while True:
+                if (
+                    re.match(regex, shortened_transcript[-1].text[-1])
+                    or not max_remove_count
+                ):
+                    break
 
-                return final_transcript_chunk
-            except Exception as e:
-                logger.error("Error occured: ", e)
-                return -1
-        else:
-            raise ValueError("Transcriptor type is not valid")
+                shortened_transcript = shortened_transcript[:-1]
+                max_remove_count -= 1
+
+            # Keep on removing the first dictionary if it doesn't end with a capital letter (not start of a sentence)
+            max_remove_count = 1
+            while True:
+                if shortened_transcript[0].text[0].isupper() or not max_remove_count:
+                    break
+
+                shortened_transcript = shortened_transcript[1:]
+                max_remove_count -= 1
+
+            transcript_duration = self.__get_total_transcript_duration(
+                shortened_transcript
+            )
+
+            if not transcript_duration or transcript_duration < 15:
+                logger.error(
+                    f"Transcript duration is less than 15 seconds: {transcript_duration}"
+                )
+                return
+
+            final_transcript_chunk = FinalTranscriptChunk(
+                transcript=shortened_transcript,
+                transcript_duration=transcript_duration,
+            )
+
+            return final_transcript_chunk
+        except Exception as e:
+            logger.error("Error occured: ", e)
 
     def _generate_shorts(self, shorts_final_transcripts: List):
         # for now, just download the podcast and get shorts, unedited.
@@ -721,15 +716,16 @@ class PodcastToShorts:
     def __get_final_transcript(
         self,
         prompt: str,
-    ) -> List[YoutubeAPITranscript]: ...
+        short_transcript: List[YoutubeAPITranscript],
+    ) -> FinalTranscriptChunk: ...
 
     def __get_final_transcript(
         self,
         prompt: str,
-        short_transcript: Optional[
-            PodcastTranscript
-        ] = None,  # If it is provided, we are using assembly ai.
-    ) -> FinalTranscript:
+        short_transcript: Union[
+            List[AssemblyAIParsedTranscript], List[YoutubeAPITranscript]
+        ],  # If it is provided, we are using assembly ai.
+    ) -> Union[AssemblyShortFinalTranscript, FinalTranscriptChunk]:
         """
         Internal method to get final transcript for a short
         """
@@ -752,31 +748,29 @@ class PodcastToShorts:
             llm_response = chat_completion.generate(
                 system_prompt=prompt,
                 user_message=f"Here is the transcript: {short_transcript}",
-                return_type=FinalTranscriptModel,
+                return_type=AssemblyShortFinalTranscript,
             )
+            return llm_response
         else:  # youtube transcript
             llm_response = chat_completion.generate(
                 user_message=prompt,
-                return_type=FinalTranscriptModel,
+                return_type=YouTubeAPIStartEndTimes,
             )
-        final_transcript = llm_response.final_transcript
+            final_transcript = llm_response
 
-        final_transcript_chunk = self._cleanup_shortened_transcript_response(
-            final_transcript, short
-        )
-
-        if final_transcript_chunk != -1:
-            logger.info(
-                f"[{index+1}/{len(shorts_transcripts)}]. Appending response to final transcripts"
-            )
-            final_transcripts.append(final_transcript_chunk)
-        else:
-            logger.warning(
-                "Final transcript chunk empty. Nothing appended to 'final_transcripts'."
+            yt_api_short_transcript: List[YoutubeAPITranscript] = [
+                short_transcript_model
+                for short_transcript_model in short_transcript
+                if isinstance(short_transcript_model, YoutubeAPITranscript)
+            ]
+            final_transcript_chunk = self._cleanup_shortened_transcript_response(
+                final_transcript,
+                yt_api_short_transcript,
             )
 
-        with open(self.debug_shorts_final_transcripts_path, "w") as f:
-            f.write(json.dumps(final_transcripts, indent=4))
-            logger.info(
-                f"saved shorts final transcripts to {self.debug_shorts_final_transcripts_path}"
-            )
+            if final_transcript_chunk:
+                return final_transcript_chunk
+            else:
+                raise Exception(
+                    "Final transcript chunk empty. Nothing appended to 'final_transcripts'."
+                )

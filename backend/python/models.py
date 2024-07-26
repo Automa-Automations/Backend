@@ -74,8 +74,14 @@ class AssemblyShortFinalTranscript(BaseModel):
     sentences: List[str]
 
 
-class FinalTranscriptModel(BaseModel):
-    final_transcript: FinalTranscript
+class YouTubeAPIStartEndTimes(BaseModel):
+    start_text: str
+    end_text: str
+
+
+class FinalTranscriptChunk(BaseModel):
+    transcript: List[YoutubeAPITranscript]
+    transcript_duration: float
 
 
 #######
