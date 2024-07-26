@@ -4,13 +4,12 @@ from aliases import (
     TranscriptorType,
     LLMType,
     MoviePyClip,
-    ShortsFinalTranscripts,
     TranscriptFeedback,
     TranscriptFeedbackList,
     FinalTranscript,
 )
 from models import (
-    FinalTranscriptChunk,
+    FinalTranscriptDict,
     YouTubeAPIStartEndTimes,
     ClipShortData,
     AssemblyShortFinalTranscript,
@@ -147,22 +146,26 @@ class PodcastToShorts:
                 shorts_transcripts=other_shorts,
                 total_shorts=round(podcast_length / 10) - len(shorts_transcripts),
             )
-            shorts_transcripts = shorts_transcripts + extra_shorts
+            # Doing this since it gives weird type mismatches when I try to add them together, even though they have the same type, since it is a union type of lists
+            shorts_transcripts: TranscriptFeedbackList = json.loads(
+                json.dumps(shorts_transcripts + extra_shorts)
+            )
             logger.info(f"New shorts transcripts length: {len(shorts_transcripts)}")
 
         elif len(shorts_transcripts) > round(podcast_length / 10):
             # Make a new list by putting only the highest scores in there, so that it is the length of round(podcast_length / 10)
             logger.info("Shorts transcripts length is too long...")
-            highest_score_list = sorted(
-                shorts_transcripts,
-                key=lambda x: x.stats.score,
-                reverse=True,
-            )[: round(podcast_length / 10)]
-
-            logger.info(
-                f"New shorts transcripts length: {len(highest_score_list)}. Before, it was a length of {len(shorts_transcripts)}"
+            shorts_transcripts = json.loads(
+                json.dumps(
+                    sorted(
+                        shorts_transcripts,
+                        key=lambda x: x.stats.score,
+                        reverse=True,
+                    )[: round(podcast_length / 10)]
+                )
             )
-            shorts_transcripts = highest_score_list
+
+            logger.info(f"New shorts transcripts length: {len(shorts_transcripts)}.")
 
         # if self.debugging or debugging:
         if (self.debugging or debugging) and os.path.exists(
@@ -170,7 +173,7 @@ class PodcastToShorts:
         ):
             logger.info("Loading from shorts_final_transcripts.json...")
             with open(self.debug_shorts_final_transcripts_path, "r") as f:
-                shorts_final_transcripts: ShortsFinalTranscripts = json.load(f)
+                shorts_final_transcripts: List[FinalTranscriptDict] = json.load(f)
         else:
             logger.info("Getting shorts final transcripts...")
             shorts_final_transcripts = self.__get_shorts_final_transcripts(
@@ -215,8 +218,8 @@ class PodcastToShorts:
         return transcript_with_timestamps
 
     def __get_best_shorts(
-        self, shorts_transcripts: List[TranscriptFeedbackType], total_shorts: int
-    ) -> List[TranscriptFeedbackType]:
+        self, shorts_transcripts: TranscriptFeedbackList, total_shorts: int
+    ) -> TranscriptFeedbackList:
         """
         Method to get the best shorts from the passed in shorts
         Parameters:
@@ -242,8 +245,8 @@ class PodcastToShorts:
         return best_shorts
 
     def __get_shorts_final_transcripts(
-        self, shorts_transcripts: List[TranscriptFeedbackType]
-    ) -> List[FinalTranscript]:
+        self, shorts: TranscriptFeedbackList
+    ) -> List[FinalTranscriptDict]:
         """
         Method to get the final transcripts of the shorts, by removing the start, middle and end sentences, to get the optimized short.
         Parameters:
@@ -251,7 +254,6 @@ class PodcastToShorts:
         Returns:
         - list: The list of the final transcripts of the shorts
         """
-        final_transcripts = []
 
         def get_prompt_first_sentence(short: TranscriptFeedback):
             if self.llm_type == "ollama":
@@ -269,31 +271,27 @@ class PodcastToShorts:
             # prompt = f"""{prompt_first_sentence}. Give me only 15 - 20 sentences from the transcript I just gave you that will be the most engaging and get the most amount of views, you must stricly output in the following JSON format: {json.dumps({"sentences": ["sentence here", "another sentence here"]}, indent=4)}. Keep the sentences the exact same as what it was from the transcript."""
 
             # TODO: Change this prompt so that the LLM does not put more than one sentence in a string. Each string should be one sentence.
-            prompt = f"""{get_prompt_first_sentence(shorts_transcripts[0])}. Give me only 15 - 20 sentences from the transcript I just gave you that will be the most engaging and get the most amount of views. You must stricly output in the following JSON format: {json.dumps({"sentences": ["sentence here", "another sentence here"]}, indent=4)}. Keep the sentences the exact same as what it was from the transcript."""
-            all_shorts_transcripts = [short.transcript for short in shorts_transcripts]
-            correct_type_transcripts: List[List[AssemblyAIParsedTranscript]] = []
-            for short_transcript in all_shorts_transcripts:
-                correct_type_short_transcript: List[AssemblyAIParsedTranscript] = []
-                for transcript_model in short_transcript:
-                    if isinstance(transcript_model, AssemblyAIParsedTranscript):
-                        correct_type_short_transcript.append(transcript_model)
-                    else:
-                        raise ValueError(
-                            "Short is not a AssemblyAIParsedTranscript object"
-                        )
-                correct_type_transcripts.append(correct_type_short_transcript)
+            prompt = f"""{get_prompt_first_sentence(shorts[0])}. Give me only 15 - 20 sentences from the transcript I just gave you that will be the most engaging and get the most amount of views. You must stricly output in the following JSON format: {json.dumps({"sentences": ["sentence here", "another sentence here"]}, indent=4)}. Keep the sentences the exact same as what it was from the transcript."""
 
-            final_transcripts = [
-                self.__get_final_transcript(prompt, correct_type_transcript)
-                for correct_type_transcript in correct_type_transcripts
+            shorts_correct_type = [
+                short
+                for short in shorts
+                if isinstance(short, AssemblyTranscriptFeedback)
             ]
+            final_transcripts_sentences = [
+                self.__get_final_transcript(prompt, short)
+                for short in shorts_correct_type
+            ]
+            final_transcripts = self.__format_assembly_transcripts_sentences(
+                final_transcripts_sentences, shorts_correct_type
+            )
         else:
-            final_transcripts = []
-            for short in enumerate(shorts_transcripts):
+            final_transcripts: List[FinalTranscriptDict] = []
+            for short in shorts:
                 if not isinstance(short, YoutubeTranscriptFeedback):
                     raise ValueError("Short is not a YoutubeTranscriptFeedback object")
 
-                prompt = f"""{get_prompt_first_sentence(shorts_transcripts[0])}. Give me the perfect start text and end text from the transcript that will be the perfect start and end for making an engaging short (DON'T USE THE FIRST TEXT AND THE LAST TEXT FROM THE TRANSCRIPT I GAVE YOU, IT MUST START A LITTLE BIT LATER ON.) Note, the start and end text must be from the transcript. The start text must be before the end text. The start text must be the best starting sentence from the transcript for a short, and the end text must be a the best ending sentence from the transcript for a short. The start text must be the beginning of a sentence, and the end text must end a sentence (meaning first character for start text must be a capital letter, indicating it is the start of a sentence, and the end sentence should be ending with an ending character - '?.!'. Keep the start and end text the exact same as what it was from the transcript.
+                prompt = f"""{get_prompt_first_sentence(shorts[0])}. Give me the perfect start text and end text from the transcript that will be the perfect start and end for making an engaging short (DON'T USE THE FIRST TEXT AND THE LAST TEXT FROM THE TRANSCRIPT I GAVE YOU, IT MUST START A LITTLE BIT LATER ON.) Note, the start and end text must be from the transcript. The start text must be before the end text. The start text must be the best starting sentence from the transcript for a short, and the end text must be a the best ending sentence from the transcript for a short. The start text must be the beginning of a sentence, and the end text must end a sentence (meaning first character for start text must be a capital letter, indicating it is the start of a sentence, and the end sentence should be ending with an ending character - '?.!'. Keep the start and end text the exact same as what it was from the transcript.
 
                 The start text may not be "{short.transcript[0].text}", and the end text may not be '{short.transcript[0].text}'.
                 Your output in the following format (ignore the values):
@@ -302,7 +300,7 @@ class PodcastToShorts:
                     'end_text': 'the exact end text'
                 }, indent=3)}"""
 
-                final_transcripts.append(self.__get_final_transcript(prompt))
+                final_transcripts.append(self.__get_final_transcript(prompt, short))
 
         logger.info("Returning final transcripts...")
         return final_transcripts
@@ -310,13 +308,14 @@ class PodcastToShorts:
     def _cleanup_shortened_transcript_response(
         self,
         llm_response: YouTubeAPIStartEndTimes,
-        short_transcript: List[YoutubeAPITranscript],
-    ) -> Union[FinalTranscriptChunk, None]:
+        short: YoutubeTranscriptFeedback,
+    ) -> Union[FinalTranscriptDict, None]:
         logger.info("Cleaning up shortened transcript response...")
         llm_response.start_text = llm_response.start_text.replace("\n", " ")
         llm_response.end_text = llm_response.end_text.replace("\n", " ")
         logger.info("Successfully got response")
 
+        short_transcript = short.transcript
         shortened_transcript: List[YoutubeAPITranscript] = []
         logger.info("\n")
         for idx, dict in enumerate(short_transcript):
@@ -406,9 +405,10 @@ class PodcastToShorts:
                 )
                 return
 
-            final_transcript_chunk = FinalTranscriptChunk(
+            final_transcript_chunk = FinalTranscriptDict(
                 transcript=shortened_transcript,
                 transcript_duration=transcript_duration,
+                stats=short.stats,
             )
 
             return final_transcript_chunk
@@ -722,23 +722,21 @@ class PodcastToShorts:
     def __get_final_transcript(
         self,
         prompt: str,
-        short_transcript: List[AssemblyAIParsedTranscript],
-    ) -> AssemblyShortFinalTranscript: ...
+        short: YoutubeTranscriptFeedback,
+    ) -> FinalTranscriptDict: ...
 
     @overload
     def __get_final_transcript(
         self,
         prompt: str,
-        short_transcript: List[YoutubeAPITranscript],
-    ) -> FinalTranscriptChunk: ...
+        short: AssemblyTranscriptFeedback,
+    ) -> AssemblyShortFinalTranscript: ...
 
     def __get_final_transcript(
         self,
         prompt: str,
-        short_transcript: Union[
-            List[AssemblyAIParsedTranscript], List[YoutubeAPITranscript]
-        ],  # If it is provided, we are using assembly ai.
-    ) -> Union[AssemblyShortFinalTranscript, FinalTranscriptChunk]:
+        short: Union[YoutubeTranscriptFeedback, AssemblyTranscriptFeedback],
+    ) -> Union[AssemblyShortFinalTranscript, FinalTranscriptDict]:
         """
         Internal method to get final transcript for a short
         """
@@ -757,10 +755,10 @@ class PodcastToShorts:
         else:
             raise ValueError("LLM type is not valid")
 
-        if short_transcript:  # assembly transcript
+        if self.transcriptor_type == "assembly_ai":  # assembly transcript
             llm_response = chat_completion.generate(
                 system_prompt=prompt,
-                user_message=f"Here is the transcript: {short_transcript}",
+                user_message=f"Here is the transcript: {short.transcript}",
                 return_type=AssemblyShortFinalTranscript,
             )
             return llm_response
@@ -771,14 +769,13 @@ class PodcastToShorts:
             )
             final_transcript = llm_response
 
-            yt_api_short_transcript: List[YoutubeAPITranscript] = [
-                short_transcript_model
-                for short_transcript_model in short_transcript
-                if isinstance(short_transcript_model, YoutubeAPITranscript)
-            ]
+            if not isinstance(short, YoutubeTranscriptFeedback):
+                raise Exception(
+                    f"Short is not a YoutubeTranscriptFeedback object: {short}"
+                )
+
             final_transcript_chunk = self._cleanup_shortened_transcript_response(
-                final_transcript,
-                yt_api_short_transcript,
+                final_transcript, short
             )
 
             if final_transcript_chunk:
@@ -787,3 +784,32 @@ class PodcastToShorts:
                 raise Exception(
                     "Final transcript chunk empty. Nothing appended to 'final_transcripts'."
                 )
+
+    def __format_assembly_transcripts_sentences(
+        self,
+        sentences_lists: List[AssemblyShortFinalTranscript],
+        shorts: List[AssemblyTranscriptFeedback],
+    ) -> List[FinalTranscriptDict]:
+        """
+        Method to format the assembly transcripts sentences into the final transcript chunk
+        Parameters:
+        - sentences_list: list: The list of the assembly transcripts sentences
+        - shorts: list: The list of the assembly transcripts
+        Returns:
+        - list: The list of the final transcript chunk
+        """
+        # first, make sure there is only one sentence per string in the list. If there is more, add that as its own string.
+        end_sentence_regex = re.compile(r"[.!?]")
+        final_shorts_sentences: List[List[str]] = []
+        for sentence_list in sentences_lists:
+            current_sentences_list: List[str] = []
+            for sentence in sentence_list.sentences:
+                current_sentences_list.extend(re.split(end_sentence_regex, sentence))
+            final_shorts_sentences.append(current_sentences_list)
+
+        # final_transcripts: List[FinalTranscriptChunk] = []
+        # for idx, sentences in enumerate(sentences_list):
+        #     final_transcripts.append(
+        #         FinalTranscriptChunk(
+        #             transcript=sentences.sentences,
+        #             transcript_duration

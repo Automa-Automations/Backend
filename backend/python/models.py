@@ -79,9 +79,10 @@ class YouTubeAPIStartEndTimes(BaseModel):
     end_text: str
 
 
-class FinalTranscriptChunk(BaseModel):
+class FinalTranscriptDict(BaseModel):
     transcript: List[YoutubeAPITranscript]
     transcript_duration: float
+    stats: TranscriptStats
 
 
 #######
