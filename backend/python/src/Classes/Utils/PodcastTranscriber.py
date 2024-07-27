@@ -39,7 +39,7 @@ class PodcastTranscriber:
         mp4_audio.export(mp3_file_path, format="mp3")
         return mp3_file_path
 
-    def transcribe(
+    def get_transcript(
         self, podcast_url: str, api_key: str, debugging: bool = False
     ) -> Tuple[PodcastTranscript, float]:
         """
