@@ -12,11 +12,9 @@ if os.environ.get("CURRENT_ENVIRONMENT", "local") == "prod":
     env_type = "HOSTED_"
 
 assembly_api_key = os.environ.get("ASSEMBLY_API_KEY") or ""
-ollama_base_url = os.environ.get(f"{env_type}OLLAMA_HOST_URL") or ""
 llm_api_key = os.environ.get("OPENAI_API_KEY") or ""
 
 podcast_url = os.environ.get("TEST_PODCAST_URL") or ""
-llm_type: Literal["ollama", "openai"] = "ollama"
 transcriptor_type: Literal["assembly_ai", "yt_transcript_api"] = "assembly_ai"
 llm_model = os.environ.get("LLM_TESTING_MODEL") or ""
 
@@ -30,12 +28,7 @@ class FullRun(unittest.TestCase):
             llm_model=llm_model,
             transcriptor_type=transcriptor_type,
         )
-        if llm_type == "ollama":
-            podcast_to_shorts.ollama_base_url = ollama_base_url
-        elif llm_type == "openai":
-            podcast_to_shorts.llm_api_key = llm_api_key
-        else:
-            raise ValueError("Invalid llm_type")
+        podcast_to_shorts.llm_api_key = llm_api_key
 
         if transcriptor_type == "assembly_ai":
             podcast_to_shorts.assembly_api_key = assembly_api_key

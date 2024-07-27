@@ -1,19 +1,13 @@
 from typing import Optional, List, TypeVar
 from pydantic import BaseModel, field_validator
-from aliases import ReturnStatus, FinalTranscript
+from aliases import ReturnStatus
 
 
-class AssemblyAIParsedTranscript(BaseModel):
+class ParsedTranscript(BaseModel):
     sentence: str
     start_time: int
     end_time: int
     speaker: Optional[str]
-
-
-class YoutubeAPITranscript(BaseModel):
-    text: str
-    start: float
-    duration: float
 
 
 class FaceFramePosition(BaseModel):
@@ -48,14 +42,9 @@ class TranscriptStats(BaseModel):
             raise ValueError("should_make_short must be a boolean value")
 
 
-class AssemblyTranscriptFeedback(BaseModel):
+class TranscriptFeedback(BaseModel):
     stats: TranscriptStats
-    transcript: List[AssemblyAIParsedTranscript]
-
-
-class YoutubeTranscriptFeedback(BaseModel):
-    stats: TranscriptStats
-    transcript: List[YoutubeAPITranscript]
+    transcript: List[ParsedTranscript]
 
 
 class StatusReturn(BaseModel):
@@ -69,29 +58,8 @@ class DownloadPodcastResponse(BaseModel):
     filename: str
 
 
-class AssemblyShortFinalTranscript(BaseModel):
+class ShortFinalTranscript(BaseModel):
     sentences: List[str]
 
 
-class YouTubeAPIStartEndTimes(BaseModel):
-    start_text: str
-    end_text: str
-
-
-class FinalTranscriptDict(BaseModel):
-    transcript: List[YoutubeAPITranscript]
-    transcript_duration: float
-    stats: TranscriptStats
-
-
-#######
-
 BaseModelType = TypeVar("BaseModelType", bound=BaseModel)
-
-AssemblyShortFinalTranscriptType = TypeVar(
-    "AssemblyShortFinalTranscriptType", bound=AssemblyShortFinalTranscript
-)
-
-YoutubeTranscriptFeedbackType = TypeVar(
-    "YoutubeTranscriptFeedbackType", bound=YoutubeTranscriptFeedback
-)

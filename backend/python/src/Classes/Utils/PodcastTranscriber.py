@@ -1,15 +1,13 @@
 import os
 from typing import List, Union
 from assemblyai.types import TranscriptResponse
-from youtube_transcript_api import YouTubeTranscriptApi
 from pydub import AudioSegment
 import assemblyai as aai
 import logging
 import json
 from aliases import PodcastTranscript
 from models import (
-    AssemblyAIParsedTranscript,
-    YoutubeAPITranscript,
+    ParsedTranscript,
 )
 from src.utils import download_podcast
 
@@ -54,63 +52,45 @@ class PodcastTranscriber:
         podcast_transcriber = cls(podcast_url)
         download_output = download_podcast(podcast_url)
         logger.info(f"Download Output: {download_output}")
-        if download_output.status == "success":
-            download_path = os.path.join(
-                download_output.output_path, download_output.filename
+        download_path = os.path.join(
+            download_output.output_path, download_output.filename
+        )
+
+        assembly_ai = AssemblyAI(api_key)
+        assembly_ai.debugging = debugging
+
+        test_podcast_mp3_path = download_path.rsplit(".", 1)[0] + ".mp3"
+        if debugging and os.path.exists(test_podcast_mp3_path):
+            logger.info(
+                f"Mp3 file already exist, no need to convert video to mp3. Path: {test_podcast_mp3_path}"
             )
+            podcast_mp3_path = test_podcast_mp3_path
+        else:
+            podcast_mp3_path = podcast_transcriber._convert_to_mp3(download_path)
 
-            assembly_ai = AssemblyAI(api_key)
-            assembly_ai.debugging = debugging
+        if (
+            debugging
+            and os.path.exists(assembly_ai.parsed_transcript_path)
+            and os.path.exists(assembly_ai.transcript_path)
+        ):
+            logger.info("Transcript already exist, no need to transcribe podcast.")
+            with open(assembly_ai.parsed_transcript_path, "r") as f:
+                parsed_transcript: List[ParsedTranscript] = json.load(f)
+            with open(assembly_ai.transcript_path, "r") as f:
+                transcript: TranscriptResponse = json.load(f)
+        else:
+            transcript = assembly_ai.get_yt_podcast_transcription(podcast_mp3_path)
+            parsed_transcript = assembly_ai.parse_transcript(transcript)
 
-            test_podcast_mp3_path = download_path.rsplit(".", 1)[0] + ".mp3"
-            if debugging and os.path.exists(test_podcast_mp3_path):
-                logger.info(
-                    f"Mp3 file already exist, no need to convert video to mp3. Path: {test_podcast_mp3_path}"
-                )
-                podcast_mp3_path = test_podcast_mp3_path
-            else:
-                podcast_mp3_path = podcast_transcriber._convert_to_mp3(download_path)
+        podcast_transcriber.transcript = parsed_transcript
+        if not transcript:
+            raise Exception("Transcription failed.")
+        else:
+            audio_duration = transcript.audio_duration
+            if not audio_duration:
+                raise Exception("Transcription failed. Audio duration is None.")
 
-            if (
-                debugging
-                and os.path.exists(assembly_ai.parsed_transcript_path)
-                and os.path.exists(assembly_ai.transcript_path)
-            ):
-                logger.info("Transcript already exist, no need to transcribe podcast.")
-                with open(assembly_ai.parsed_transcript_path, "r") as f:
-                    parsed_transcript: List[AssemblyAIParsedTranscript] = json.load(f)
-                with open(assembly_ai.transcript_path, "r") as f:
-                    transcript: TranscriptResponse = json.load(f)
-            else:
-                transcript = assembly_ai.get_yt_podcast_transcription(podcast_mp3_path)
-                parsed_transcript = assembly_ai.parse_transcript(transcript)
-
-            podcast_transcriber.transcript = parsed_transcript
-            if not transcript:
-                raise Exception("Transcription failed.")
-            else:
-                audio_duration = transcript.audio_duration
-                if not audio_duration:
-                    raise Exception("Transcription failed. Audio duration is None.")
-
-                podcast_transcriber.audio_duration = audio_duration
-        return podcast_transcriber
-
-    @classmethod
-    def from_transcription_api(
-        cls, podcast_url: str, debugging: bool = False
-    ) -> "PodcastTranscriber":
-        """
-        Class method to create PodcastTranscriber object from YoutubeTranscriptionAPI
-        Parameters:
-        - podcast_url: str: The url of the podcast
-        - debugging: bool: The debugging flag
-        Returns PodcastTranscriber - The instantiated PodcastTranscriber object
-        """
-        podcast_transcriber = cls(podcast_url)
-        transcription_api = YoutubeTranscriptionAPITranscriber(podcast_url)
-        transcription_api.debugging = debugging
-        podcast_transcriber.transcript = transcription_api.get_video_transcript()
+            podcast_transcriber.audio_duration = audio_duration
         return podcast_transcriber
 
 
@@ -162,16 +142,16 @@ class AssemblyAI:
         else:
             raise Exception(f"Transcription failed! 'json_response' is None.")
 
-    def parse_transcript(self, transcript) -> List[AssemblyAIParsedTranscript]:
+    def parse_transcript(self, transcript) -> List[ParsedTranscript]:
         """Function to parse transcript into full sentences."""
         logger.info("Parsing transcript...")
         all_transcript_words = self.remove_filler_words(transcript["words"])
 
-        current_sentence_dict = AssemblyAIParsedTranscript(
+        current_sentence_dict = ParsedTranscript(
             sentence="", start_time=0, end_time=0, speaker=""
         )
 
-        full_sentences_transcript: List[AssemblyAIParsedTranscript] = []
+        full_sentences_transcript: List[ParsedTranscript] = []
         for word_dict in all_transcript_words:
             current_sentence_dict.sentence += word_dict["text"] + " "
             if word_dict["text"][0].isupper() and not current_sentence_dict.start_time:
@@ -186,7 +166,7 @@ class AssemblyAI:
                 current_sentence_dict.end_time = word_dict["end"]
                 current_sentence_dict.sentence = current_sentence_dict.sentence.strip()
                 full_sentences_transcript.append(current_sentence_dict)
-                current_sentence_dict = AssemblyAIParsedTranscript(
+                current_sentence_dict = ParsedTranscript(
                     sentence="",
                     start_time=0,
                     end_time=0,
@@ -226,30 +206,3 @@ class AssemblyAI:
                 final_word_dicts_array.append(word_dict)
 
         return final_word_dicts_array
-
-
-class YoutubeTranscriptionAPITranscriber:
-    """
-    Class to interact with Youtube API to get the transcript of a Youtube video
-    """
-
-    def __init__(self, podcast_url: str) -> None:
-        self.podcast_url = podcast_url
-        self.debugging = False
-        self.transcript_path = "./src/Classes/Bots/json_files/youtube_transcript.json"
-
-    def get_video_transcript(self) -> List[YoutubeAPITranscript]:
-        """
-        Method to get the video transcript from the video url
-        Returns List[YoutubeAPITranscriptDict] - The transcript of the podcast
-        """
-        logger.info("Getting video transcript...")
-        video_id = self.podcast_url.split("v=")[1]
-        video_transcript: List[YoutubeAPITranscript] = json.loads(
-            json.dumps(YouTubeTranscriptApi.get_transcript(video_id))
-        )
-
-        with open(self.transcript_path, "w") as f:
-            f.write(json.dumps(video_transcript, indent=4))
-
-        return video_transcript

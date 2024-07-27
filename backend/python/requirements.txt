@@ -2,7 +2,6 @@ annotated-types==0.6.0
 openai
 pytube
 ollama
-youtube-transcript-api
 stripe
 supabase
 black

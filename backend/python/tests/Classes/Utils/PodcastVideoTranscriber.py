@@ -27,10 +27,3 @@ class PodcastVideoTranscriber(unittest.TestCase):
         )
         transcription = transcriber.transcript
         self.assertIsNotNone(transcription)
-
-    def test_youtube_api_transcription(self):
-        transcriber = PodcastTranscriber.from_transcription_api(
-            podcast_url=self.podcast_url, debugging=True
-        )
-        transcription = transcriber.transcript
-        self.assertIsNotNone(transcription)
