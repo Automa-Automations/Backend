@@ -41,7 +41,7 @@ class PodcastToShorts:
         self.openai = OpenAI(api_key=openai_api_key)
         self.podcast_url = podcast_url
         self.assembly_api_key = assembly_api_key
-        self.openai_model = openai_model
+        self.openai_model = openai_model or "gpt-4o"
         self.debugging = True
         self.podcast_url = format_yt_video_url(self.podcast_url)
         self.yt = YouTube(self.podcast_url)
@@ -163,8 +163,6 @@ class PodcastToShorts:
         - list: The list of the best shorts
         """
 
-        # sort the shorts_transcripts by the score, in descending order
-        # since we know that the list of children will be the same type always, (all will be youtube or assembly transcript type, it will never be a mixture of both), I am going to use json.loads(json.dumps) to make it be of type TranscriptFeedbackList.
         descending_sorted_shorts = sorted(
             shorts_transcripts,
             key=lambda x: int(x.stats.score),
@@ -175,7 +173,6 @@ class PodcastToShorts:
         return best_shorts
 
     def _generate_shorts(self, shorts_final_transcripts: List):
-        # for now, just download the podcast and get shorts, unedited.
         download_response = download_podcast(self.podcast_url)
         logger.info("Podcast downloaded successfully")
         clip_shorts_data = []
@@ -305,38 +302,63 @@ class PodcastToShorts:
         logger.info("Getting transcripts feedback...")
         chunked_transcript = self.__chunk_transcript(full_sentences_transcript)
         transcripts_with_feedback: List[TranscriptFeedback] = []
-        for idx, chunk in enumerate(chunked_transcript):
-            prompt = f"""
-            Your job is to evaluate the following transcript chunk from a long-form podcast style video: {chunk}. Decide whether or not a specific part of the transcript or the whole transcript is valid for a short. Evaluate the short based off of this:
-            score: a score out from 0 to 100, on how good this would make for a viral short. Be quite strict here, as the goal is to make the short as engaging as possible. If it is some sort of ad for a product, or introduction for the podcast, then give it a score of 40. NOTE: swearing and cussing shouldn't make the score less or more. The transcript must be one of the following to get a score above 70, anything that is not this should get a score below 70. The transcript should have at least one or a few of the following, to get a score of 70 and above:
-            1. Really engaging, or interesting
-            2. Really funny, which will make viewers with fried dopamine receptors laugh, meaning it is really funny.
-            3. Really highly motivating, or inspiring
-            4. Really highly educational, or informative
-            5. Something that is following the trends, that people would want to hear from,
-            6. A really strong story that will make people feel understood, that people can resonate from. It should envoke a lot of emotion for the viewer.
-            7. Anything that will envoke strong emotions for the viewer. Whether that is sadness, happiness, really feeling understood, really feeling hyped up and motivated, a "wow" feeling of understanding or learning something new, that will make the viewer want to watch the full video.
-            8. Anything that is really unique, and hasn't been done before. That will make the viewer want to watch the full video.
-            9. A "badass" moment, or how someone is talking about how badass they are, something that could inspire and motivate people to do hard things, to push themselves. This is a moment that will make people feel like they can do anything, and they are unstoppable.
-            10. Someone talking about how they went through difficult times, something that could resonate with the audience.
-            should_make_short: True or False. True, if the score is above or equal to 70, false if it is below 70
-            feedback: Any feedback on the short, what is good and bad about the transcript, how to make it better. Note: only evaluate it based off of the transcript. Don't give feedback saying that there could be visuals or animations.
-###
-            Please output in the following format (ignore the values, just use the structure):
-            {json.dumps(
-            {
-                "score": "a score out of 100, on how good this would make for a short. Be quite strict here, as the goal is to make the short as engaging as possible. Use an integer here. The score must be a number, not surrounded with quotation marks at all",
-                "should_make_short": "True or False. True, if the score is above or equal to 70, false if it is below 70. Don't surround this value with quotation marks at all",
-                "feedback": "Any feedback on the short, what is good and bad about the transcript, how to make it better."
-            }, indent=4)}
-            """
-            # TODO: Use gpt-4o to get transcript feedback
-            response = chat_completion.generate(
-                system_prompt=prompt,
-                user_message=f"Here is the transcript chunk: {chunk}",
-                return_type=TranscriptStats,
-            )
+        system_prompt = f"""
+            The user will provide you with a transcript that is a part of a long form podcast. Your job is to evaluate the transcript for its potential as a viral social media short (whether a part of the transcript has the potential to be turned into a viral short).
+            A score of 70+/100 means that a part of the transcript is really good, that it qualifies to be a high quality short. Be relatively strict with the score, as we only want high quality shorts. The transcript or a part of the transcript must have at minimum one or two of the following criterias checked to be considered a score of 70+ :
+               - Very engaging or interesting
+               - Really funny
+               - Highly motivating or inspiring
+               - Highly educational or informative
+               - Relevant to current trends
+               - Strong, relatable story that evokes emotion
+               - Unique content
+               - "Badass" moments that inspire viewers
+               - Stories of overcoming difficulties
 
+            Output in JSON only, strictly in this exact output format:
+            {{
+                score: [the transcript score out of 100]
+            }}
+        """
+        for idx, chunk in enumerate(chunked_transcript):
+            user_message = f"Here is the transcript: {chunk}"
+            max_retries = 5
+            score = 0
+            while max_retries:
+                max_retries -= 1
+                response = self.openai.chat.completions.create(
+                    model=self.openai_model,
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": system_prompt,
+                        },
+                        {
+                            "role": "user",
+                            "content": user_message,
+                        }
+                    ]
+                )
+
+                response_str = response.choices[0].message.content
+                if not response_str:
+                    logger.info(f"Error: OpenAI response is None.") if max_retries:
+                    continue
+                try:
+                    response_json = json.loads(response_str)
+                except json.JSONDecodeError:
+                    logger.info("Error: Failed to decode json from OpenAI response.")
+                    continue
+
+
+                if not "score" in response_json:
+                    logger.error(
+                        f"'score' not in json responnse from LLM. Retrying..."
+                    )
+                    continue
+                else:
+                    score = int(response_json["score"])
+                    break
             logger.info("Successfully got response")
 
             correct_dt_transcript = [
@@ -344,7 +366,7 @@ class PodcastToShorts:
             ]
             transcript_and_feedback_chunk = TranscriptFeedback(
                 transcript=correct_dt_transcript,
-                stats=response,
+                score=score
             )
 
             logger.info(f"{idx+1}. Feedback generated successfully.")
@@ -432,7 +454,7 @@ class PodcastToShorts:
         while max_retries:
             max_retries -= 1
             response = self.openai.chat.completions.create(
-                model=self.openai_model or "gpt-4o",
+                model=self.openai_model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_message},

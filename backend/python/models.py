@@ -25,25 +25,8 @@ class ClipShortData(BaseModel):
     test: str
 
 
-class TranscriptStats(BaseModel):
-    score: int
-    should_make_short: bool
-    feedback: str
-
-    @field_validator("should_make_short")
-    def convert_should_make_short(cls, v):
-        if v.lower() == "true":
-            return True
-        elif v.lower() == "false":
-            return False
-        elif isinstance(v, bool):
-            return v
-        else:
-            raise ValueError("should_make_short must be a boolean value")
-
-
 class TranscriptFeedback(BaseModel):
-    stats: TranscriptStats
+    score: int
     transcript: List[ParsedTranscript]
 
 
