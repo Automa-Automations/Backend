@@ -203,7 +203,6 @@ def download_podcast(
         return DownloadPodcastResponse(
             output_path=output_path,
             filename=filename,
-            status="success",
         )
     except Exception as e:
         raise DownloadError(

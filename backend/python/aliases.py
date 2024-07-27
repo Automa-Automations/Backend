@@ -36,7 +36,7 @@ TranscriptFeedback: TypeAlias = Union[
 ]
 
 TranscriptFeedbackList: TypeAlias = Union[
-    List[YoutubeTranscriptFeedback], List[AssemblyTranscriptFeedback]
+    Sequence[YoutubeTranscriptFeedback], Sequence[AssemblyTranscriptFeedback]
 ]
 TranscriptorType: TypeAlias = Literal["assembly_ai", "yt_transcript_api"]
 LLMType: TypeAlias = Literal["openai", "ollama"]

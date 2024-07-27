@@ -18,6 +18,7 @@ from models import (
     TranscriptStats,
     YoutubeTranscriptFeedback,
     AssemblyTranscriptFeedback,
+    YoutubeTranscriptFeedbackType,
 )
 from src.Classes.Utils.ChatCompletion import ChatCompletion
 from src.Classes.Utils.FaceTrackingVideo import FaceTrackingVideo
@@ -418,31 +419,24 @@ class PodcastToShorts:
     def _generate_shorts(self, shorts_final_transcripts: List):
         # for now, just download the podcast and get shorts, unedited.
         download_response = download_podcast(self.podcast_url)
-        if download_response["status"] == "success":
-            logger.info("Podcast downloaded successfully")
-            clip_shorts_data = []
-            for short_transcript in shorts_final_transcripts:
-                clipped_short_data = self._clip_short(
-                    "./shorts",
-                    download_response["output_path"],
-                    download_response["filename"],
-                    short_transcript,
-                )
-                if not "short_transcript" in clipped_short_data:
-                    continue
-                else:
-                    clip_shorts_data.append(clipped_short_data)
-
-            if not self.debugging:
-                os.remove(
-                    f"{download_response['output_path']}/{download_response['filename']}"
-                )
-
-            return clip_shorts_data
-        else:
-            raise ValueError(
-                f"Error while downloading the podcast: {download_response['error']}"
+        logger.info("Podcast downloaded successfully")
+        clip_shorts_data = []
+        for short_transcript in shorts_final_transcripts:
+            clipped_short_data = self._clip_short(
+                "./shorts",
+                download_response.output_path,
+                download_response.filename,
+                short_transcript,
             )
+            if not "short_transcript" in clipped_short_data:
+                continue
+            else:
+                clip_shorts_data.append(clipped_short_data)
+
+        if not self.debugging:
+            os.remove(f"{download_response.output_path}/{download_response.filename}")
+
+        return clip_shorts_data
 
     def _clip_short(
         self,
@@ -553,15 +547,16 @@ class PodcastToShorts:
             new_transcription = transcription
             cleaned_transcripts_feedback.append(new_transcription)
 
-        return [
+        result: TranscriptFeedbackList = [
             transcription
             for transcription in cleaned_transcripts_feedback
             if transcription.stats.should_make_short == should_make_short
         ]
+        return result
 
     def __get_transcripts_feedback(
         self, full_sentences_transcript: PodcastTranscript
-    ) -> List[TranscriptFeedbackType]:
+    ) -> TranscriptFeedbackList:
         """
         Method to get the feedback of the transcriptions
         Parameters:
@@ -622,10 +617,24 @@ class PodcastToShorts:
 
             logger.info("Successfully got response")
 
-            transcript_and_feedback_chunk = TranscriptFeedback(
-                transcript=chunk,
-                stats=response,
-            )
+            if self.transcriptor_type == "yt_transcript_api":
+                correct_dt_transcript = [
+                    model for model in chunk if isinstance(model, YoutubeAPITranscript)
+                ]
+                transcript_and_feedback_chunk = YoutubeTranscriptFeedback(
+                    transcript=correct_dt_transcript,
+                    stats=response,
+                )
+            else:
+                correct_dt_transcript = [
+                    model
+                    for model in chunk
+                    if isinstance(model, AssemblyAIParsedTranscript)
+                ]
+                transcript_and_feedback_chunk = AssemblyTranscriptFeedback(
+                    transcript=correct_dt_transcript,
+                    stats=response,
+                )
 
             logger.info(f"{idx+1}. Feedback generated successfully.")
 

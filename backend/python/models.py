@@ -67,7 +67,6 @@ class StatusReturn(BaseModel):
 class DownloadPodcastResponse(BaseModel):
     output_path: str
     filename: str
-    status: ReturnStatus
 
 
 class AssemblyShortFinalTranscript(BaseModel):
