@@ -31,6 +31,7 @@ class FullRun(unittest.TestCase):
         podcast_to_shorts.llm_api_key = llm_api_key
 
         if transcriptor_type == "assembly_ai":
+            f
             podcast_to_shorts.assembly_api_key = assembly_api_key
 
         podcast_to_shorts.assembly_api_key = assembly_api_key

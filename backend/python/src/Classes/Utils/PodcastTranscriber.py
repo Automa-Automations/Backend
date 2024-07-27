@@ -1,5 +1,5 @@
 import os
-from typing import List, Union
+from typing import List, Tuple, Optional
 from assemblyai.types import TranscriptResponse
 from pydub import AudioSegment
 import assemblyai as aai
@@ -19,10 +19,12 @@ class PodcastTranscriber:
     Class to transcribe a podcast
     """
 
-    def __init__(self, podcast_url) -> None:
-        self.podcast_url = podcast_url
-        self.transcript: PodcastTranscript = []
-        self.audio_duration: int = 0
+    def __init__(self, debugging: Optional[bool] = False):
+        self.debugging = debugging
+        self.parsed_transcript_path = (
+            "./src/Classes/Bots/json_files/assembly_parsed_transcript.json"
+        )
+        self.transcript_path = "./src/Classes/Bots/json_files/assembly_transcript.json"
 
     def _convert_to_mp3(self, file_path: str) -> str:
         """
@@ -37,10 +39,9 @@ class PodcastTranscriber:
         mp4_audio.export(mp3_file_path, format="mp3")
         return mp3_file_path
 
-    @classmethod
-    def from_assembly(
-        cls, podcast_url: str, api_key: str, debugging: bool = False
-    ) -> Union["PodcastTranscriber", None]:
+    def transcribe(
+        self, podcast_url: str, api_key: str, debugging: bool = False
+    ) -> Tuple[PodcastTranscript, float]:
         """
         Class method to create PodcastTranscriber object from AssemblyAI
         Parameters:
@@ -48,16 +49,14 @@ class PodcastTranscriber:
         - api_key: str: The AssemblyAI API key
         - debugging: bool: The debugging flag
         Returns Union['PodcastTranscriber', None] - The instantiated PodcastTranscriber object. Returns none if transcription failed.
+
         """
-        podcast_transcriber = cls(podcast_url)
+        aai.settings.api_key = api_key
         download_output = download_podcast(podcast_url)
         logger.info(f"Download Output: {download_output}")
         download_path = os.path.join(
             download_output.output_path, download_output.filename
         )
-
-        assembly_ai = AssemblyAI(api_key)
-        assembly_ai.debugging = debugging
 
         test_podcast_mp3_path = download_path.rsplit(".", 1)[0] + ".mp3"
         if debugging and os.path.exists(test_podcast_mp3_path):
@@ -66,23 +65,22 @@ class PodcastTranscriber:
             )
             podcast_mp3_path = test_podcast_mp3_path
         else:
-            podcast_mp3_path = podcast_transcriber._convert_to_mp3(download_path)
+            podcast_mp3_path = self._convert_to_mp3(download_path)
 
         if (
             debugging
-            and os.path.exists(assembly_ai.parsed_transcript_path)
-            and os.path.exists(assembly_ai.transcript_path)
+            and os.path.exists(self.parsed_transcript_path)
+            and os.path.exists(self.transcript_path)
         ):
             logger.info("Transcript already exist, no need to transcribe podcast.")
-            with open(assembly_ai.parsed_transcript_path, "r") as f:
+            with open(self.parsed_transcript_path, "r") as f:
                 parsed_transcript: List[ParsedTranscript] = json.load(f)
-            with open(assembly_ai.transcript_path, "r") as f:
+            with open(self.transcript_path, "r") as f:
                 transcript: TranscriptResponse = json.load(f)
         else:
-            transcript = assembly_ai.get_yt_podcast_transcription(podcast_mp3_path)
-            parsed_transcript = assembly_ai.parse_transcript(transcript)
+            transcript = self._get_yt_podcast_transcription(podcast_mp3_path)
+            parsed_transcript = self._parse_transcript(transcript)
 
-        podcast_transcriber.transcript = parsed_transcript
         if not transcript:
             raise Exception("Transcription failed.")
         else:
@@ -90,29 +88,13 @@ class PodcastTranscriber:
             if not audio_duration:
                 raise Exception("Transcription failed. Audio duration is None.")
 
-            podcast_transcriber.audio_duration = audio_duration
-        return podcast_transcriber
+        return (parsed_transcript, audio_duration)
 
-
-class AssemblyAI:
-    """
-    Class to interact with AssemblyAI API, specifically for transcriptions
-    """
-
-    def __init__(self, api_key: str) -> None:
-        self.api_key = api_key
-        aai.settings.api_key = api_key
-        self.debugging = False
-        self.parsed_transcript_path = (
-            "./src/Classes/Bots/json_files/assembly_parsed_transcript.json"
-        )
-        self.transcript_path = "./src/Classes/Bots/json_files/assembly_transcript.json"
-
-    def get_yt_podcast_transcription(
+    def _get_yt_podcast_transcription(
         self, podcast_download_path: str
     ) -> TranscriptResponse:
         """
-        Function to transcribe the podcast, using Youtube Transcript API
+        Function to transcribe the podcast, using Assembly AI
         Parameters:
         - podcast_download_path: str: The path to the downloaded podcast
         Returns Union[TranscriptResponse] - The transcript of the podcast
@@ -142,17 +124,16 @@ class AssemblyAI:
         else:
             raise Exception(f"Transcription failed! 'json_response' is None.")
 
-    def parse_transcript(self, transcript) -> List[ParsedTranscript]:
+    def _parse_transcript(self, transcript) -> List[ParsedTranscript]:
         """Function to parse transcript into full sentences."""
         logger.info("Parsing transcript...")
-        all_transcript_words = self.remove_filler_words(transcript["words"])
 
         current_sentence_dict = ParsedTranscript(
             sentence="", start_time=0, end_time=0, speaker=""
         )
 
         full_sentences_transcript: List[ParsedTranscript] = []
-        for word_dict in all_transcript_words:
+        for word_dict in transcript["words"]:
             current_sentence_dict.sentence += word_dict["text"] + " "
             if word_dict["text"][0].isupper() and not current_sentence_dict.start_time:
                 current_sentence_dict.start_time = word_dict["start"]
@@ -182,27 +163,3 @@ class AssemblyAI:
 
         logger.info("Transcription parsing complete.")
         return full_sentences_transcript
-
-    def remove_filler_words(self, word_dicts_array: List[aai.Word]) -> List[aai.Word]:
-        """
-        Function to remove filler words from the transcript
-        Parameters:
-        - word_dicts_array: List[aai.Word]: The array of word dictionaries
-        Returns List[aai.Word] - The array of word dictionaries with filler words removed
-        """
-        filler_words = [
-            "um",
-            "uh",
-            "ah",
-            "literally",
-            "uh-huh",
-            "oh",
-            "uh-oh",
-            "hmm",
-        ]
-        final_word_dicts_array: List[aai.Word] = []
-        for word_dict in word_dicts_array:
-            if word_dict["text"] not in filler_words:
-                final_word_dicts_array.append(word_dict)
-
-        return final_word_dicts_array

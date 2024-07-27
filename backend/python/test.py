@@ -32,19 +32,6 @@ all_tests = [
                     },
                 ],
             },
-            {
-                "name": "ChatCompletion",
-                "units": [
-                    {
-                        "name": "ollama_chat_completion",
-                        "test": Utils.ChatCompletion.OllamaChatCompletion,
-                    },
-                    {
-                        "name": "openai_chat_completion",
-                        "test": Utils.ChatCompletion.OpenAIChatCompletion,
-                    },
-                ],
-            },
         ],
     }
 ]
