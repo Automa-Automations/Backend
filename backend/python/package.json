@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "deploy:serp": "fly deploy --dockerfile services/serpapi/Dockerfile -a serpapi-winter-wind-5270"
+    "deploy:serp": "fly deploy --dockerfile services/serpapi/Dockerfile --config services/serpapi/fly.toml"
   },
   "keywords": [],
   "author": "",
