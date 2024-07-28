@@ -70,3 +70,7 @@ def main():
             open(os.path.join(service_path, "config.json"), "w"),
             indent=4,
         )
+
+    click.echo(
+        "✅ Please check out the fly.toml file that was created. You can leverage that to modify the service! If none was created, take a look at the template fly.toml file, or directly run 'fly launch' command in terminal to get started!"
+    )

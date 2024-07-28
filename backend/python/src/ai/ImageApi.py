@@ -1,13 +1,13 @@
 import json
 import os
 import random
-import urllib.parse
-import urllib.request
 import uuid
 from typing import Optional
 
+import requests
 import websocket
-from src.Classes.User import DatabaseSyncedProfile
+
+os.environ["COMFYUI_BASE_URL"] = "testservice-morning-rain-5536.fly.dev"
 
 
 class ImageApi:
@@ -29,26 +29,24 @@ class ImageApi:
         client_id = str(uuid.uuid4())
 
         def queue_prompt(prompt):
-            p = {"prompt": prompt, "client_id": client_id}
-            data = json.dumps(p).encode("utf-8")
-            req = urllib.request.Request(
-                "http://{}/prompt".format(self.server_address), data=data
-            )
-            return json.loads(urllib.request.urlopen(req).read())
+            url = f"http://{self.server_address}/prompt"
+            headers = {"Content-Type": "application/json"}
+            data = json.dumps({"prompt": prompt, "client_id": client_id})
+            response = requests.post(url, headers=headers, data=data)
+            response.raise_for_status()
+            print(response.text)
+            return response.json()
 
         def get_image(filename, subfolder, folder_type):
             data = {"filename": filename, "subfolder": subfolder, "type": folder_type}
-            url_values = urllib.parse.urlencode(data)
-            with urllib.request.urlopen(
-                "http://{}/view?{}".format(self.server_address, url_values)
-            ) as response:
-                return response.read()
+            response = requests.get(f"http://{self.server_address}/view", params=data)
+            response.raise_for_status()
+            return response.content
 
         def get_history(prompt_id):
-            with urllib.request.urlopen(
-                "http://{}/history/{}".format(self.server_address, prompt_id)
-            ) as response:
-                return json.loads(response.read())
+            response = requests.get(f"http://{self.server_address}/history/{prompt_id}")
+            response.raise_for_status()
+            return response.json()
 
         def get_images(ws, prompt):
             prompt_id = queue_prompt(prompt)["prompt_id"]
@@ -188,25 +186,30 @@ class ImageApi:
                 random.randint(0, 10000000) if seed == 0 else seed
             )
 
+        # Determine WebSocket scheme based on address
+        ws_scheme = "ws" if self.server_address.startswith("localhost") else "wss"
+        ws_url = f"{ws_scheme}://{self.server_address}/ws?clientId={client_id}"
         ws = websocket.WebSocket()
-        ws.connect("ws://{}/ws?clientId={}".format(self.server_address, client_id))
+        ws.connect(ws_url)
         images = get_images(ws, prompt)
 
         print(len(images["9"]))
         images_ = []
         for node_id in images:
             for image_data in images[node_id]:
-                image = image_data
-                images_.append(image)
+                images_.append(image_data)
 
         return images_
 
 
 if __name__ == "__main__":
     api = ImageApi()
-    api.server_address = "localhost:8188"
 
     images = api.generate_image(
-        "master piece", "bad hands", "v1-5-pruned-emaonly.ckpt", 512, 512
+        "master piece",
+        "bad hands",
+        "sd3_medium_incl_clips_t5xxlfp8.safetensors",
+        512,
+        512,
     )
     print(images[0])

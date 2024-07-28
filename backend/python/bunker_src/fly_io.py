@@ -4,7 +4,7 @@ import os
 import click
 import requests
 
-headers = {"Authorization": "Bearer fo1_EsFlhIwDIHpJX-ZJbInB6S82rbaIhAgY5TM3O93PwHQ"}
+headers = {"Authorization": f"Bearer {os.environ['FLY_IO_API_KEY']}"}
 
 
 def list_apps():
@@ -39,6 +39,7 @@ def create_app(name):
     }
 
     response = requests.post(url, json=payload, headers=headers)
+    print(response.json())
 
 
 def list_machine(app_name):
@@ -79,7 +80,7 @@ def create_app_volume(app_name, volume_name, size):
     payload = {
         "name": volume_name,
         "size_gb": size,
-        "region": "jnb",  # Make the user be able to choose the region, as well as multi region deployments
+        "region": "mia",  # Make the user be able to choose the region, as well as multi region deployments
     }
     response = requests.post(url, json=payload, headers=headers)
     return response.json()["id"]
@@ -145,37 +146,35 @@ def create_machine(app_name, image_name, service_config):
     elif memory_str.endswith("mb"):
         memory = int(memory_str.replace("mb", ""))
 
-    for region in config.get("regions", ["jnb"]):
-        payload = {
-            "config": {
-                "region": region,  # Make the user be able to choose the region, as well as multi region deployments
-                "init": {},
-                "image": image,
-                "auto_destroy": True,
-                "restart": {"policy": "always"},
-                "mounts": mounts,
-                "services": ports,
-                "guest": {
-                    "cpu_kind": config.get("cpu_mode", "shared"),
-                    "cpus": int(config.get("cpu", 1)),
-                    "memory_mb": memory,
-                },
-            }
-        }
+    payload = {
+        "region": "mia",  # Make the user be able to choose the region, as well as multi region deployments
+        "config": {
+            "init": {},
+            "image": image,
+            "auto_destroy": True,
+            "restart": {"policy": "always"},
+            "mounts": mounts,
+            "services": ports,
+            "guest": {
+                "cpu_kind": config.get("cpu_mode", "shared"),
+                "cpus": int(config.get("cpu", 1)),
+                "memory_mb": memory,
+            },
+        },
+    }
 
-        if "gpu" in config:
-            payload["config"]["guest"]["gpus"] = 1
-            payload["config"]["guest"]["gpu_kind"] = (
-                config.get("gpu") or "a100-pcie-40gb"
-            )
+    if "gpu" in config and config["gpu"] != "none":
+        payload["config"]["guest"]["gpus"] = 1
+        payload["config"]["guest"]["gpu_kind"] = config.get("gpu") or "a100-pcie-40gb"
 
-        if schedule := config.get("schedule"):
-            payload["config"]["schedule"] = schedule
+    if schedule := config.get("schedule"):
+        payload["config"]["schedule"] = schedule
 
-        response = requests.post(url, json=payload, headers=headers)
+    print(payload)
+    response = requests.post(url, json=payload, headers=headers)
 
-        print(response.json())
-        return response.json()
+    print(response.json())
+    return response.json()
 
 
 def create_machines(app_name, image_name, app_config):
@@ -193,12 +192,11 @@ def create_machines(app_name, image_name, app_config):
 
 
 def deploy_image(image_name, service_dir):
-    # Create Fly App if not exists
-
     config_path = os.path.join(service_dir, "config.json")
     app_config = json.load(open(config_path))
     app_name = app_config["name"]
     app_exists = does_app_exist(app_name.lower())
+
     image_name = (
         image_name if not app_config["base_image"] else app_config["base_image"]
     )
