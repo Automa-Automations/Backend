@@ -5,7 +5,7 @@ import time
 keys_file = "keys.txt"
 
 # Connect to the SQLite database (change the path if necessary)
-conn = sqlite3.connect("keys.db")
+conn = sqlite3.connect("/data/sqlite.db")
 cursor = conn.cursor()
 
 # Ensure the table exists

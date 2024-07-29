@@ -91,9 +91,7 @@ while True:
         messages = client.get_messages(email)
 
         for message in messages:
-            print(message)
             content = client.get_message(email, message.message_id)
-            print(content)
             if "serper.dev" in content:
                 if content.splitlines()[6]:
                     go_to(content.splitlines()[6])

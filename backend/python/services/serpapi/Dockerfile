@@ -34,6 +34,9 @@ FROM base
 # Copy built application
 COPY --from=build /app /app
 
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y python-is-python3 python3
+
 # Setup sqlite3 on a separate volume
 RUN mkdir -p /data
 VOLUME /data
