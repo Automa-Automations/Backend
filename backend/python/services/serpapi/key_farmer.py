@@ -2,11 +2,9 @@ from random import choice
 
 from pynator import EmailNator
 
-PROXY = "<proxy-here> - rotating is best!"
-CHROME_BASE_DIR = (
-    "<chrome://version's profile_dir removing the last items before the last /"
-)
-CHROME_PROFILE_NAME = "<chromeprofilename> the one that you removed from the above path"
+PROXY = ""
+CHROME_BASE_DIR = "/Users/simonferns/Library/Application Support/Google/Chrome"
+CHROME_PROFILE_NAME = "Profile 1"
 
 while True:
     client = EmailNator()
