@@ -6,9 +6,11 @@ from pynator import EmailNator
 from selenium import webdriver
 from selenium_authenticated_proxy import SeleniumAuthenticatedProxy
 
-PROXY = ""
+PROXY = "http://kepadtrw:8ox9ck0olgl7@173.0.9.209:5792"
 CHROME_BASE_DIR = "/Users/simonferns/Library/Application Support/Google/Chrome"
 CHROME_PROFILE_NAME = "Profile 1"
+HEADLESS = False
+TOTAL_RETRIES = 20
 
 while True:
     client = EmailNator()
@@ -24,11 +26,11 @@ while True:
     user_data_dir = CHROME_BASE_DIR
     profile_directory = CHROME_PROFILE_NAME
 
-    # chrome_options.add_argument(f"user-data-dir={user_data_dir}")
-    # chrome_options.add_argument(f"profile-directory={profile_directory}")
+    chrome_options.add_argument(f"user-data-dir={user_data_dir}")
+    chrome_options.add_argument(f"profile-directory={profile_directory}")
 
-    # provide the profile name with which we want to open browser
-    # chrome_options.add_argument(r"--profile-directory=Profile 1")
+    if HEADLESS:
+        chrome_options.add_argument("--headless=true")
 
     proxy_helper = SeleniumAuthenticatedProxy(proxy_url=PROXY)
 
@@ -75,7 +77,7 @@ while True:
 
     click(Button("Create account"))
 
-    count = 120
+    count = TOTAL_RETRIES
     has_url = False
     while count > 0:
         time.sleep(1)
