@@ -1,21 +1,24 @@
 # Bunker is a build, template, configuration and auto testing for unit tests, integration tests & production tests.
 # Bunker will allow you to generate templates for projects, allowing you to effectively test every single method of a class, every single module & every single package that you are developoing. bunker will also create a generic template for each service, and also create templates for any service your service depends on, in order to test them with each other "integration tests". bunker will also create a template for the production environment, and will allow you to test your service with the production environment, to ensure that your service is working as expected. bunker will also create a template for the production environment, and will allow you to test your service with the production environment, to ensure that your service is working as expected. bunker will also create a template for the production environment, and will allow you to test your service with the production environment, to ensure that your service is working as expected. bunker also effectively injects code into your project to do monitoring, bunker captures all logs into a single generic database, and also captures errors, uptime, usage & more.
 import click
-from bunker_src.commands.create_command import main as create_command
-from bunker_src.commands.cron_builder import main as cron_builder
-from bunker_src.commands.deploy_command import main as deploy_command
-from bunker_src.commands.flask_command import main as flask_command
-from bunker_src.commands.format import main as format_command
 from bunker_src.initialization import main as initialization
 
 initialization()
 
+import os
+
 from bunker_src.commands.bootstrap import command as bootstrap_command
+from bunker_src.commands.create_command import main as create_command
+from bunker_src.commands.cron_builder import main as cron_builder
+from bunker_src.commands.flask_command import main as flask_command
+from bunker_src.commands.format import main as format_command
 from bunker_src.docker import container_builder, container_runner
 from bunker_src.testing import test_builder, test_runner
 from bunker_src.ui.choose_service import choose_service
 from bunker_src.utils import global_options
 from colorama import init
+
+os.environ["DOCKER_BUILDKIT"] = "1"
 
 init(autoreset=True)
 
@@ -156,19 +159,6 @@ def cron(service, test, new, all):
 def format():
     """Formats every single line of code, ensuring that each and every language we use is up to standard!"""
     format_command()
-
-
-@builder.command()
-@click.option(
-    "--service",
-    "-s",
-    help="The service to deploy.",
-    required=False,
-    type=str,
-)
-def deploy(service):
-    """Deploys & Rotates the versionId of the service (If the `prod` and `dev` aren't in sync)"""
-    deploy_command(service)
 
 
 @builder.command()

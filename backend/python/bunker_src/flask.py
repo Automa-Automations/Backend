@@ -4,7 +4,6 @@ import uuid
 
 import click
 import questionary
-from bunker_src.ui.ask_config import ask_config_json_questions
 from bunker_src.utils import get_service_dir
 from yaspin import yaspin
 
@@ -13,10 +12,6 @@ def flask_quickstart(name: str, root_dir: str):
     os.system(f"cp -r templates/Flask/* {root_dir}")
     config = json.load(open(os.path.join(root_dir, "config.json")))
     config["name"] = f"{name}-{uuid.uuid4().hex}".lower()
-
-    config = ask_config_json_questions(config)
-    click.echo("📝 Saving configuration...")
-    json.dump(config, open(os.path.join(root_dir, "config.json"), "w"), indent=4)
 
     dockerfile_path = os.path.join(root_dir, "Dockerfile")
     if not os.path.exists(dockerfile_path):

@@ -3,11 +3,13 @@ import os
 from typing import Any
 
 import click
+import dotenv
+import questionary
 import requests
 from bunker_src.ui.choose_or_make_dir import choose_or_make_dir
-import questionary
 
 config_path = "config.json"
+
 
 def get_service_dir():
     config = json.load(open(config_path))
@@ -26,17 +28,14 @@ def get_service_dir():
 
     return service_dir
 
+
 def global_options(func: Any) -> Any:
-    @click.option(
-        "--config", type=click.Path(), help="Path to the config file."
-    )
+    @click.option("--config", type=click.Path(), help="Path to the config file.")
     def new_func(config: Any, *args: Any, **kwargs: Any):
         global config_path
 
         if config and not os.path.exists(config):
-            click.echo(
-                f"😥 The config path you provide {config} does not exist!"
-            )
+            click.echo(f"😥 The config path you provide {config} does not exist!")
             exit(1)
 
             config_path = config
@@ -75,3 +74,9 @@ def get_exposed_ports(image_name: str):
     ports = [port.split("/")[0] for port in ports]
 
     return ports
+
+
+def load_service_env(service_name: str):
+    file = json.load(open(os.path.join("config.json")))
+    for key, value in file["env"].items():
+        os.environ[key] = value

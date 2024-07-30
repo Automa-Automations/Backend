@@ -5,7 +5,6 @@ import uuid
 
 import click
 from bunker_src.docker import container_builder, container_runner
-from bunker_src.ui.ask_config import ask_config_json_questions
 from bunker_src.utils import config_path
 from croniter import croniter
 
@@ -14,10 +13,6 @@ def cron_quickstart(name: str, service_path: str):
     os.system(f"cp -r templates/Cron/* {service_path}")
     config = json.load(open(os.path.join(service_path, "config.json")))
     config["name"] = f"{name}-{uuid.uuid4().hex}".lower()
-
-    config = ask_config_json_questions(config)
-    click.echo("📝 Saving configuration...")
-    json.dump(config, open(os.path.join(service_path, "config.json"), "w"), indent=4)
 
     dockerfile_path = os.path.join(service_path, "Dockerfile")
     if not os.path.exists(dockerfile_path):

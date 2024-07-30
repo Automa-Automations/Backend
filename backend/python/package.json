@@ -1,0 +1,12 @@
+{
+  "name": "python",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "deploy:serp": "cd services/serpapi ; fly deploy"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

@@ -6,7 +6,6 @@ from typing import Any
 import click
 import docker
 import questionary
-from bunker_src.ui.ask_config import ask_config_json_questions
 from bunker_src.ui.choose_or_make_dir import choose_or_make_dir
 from bunker_src.utils import config_path, get_exposed_ports, get_service_dir
 from colorama import Fore
@@ -52,21 +51,6 @@ def dockerhub_quickstart(name: str, root_dir: str):
     }
     # Save the config
     click.echo("📝 Saving configuration...")
-
-    # PORTS (Auto Detectable)
-    click.echo("🔍 Detecting ports...")
-    ports_ = get_exposed_ports(image_to_use)
-    ports = {str(port.split("/")[0]): str(port.split("/")[0]) for port in ports_}
-
-    for port in ports_:
-        click.echo(f"   🛶 {Fore.YELLOW} Detected port {port}")
-
-    config["ports"] = ports
-
-    config = ask_config_json_questions(config)
-
-    click.echo("📝 Saving configuration...")
-    json.dump(config, open(os.path.join(root_dir, "config.json"), "w"), indent=4)
 
 
 def build_container(
@@ -180,6 +164,8 @@ def container_builder(service: str, all: bool):
         df_exists = os.path.exists(dockerfile_path)
         cf_exists = os.path.exists(config_path_)
 
+        config = json.load(open(config_path_, "r"))
+
         if not df_exists and not cf_exists:
             click.echo(
                 f"❌{Fore.RED}Error: Dockerfile and Config does not exist at path {service_path}"
@@ -197,7 +183,7 @@ def container_builder(service: str, all: bool):
             continue
 
         click.echo(
-            f"{Fore.GREEN}🎉 Built Image: {build_container(service_name, dockerfile_path)}"
+            f"{Fore.GREEN}🎉 Built Image: {build_container(service_name, dockerfile_path, config)}"
         )
 
 
