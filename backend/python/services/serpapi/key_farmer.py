@@ -1,6 +1,10 @@
+import time
 from random import choice
 
+from helium import Button, S, click, go_to, kill_browser, start_chrome, write
 from pynator import EmailNator
+from selenium import webdriver
+from selenium_authenticated_proxy import SeleniumAuthenticatedProxy
 
 PROXY = ""
 CHROME_BASE_DIR = "/Users/simonferns/Library/Application Support/Google/Chrome"
@@ -15,23 +19,13 @@ while True:
             break
 
     printed_mails = []
-
-    import time
-
-    from helium import *
-    from selenium import webdriver
-    from selenium.webdriver.chrome.options import Options
-    from selenium.webdriver.chrome.service import Service
-    from selenium_authenticated_proxy import SeleniumAuthenticatedProxy
-    from webdriver_manager.chrome import ChromeDriverManager
-
     # Initialize Chrome options
     chrome_options = webdriver.ChromeOptions()
     user_data_dir = CHROME_BASE_DIR
     profile_directory = CHROME_PROFILE_NAME
 
-    chrome_options.add_argument(f"user-data-dir={user_data_dir}")
-    chrome_options.add_argument(f"profile-directory={profile_directory}")
+    # chrome_options.add_argument(f"user-data-dir={user_data_dir}")
+    # chrome_options.add_argument(f"profile-directory={profile_directory}")
 
     # provide the profile name with which we want to open browser
     # chrome_options.add_argument(r"--profile-directory=Profile 1")
@@ -81,7 +75,7 @@ while True:
 
     click(Button("Create account"))
 
-    count = 30
+    count = 120
     has_url = False
     while count > 0:
         time.sleep(1)
