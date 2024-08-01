@@ -3,3 +3,4 @@ fly.toml
 __pycache__/
 .envrc
 .venv/
+node_modules/

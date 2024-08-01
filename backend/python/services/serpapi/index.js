@@ -25,6 +25,20 @@ const getValidApiKey = async () => {
   });
 };
 
+const insertAPIKey = async (key) => {
+  return new Promise((resolve, reject) => {
+    const timestamp = Math.floor(Date.now() / 1000);
+    console.log(timestamp);
+    db.run("INSERT INTO api_keys (key, expired, created_at) VALUES (?, ?, ?)", [key, 0, timestamp], (err) => {
+      if (err) {
+        reject(err)
+      } else {
+        resolve()
+      }
+    })
+  })
+}
+
 // Invalidate an API key
 const invalidateApiKey = async (key) => {
   return new Promise((resolve, reject) => {
@@ -54,7 +68,7 @@ const endpoint = (type) => {
           const response = await axios.post(targetUrl, payload, { headers });
           return response;
         } catch (error) {
-          if (retryCount < 3 && (error.response?.status === 400 || error.response?.status === 429)) {
+          if (retryCount < 3 && (error.response?.status === 400 || error.response?.status === 429 || error.response?.status === 403)) {
             // Invalidate the current key and get a new one
             await invalidateApiKey(headers['X-API-KEY']);
             const newApiKey = await getValidApiKey();
@@ -113,6 +127,24 @@ app.post('/scholar', endpoint('scholar'));
 app.post('/autocomplete', endpoint('autocomplete'));
 
 app.post('/patents', endpoint('patents'));
+
+app.post('/add-api-key', async (req, res) => {
+  try {
+    const { apiKey } = req.body;
+
+    if (!apiKey) {
+      return res.status(400).json({ error: 'API key is required' });
+    }
+
+    await insertAPIKey(apiKey);
+
+    res.status(200).json({ message: 'API key added successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 app.listen(port, () => {
   console.log(`API server listening at http://localhost:${port}`);
