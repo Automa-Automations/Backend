@@ -7,7 +7,7 @@ from io import BytesIO
 
 from craiyon import Craiyon, craiyon_utils
 from PIL import Image
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl
 
 
 class ImageAIModelTypes(Enum):
@@ -42,6 +42,7 @@ class ImageGenerationInput(BaseModel):
     prompt: ImageGenerationPrompt | str
     comfyui: ImageGenerationComfyUIInput | None = None
     gen_model_type: ImageAIModelTypes = ImageAIModelTypes.AUTO
+    debug: bool = False
 
 
 class ImageGenerationResponse(BaseModel):
@@ -56,6 +57,7 @@ class ImageAPI:
         match input.gen_model_type:
             case ImageAIModelTypes.AUTO:
                 print("Use Other Parameters to do Generations...")
+                return cls._dalle_mini_generator(input.prompt)
             case ImageAIModelTypes.COMFYUI:
                 print(
                     "Use ComfyUI based workflow Generation to Generate Image (Move over to AUTO if no comfy baseline)"
@@ -107,6 +109,7 @@ class ImageAPI:
             return ImageGenerationPrompt(
                 positive_prompt=prompt,
                 negative_prompt="ugly, misfigured, bad artist, words",
+                enhance=True,
             )
         else:
             return prompt
