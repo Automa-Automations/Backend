@@ -1,138 +1,150 @@
 import time
+from multiprocessing import Pool
 from random import choice
 
 import requests
-from helium import Button, S, click, go_to, kill_browser, start_chrome, write
 from pynator import EmailNator
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
 from selenium_authenticated_proxy import SeleniumAuthenticatedProxy
 
-PROXY = ""
+PROXY = "http://gqnuguju-ZA-rotate:670myl2p6d9f@p.webshare.io:80/"
 PROXY_ENABLED = True
-CHROME_BASE_DIR = "/Users/simonferns/Library/Application Support/Google/Chrome"
-CHROME_PROFILE_NAME = "Profile 1"
-CHROME_PROFILE_ENABLED = True
+EXTENSIONS = [
+    "/Users/simonferns/Downloads/CRX Extractor Extension (1).crx",
+    "/Users/simonferns/Downloads/CRX Extractor Extension (1).crx",
+    "/Users/simonferns/Downloads/CRX Extractor Extension (1).crx",
+]
 HEADLESS = False
 TOTAL_RETRIES = 30
+NUM_PROFILES = len(EXTENSIONS)
 
-COUNT_TRY = 50
-while COUNT_TRY > 0:
-    try:
-        print(f"Iterations Left {COUNT_TRY}")
-        COUNT_TRY -= 1
 
-        print("Setting Up Emailnator")
-        client = EmailNator()
-        print("Done Setting Up Emailnator")
-        email = ""
-        while True:
-            email = client.generate_email()
-            print("Email Generation: ", email)
-            if "googlemail" in email:
-                break
+def get_chrome_options(extension_path):
+    chrome_options = Options()
 
-        printed_mails = []
-        # Initialize Chrome options
-        chrome_options = webdriver.ChromeOptions()
-        if CHROME_PROFILE_ENABLED:
-            user_data_dir = CHROME_BASE_DIR
-            profile_directory = CHROME_PROFILE_NAME
+    # Add the extension
+    chrome_options.add_extension(extension_path)
 
-            chrome_options.add_argument(f"user-data-dir={user_data_dir}")
-            chrome_options.add_argument(f"profile-directory={profile_directory}")
+    if HEADLESS:
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--window-size=1920,1080")
+        chrome_options.add_argument("--ignore-certificate-errors")
+        chrome_options.add_argument("--allow-running-insecure-content")
 
-        if HEADLESS:
-            chrome_options.add_argument("--headless=true")
+    if PROXY_ENABLED:
+        proxy_helper = SeleniumAuthenticatedProxy(proxy_url=PROXY)
+        proxy_helper.enrich_chrome_options(chrome_options)
 
-        if PROXY_ENABLED:
-            proxy_helper = SeleniumAuthenticatedProxy(proxy_url=PROXY)
+    return chrome_options
 
-            proxy_helper.enrich_chrome_options(chrome_options)
 
-        start_chrome(options=chrome_options)
+def run_profile(extension_path):
+    while True:
+        try:
+            print(f"Running Extension: {extension_path}")
+            client = EmailNator()
+            print("Setting Up Emailnator")
+            email = ""
+            while True:
+                email = client.generate_email()
+                print("Email Generation: ", email)
+                if "googlemail" in email:
+                    break
 
-        go_to("https://serper.dev/signup")
+            # Initialize WebDriver for this extension
+            chrome_options = get_chrome_options(extension_path)
+            driver = webdriver.Chrome(service=Service(), options=chrome_options)
+            actions = ActionChains(driver)
 
-        time.sleep(1)
+            driver.get("https://serper.dev/signup")
+            time.sleep(5)
 
-        names = [
-            "Bill",
-            "Serenity",
-            "Juliet",
-            "Karina",
-            "Aila",
-            "Alaia",
-            "Dariel",
-            "Blaine",
-        ]
+            names = [
+                "Bill",
+                "Serenity",
+                "Juliet",
+                "Karina",
+                "Aila",
+                "Alaia",
+                "Dariel",
+                "Blaine",
+            ]
+            surnames = [
+                "Gould",
+                "Gonzales",
+                "Davenport",
+                "Dawson",
+                "Yang",
+                "Bass",
+                "Hull",
+                "Bailey",
+            ]
 
-        surnames = [
-            "Gould",
-            "Gonzales",
-            "Davenport",
-            "Dawson",
-            "Yang",
-            "Bass",
-            "Hull",
-            "Bailey",
-        ]
+            name = choice(names)
+            surname = choice(surnames)
 
-        name = choice(names)
-        surname = choice(surnames)
+            # Fill out the signup form
+            driver.find_element(By.CSS_SELECTOR, "#firstName1").send_keys(name)
+            driver.find_element(By.CSS_SELECTOR, "#lastName1").send_keys(surname)
+            driver.find_element(By.CSS_SELECTOR, "#email1").send_keys(email)
+            driver.find_element(By.CSS_SELECTOR, "input[name='password']").send_keys(
+                email
+            )
+            driver.find_element(By.XPATH, "//button[text()='Create account']").click()
 
-        write(name, S("#firstName1"))
+            count = TOTAL_RETRIES
+            has_url = False
+            while count > 0:
+                time.sleep(1)
+                count -= 1
+                messages = client.get_messages(email)
 
-        write(surname, S("#lastName1"))
+                for message in messages:
+                    content = client.get_message(email, message.message_id)
+                    if "serper.dev" in content:
+                        if content.splitlines()[6]:
+                            driver.get(content.splitlines()[6])
+                            time.sleep(4)
+                            has_url = True
 
-        write(email, S("#email1"))
+                if has_url:
+                    break
 
-        write(email, S("input[name='password']"))
+            if not has_url:
+                driver.quit()
+                return
 
-        click(Button("Create account"))
+            driver.get("https://serper.dev/api-key")
+            time.sleep(3)
 
-        count = TOTAL_RETRIES
-        has_url = False
-        while count > 0:
-            time.sleep(1)
-            count -= 1
-            messages = client.get_messages(email)
+            input_field = driver.find_element(By.CSS_SELECTOR, "input[name='api-key']")
+            value = input_field.get_attribute("value")
 
-            for message in messages:
-                content = client.get_message(email, message.message_id)
-                if "serper.dev" in content:
-                    if content.splitlines()[6]:
-                        go_to(content.splitlines()[6])
-                        time.sleep(4)
-                        has_url = True
+            print(value)
+            with open("keys.txt", "a+") as f:
+                f.write(value + "\n")
 
-            if has_url:
-                break
+            json_data = {"apiKey": value}
+            response = requests.post(
+                "https://serpapi-shy-breeze-5598.fly.dev/add-api-key",
+                json=json_data,
+            )
+            print(response.json())
 
-        if not has_url:
-            kill_browser()
-            continue
+            driver.quit()
+        except Exception as e:
+            print(f"Error with Extension {extension_path}: {e}")
+            try:
+                driver.quit()
+            except:
+                pass
 
-        go_to("https://serper.dev/api-key")
 
-        time.sleep(3)
-
-        input_field = S("input[name='api-key']")
-        value = input_field.web_element.get_attribute("value")
-
-        print(value)
-        with open("keys.txt", "a+") as f:
-            f.write(value + "\n")
-
-        json_data = {"apiKey": value}
-
-        response = requests.post(
-            "",
-            json=json_data,
-        )
-        print(response.json())
-
-        kill_browser()
-    except:
-        kill_browser()
-
-    time.sleep(30)
+if __name__ == "__main__":
+    while True:
+        with Pool(NUM_PROFILES) as p:
+            p.map(run_profile, EXTENSIONS)
