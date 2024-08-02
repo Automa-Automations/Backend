@@ -86,7 +86,7 @@ const endpoint = () => {
           } else if (error.response?.status === 429) {
             console.log("Error Originated due to Concurrency Limit. Switching API Key")
             payload['api_key'] = await getValidApiKey(true)
-            return makeRequestWithRetry(payload, retryCount)
+            return makeRequestWithRetry(payload, retryCount + 1)
           } else {
             throw error;
           }

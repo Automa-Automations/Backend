@@ -11,9 +11,13 @@ const databaseUrl = process.env.DATABASE_URL;
 const dbPath = new URL(databaseUrl).pathname;
 const db = new sqlite3.Database(dbPath);
 
-const getValidApiKey = async () => {
+const getValidApiKey = async (random = false) => {
   return new Promise((resolve, reject) => {
-    db.get('SELECT key FROM api_keys WHERE expired = 0 LIMIT 1', (err, row) => {
+    const query = random
+      ? 'SELECT key FROM api_keys WHERE expired = 0 ORDER BY RANDOM() LIMIT 1'
+      : 'SELECT key FROM api_keys WHERE expired = 0 LIMIT 1';
+
+    db.get(query, (err, row) => {
       if (err) {
         reject(err);
       } else if (row) {
@@ -23,7 +27,7 @@ const getValidApiKey = async () => {
       }
     });
   });
-};
+}
 
 const insertAPIKey = async (key) => {
   return new Promise((resolve, reject) => {
@@ -68,10 +72,18 @@ const endpoint = (type) => {
           const response = await axios.post(targetUrl, payload, { headers });
           return response;
         } catch (error) {
-          if (retryCount < 3 && (error.response?.status === 400 || error.response?.status === 429 || error.response?.status === 403)) {
+          if (retryCount < 3 && (error.response?.status === 400 || error.response?.status === 403)) {
             // Invalidate the current key and get a new one
             await invalidateApiKey(headers['X-API-KEY']);
             const newApiKey = await getValidApiKey();
+            if (!newApiKey) {
+              throw new Error('No valid API keys available');
+            }
+            headers['X-API-KEY'] = newApiKey;
+            return makeRequestWithRetry(headers, retryCount + 1);
+          } else if (error.response?.status === 429) {
+            console.log("Error Originated due to Concurrency Limit. Switching API Key")
+            const newApiKey = await getValidApiKey(true)
             if (!newApiKey) {
               throw new Error('No valid API keys available');
             }
