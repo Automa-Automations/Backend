@@ -12,5 +12,6 @@ FROM python:3.10.14-slim-bookworm
 WORKDIR /app
 COPY --from=builder /app/.venv .venv/
 COPY . .
-ENV FLASK_APP=main.py
-CMD ["/app/.venv/bin/flask", "run", "--host=0.0.0.0", "--port=8080"]
+
+WORKDIR /app/services/imageapiFlask
+CMD /app/.venv/bin/python main.py

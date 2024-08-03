@@ -7,3 +7,6 @@ requests
 googlesearch-python
 searchit
 free-proxy
+pydantic
+craiyon.py
+pillow

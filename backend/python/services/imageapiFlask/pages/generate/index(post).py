@@ -1,3 +1,5 @@
+import traceback
+
 from flask import jsonify, request
 from pydantic import ValidationError
 from src.ImageApi.main import ImageAPI, ImageGenerationInput
@@ -19,7 +21,15 @@ def default():
         images = ImageAPI.generate(image_prompt)
     except Exception as e:
         # Handle errors related to image generation
-        return jsonify({"message": "Error generating images", "error": str(e)}), 500
+        return (
+            jsonify(
+                {
+                    "message": "Error generating images",
+                    "error": f"{str(e)} {traceback.format_exc()}",
+                }
+            ),
+            500,
+        )
 
     if not images:
         return jsonify({"message": "There were no images generated!"}), 500

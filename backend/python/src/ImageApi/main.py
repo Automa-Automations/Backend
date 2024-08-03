@@ -2,18 +2,19 @@
 # This will run through the entire startup script, ensuring everything is installed.
 # And then leverage functionality via a "get_client()" property!
 import base64
+import os
 from enum import Enum
 from io import BytesIO
 
-from craiyon import Craiyon, craiyon_utils
+import requests
 from PIL import Image
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, HttpUrl
 
 
 class ImageAIModelTypes(Enum):
     AUTO = "auto"
     COMFYUI = "comfyui"
-    DALLE_MINI = "dalle_mini"
+    MINI = "mini"
     CLAID = "product"
 
 
@@ -47,7 +48,7 @@ class ImageGenerationInput(BaseModel):
 
 class ImageGenerationResponse(BaseModel):
     final_prompt: ImageGenerationPrompt
-    output_images: list[bytes]
+    output_images: list[str]
     steps: list[str] = []
 
 
@@ -57,14 +58,14 @@ class ImageAPI:
         match input.gen_model_type:
             case ImageAIModelTypes.AUTO:
                 print("Use Other Parameters to do Generations...")
-                return cls._dalle_mini_generator(input.prompt)
+                return cls._mini_generator(input.prompt)
             case ImageAIModelTypes.COMFYUI:
                 print(
                     "Use ComfyUI based workflow Generation to Generate Image (Move over to AUTO if no comfy baseline)"
                 )
-            case ImageAIModelTypes.DALLE_MINI:
-                print("Generate Image using DALLE-MINI")
-                return cls._dalle_mini_generator(input.prompt)
+            case ImageAIModelTypes.MINI:
+                print("Generate Image using SD1 from HuggingFace")
+                return cls._mini_generator(input.prompt)
             case ImageAIModelTypes.CLAID:
                 print("Generating Images using Claid (product based api)")
             case _:
@@ -73,10 +74,9 @@ class ImageAPI:
         return None
 
     @classmethod
-    def _dalle_mini_generator(
+    def _mini_generator(
         cls, prompt: ImageGenerationPrompt | str
     ) -> ImageGenerationResponse:
-        generator = Craiyon()
         enhanced_prompt = ImageGenerationPrompt(positive_prompt="", negative_prompt="")
         if isinstance(prompt, str):
             enhanced_prompt = cls._enhance_prompt(prompt)
@@ -85,20 +85,22 @@ class ImageAPI:
         else:
             enhanced_prompt = prompt
 
-        result = generator.generate(
-            prompt=enhanced_prompt.positive_prompt,
-            negative_prompt=enhanced_prompt.negative_prompt,
-            model_type=(
-                (enhanced_prompt.style).value
-                if enhanced_prompt.style != ImageAIStyleTypes.AUTO
-                else "none"
-            ),
+        API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
+        headers = {"Authorization": f"Bearer {os.environ['HUGGING_FACE_API_TOKEN']}"}
+
+        def query(payload):
+            response = requests.post(API_URL, headers=headers, json=payload)
+            return response.content
+
+        image_bytes = query(
+            {
+                "inputs": f"POSITIVE: {enhanced_prompt.positive_prompt} || NEGATIVE {enhanced_prompt.negative_prompt}",
+            }
         )
-        images = craiyon_utils.encode_base64(result.images)
 
         return ImageGenerationResponse(
             final_prompt=enhanced_prompt,
-            output_images=images,
+            output_images=[base64.b64encode(image_bytes).decode("utf-8")],
         )
 
     @classmethod
@@ -122,7 +124,7 @@ if __name__ == "__main__":
             negative_prompt="ugly, misfigured, bad artist, words",
             style=ImageAIStyleTypes.ART,
         ),
-        gen_model_type=ImageAIModelTypes.DALLE_MINI,
+        gen_model_type=ImageAIModelTypes.MINI,
     )
     images = ImageAPI.generate(input)
 
