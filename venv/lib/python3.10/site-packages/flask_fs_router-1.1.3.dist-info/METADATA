@@ -1,0 +1,110 @@
+Metadata-Version: 2.1
+Name: flask-fs-router
+Version: 1.1.3
+Summary: Straightforward file-based routing extension for Flask. Introduces the concepts of pages to Flask.
+Home-page: https://github.com/JarriqTheTechie/flask_fs_router
+Author: Jarriq Rolle
+Author-email: jrolle@bnbbahamas.com
+License: MIT license
+Keywords: Python,Development,Flask
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Environment :: Web Environment
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Topic :: Software Development :: Libraries :: Application Frameworks
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Framework :: Flask
+Description-Content-Type: text/markdown
+License-File: LICENSE
+
+<div align="center">
+ <h1>FlaskFSRouter</h1>
+   <a href="https://pypi.org/project/flask-fs-router"><img src="https://img.shields.io/pypi/dm/flask_fs_router?color=goldenrod&logo=flask_fs_router&style=plastic" /></a>
+ </div>
+
+<br>
+<br>
+
+Straightforward file-based routing extension for Flask. Introduces the concepts of pages to Flask. 
+
+<br>
+
+# Getting Started
+`pip install flask_fs_router`
+
+<br>
+Initialize the extension.
+
+```
+from flask import Flask
+from flask_fs_router import FlaskFSRouter
+
+app = Flask(__name__)
+FlaskFSRouter(app)
+```
+
+<br>
+ 
+Pages are python files with a **default** function defined. These pages are stored in the `/pages` directory of your project, it is automatically available as a route based on its filename. 
+
+
+Create an example index route.
+
+`pages/index.py`
+
+```
+def default():
+    return "Home page"
+```
+
+
+# Conventions
+
+
+### Index Pages
+The index file of any folder is the name of that folder. 
+
+
+```
+pages/ecommerce/index.py              ->         oursite.com/ecommerce     |  GET
+pages/products/index.py               ->         oursite.com/products      |  GET
+```
+
+
+### Static Routes
+
+```
+
+
+pages/index.py              ->        oursite.com/          |  GET
+pages/about.py              ->        oursite.com/about     |  GET
+pages/about/index.py        ->        oursite.com/about     |  GET
+pages/about/me.py           ->        oursite.com/about/me  |  GET
+pages/posts/1.py            ->        oursite.com/posts/1   |  GET
+pages/posts/[post_id].py    ->        oursite.com/posts/<post_id>  |  GET
+```
+
+### Request Methods
+By default, pages map to **GET** requests. To change this behavior, define request methods within the file name using parentheses.
+
+```
+Example: Request methods
+
+pages/posts/create_post(post).py            ->        oursite.com/posts/create-post  |  POST
+```
+
+# Github Page
+[https://github.com/JarriqTheTechie/flask_fs_router
+](https://github.com/JarriqTheTechie/flask_fs_router)
+# Contributing
+We love the idea of a community. We'll be putting together a contribution guide in the near future.
+
+# License
+
+flask_fs_router is available as open source under the terms of the MIT License http://opensource.org/licenses/MIT
+

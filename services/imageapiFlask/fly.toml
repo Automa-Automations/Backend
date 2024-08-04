@@ -1,0 +1,23 @@
+# fly.toml app configuration file generated for imageapi-smokey-tundra-9984 on 2024-08-02T16:28:22+02:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'imageapi-smokey-tundra-9984'
+primary_region = 'jnb'
+
+[build]
+  dockerfile = 'Dockerfile'
+
+[http_service]
+  internal_port = 5000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1

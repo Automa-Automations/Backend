@@ -1,0 +1,77 @@
+# flyctl launch added from .gitignore
+**/.bunker.env
+**/.env
+
+
+# flyctl launch added from .idea/.gitignore
+# Default ignored files
+.idea/shelf
+.idea/workspace.xml
+
+# flyctl launch added from machines-api-client/.gitignore
+machines-api-client/**/__pycache__
+machines-api-client/**/build
+machines-api-client/**/dist
+machines-api-client/**/*.egg-info
+machines-api-client/**/.pytest_cache
+
+# pyenv
+machines-api-client/**/.python-version
+
+# Environments
+machines-api-client/**/.env
+machines-api-client/**/.venv
+**/*/venv/
+
+# mypy
+machines-api-client/**/.mypy_cache
+machines-api-client/**/.dmypy.json
+machines-api-client/**/dmypy.json
+
+# JetBrains
+machines-api-client/**/.idea
+
+machines-api-client/coverage.xml
+machines-api-client/.coverage
+
+# flyctl launch added from services/scrapeops/.gitignore
+services/scrapeops/**/keys.txt
+services/scrapeops/**/node_modules
+
+# flyctl launch added from services/serpapi/.gitignore
+services/serpapi/**/keys.txt
+services/serpapi/**/node_modules
+
+# flyctl launch added from templates/SqSTemplate/.gitignore
+# If you prefer the allow list template instead of the deny list, see community template:
+# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
+#
+# Binaries for programs and plugins
+templates/SqSTemplate/**/*.exe
+templates/SqSTemplate/**/*.exe~
+templates/SqSTemplate/**/*.dll
+templates/SqSTemplate/**/*.so
+templates/SqSTemplate/**/*.dylib
+
+# Test binary, built with `go test -c`
+templates/SqSTemplate/**/*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+templates/SqSTemplate/**/*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+templates/SqSTemplate/**/go.work
+templates/SqSTemplate/**/go.work.sum
+
+# env file
+templates/SqSTemplate/**/.env
+
+templates/SqSTemplate/**/scratch
+
+templates/SqSTemplate/**/*.sqlite
+templates/SqSTemplate/**/*.db
+fly.toml
+
