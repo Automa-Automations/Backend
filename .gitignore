@@ -3,8 +3,8 @@ package-lock.json
 __pycache__
 .pytest_cache
 .venv
-**/*/venv
-**/*/node_modules
+**/*/venv/
+**/*/node_modules/
 *.egg-info
 
 # CDK asset staging directory
