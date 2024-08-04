@@ -1,1 +1,0 @@
-FROM ollama/ollama:latest

@@ -1,7 +1,0 @@
-{
-    "api_base": "https://simonferns.com",
-    "deploy_to": "single",
-    "create": {
-        "service_dir": "services"
-    }
-}
