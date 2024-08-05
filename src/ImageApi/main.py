@@ -6,9 +6,15 @@ import os
 from enum import Enum
 from io import BytesIO
 
+import ollama
 import requests
 from PIL import Image
 from pydantic import BaseModel, HttpUrl
+
+import src
+
+host = requests.resolve_alias("http://ollama.internal:11434")  # type: ignore
+ollamac_ = ollama.Client(host=host)
 
 
 class ImageAIModelTypes(Enum):
@@ -109,10 +115,15 @@ class ImageAPI:
     ) -> ImageGenerationPrompt:
         if isinstance(prompt, str):
             return ImageGenerationPrompt(
-                positive_prompt=prompt,
+                positive_prompt=ollamac_.generate(
+                    model="llama3",
+                    prompt=f"Respond only with 1-2 sentences, enhancing an existing prompt that will be used to generate an image: Add more detail that goes in the direction the user wants it, don't respond with 'Here is' or anything else, only rspond with the final prompt output! Here is the initial prompt {prompt}",
+                ).get("response", ""),
                 negative_prompt="ugly, misfigured, bad artist, words",
-                enhance=True,
+                enhance=False,
             )
+
+        # TODO: Handle enhance=True case
         else:
             return prompt
 
