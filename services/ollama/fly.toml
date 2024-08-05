@@ -1,0 +1,29 @@
+# fly.toml app configuration file generated for ollama-api-kentucky-1948 on 2024-08-05T10:03:56+02:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'ollama-api-kentucky-1948'
+primary_region = 'ord'
+
+[build]
+  image = 'ollama/ollama'
+
+[[mounts]]
+  source = 'models'
+  destination = '/root/.ollama'
+  initial_size = '100gb'
+
+[[services]]
+  protocol = 'tcp'
+  internal_port = 11434
+
+[[services.ports]]
+  port = 11434
+  handlers = ['http']
+
+[[vm]]
+  size = 'a100-40gb'
+  memory = '32gb'
+  cpu_kind = 'performance'
+  cpus = 8

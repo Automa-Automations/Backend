@@ -10,3 +10,9 @@ free-proxy
 pydantic
 craiyon.py
 pillow
+dnspython
+docker
+colorama
+yaspin
+cronitor
+pyngrok
