@@ -1,11 +1,14 @@
 # Bunker is a build, template, configuration and auto testing for unit tests, integration tests & production tests.
 # Bunker will allow you to generate templates for projects, allowing you to effectively test every single method of a class, every single module & every single package that you are developoing. bunker will also create a generic template for each service, and also create templates for any service your service depends on, in order to test them with each other "integration tests". bunker will also create a template for the production environment, and will allow you to test your service with the production environment, to ensure that your service is working as expected. bunker will also create a template for the production environment, and will allow you to test your service with the production environment, to ensure that your service is working as expected. bunker will also create a template for the production environment, and will allow you to test your service with the production environment, to ensure that your service is working as expected. bunker also effectively injects code into your project to do monitoring, bunker captures all logs into a single generic database, and also captures errors, uptime, usage & more.
 import click
+
 from bunker_src.initialization import main as initialization
 
 initialization()
 
 import os
+
+from colorama import init
 
 from bunker_src.commands.bootstrap import command as bootstrap_command
 from bunker_src.commands.create_command import main as create_command
@@ -16,7 +19,6 @@ from bunker_src.docker import container_builder, container_runner
 from bunker_src.testing import test_builder, test_runner
 from bunker_src.ui.choose_service import choose_service
 from bunker_src.utils import global_options
-from colorama import init
 
 os.environ["DOCKER_BUILDKIT"] = "1"
 
@@ -106,7 +108,7 @@ def flask(service, new, test, route):
 @click.option("--service", "-s", help="The service to run.", required=False, type=str)
 @click.option(
     "--new",
-    "-test",
+    "-new",
     help="Create a new Set of tests.",
     required=False,
     is_flag=True,
@@ -124,11 +126,10 @@ def test(test, new, service, all):
     """
     if service and new:
         test_builder(type_="service", path=service)
-
-    if new:
+    elif new:
         test_builder(type_="src", path=test)
-
-    test_runner(service, test_path=test, all=all)
+    else:
+        test_runner(service, test_path=test, all=all)
 
 
 @builder.command()
