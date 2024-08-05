@@ -4,7 +4,8 @@
   "main": "index.js",
   "scripts": {
     "deploy:serp": "cd services/serpapi ; fly deploy",
-    "deploy:imageapi": "fly deploy -c ./services/imageapiFlask/fly.toml --local-only -e HUGGING_FACE_API_TOKEN=$(dotenv -f .env get HUGGING_FACE_API_TOKEN) -e ADMIN_API_KEY=$(dotenv -f .env get ADMIN_API_KEY)"
+    "deploy:imageapi": "fly deploy -c ./services/imageapiFlask/fly.toml --local-only -e HUGGING_FACE_API_TOKEN=$(dotenv -f .env get HUGGING_FACE_API_TOKEN) -e ADMIN_API_KEY=$(dotenv -f .env get ADMIN_API_KEY)",
+    "deploy:ollama": "fly deploy -c ./services/ollama/fly.toml --local-only"
   },
   "keywords": [],
   "author": "",
