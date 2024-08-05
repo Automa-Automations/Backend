@@ -27,3 +27,11 @@ primary_region = 'ord'
   memory = '32gb'
   cpu_kind = 'performance'
   cpus = 8
+
+[http_service]
+  internal_port = 11434 
+  force_https = false 
+  auto_stop_machines = true 
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']

@@ -21,3 +21,11 @@ primary_region = 'jnb'
 [[services.ports]]
   handlers = ["http"]
   port = "5000"
+
+[http_service]
+  internal_port = 5000 
+  force_https = false 
+  min_machines_running = 0
+  processes = ['app']
+  auto_stop_machines = true 
+  auto_start_machines = true
