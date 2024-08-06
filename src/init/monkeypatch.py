@@ -28,7 +28,6 @@ class MonkeypatchInternalRequests:
         internal_aliases = MonkeypatchInternalRequests.get_txt_records("_apps.internal")
         if internal_aliases:
             aliases = internal_aliases[0].split(",")
-            print(f"Internal Aliases: {aliases}")
             return aliases
         return []
 
@@ -47,8 +46,14 @@ class MonkeypatchInternalRequests:
     def _make_request(method, url, *args, **kwargs):
         """Handle request, expanding internal URLs if the URL uses the .internal TLD."""
         MonkeypatchInternalRequests._update_cache()
-        original_url = url
 
+        url = MonkeypatchInternalRequests._resolve_alias(url)
+
+        return method(url, *args, **kwargs)
+
+    @staticmethod
+    def _resolve_alias(url):
+        MonkeypatchInternalRequests._update_cache()
         parsed_url = urlparse(url)
         port = (
             "80" if ":" not in parsed_url.netloc else parsed_url.netloc.split(":")[-1]
@@ -74,9 +79,7 @@ class MonkeypatchInternalRequests:
                 parsed_url = parsed_url._replace(netloc=new_netloc)
                 url = urlunparse(parsed_url)
 
-                print(f"Modified URL: {url} (Original: {original_url})")
-
-        return method(url, *args, **kwargs)
+        return url
 
     @staticmethod
     def patched_get(url, *args, **kwargs):
@@ -121,3 +124,4 @@ class MonkeypatchInternalRequests:
         requests.Session.post = MonkeypatchInternalRequests.patched_post  # type: ignore
         requests.Session.put = MonkeypatchInternalRequests.patched_put  # type: ignore
         requests.Session.delete = MonkeypatchInternalRequests.patched_delete  # type: ignore
+        requests.resolve_alias = MonkeypatchInternalRequests._resolve_alias  # type: ignore

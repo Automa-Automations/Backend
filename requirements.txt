@@ -16,3 +16,4 @@ colorama
 yaspin
 cronitor
 pyngrok
+ollama

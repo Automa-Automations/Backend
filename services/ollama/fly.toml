@@ -1,4 +1,4 @@
-# fly.toml app configuration file generated for ollama-api-kentucky-1948 on 2024-08-05T10:03:56+02:00
+# fly.toml app configuration file generated for ollama-api-kentucky-1948 on 2024-08-05T11:13:16+02:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
@@ -18,12 +18,20 @@ primary_region = 'ord'
   protocol = 'tcp'
   internal_port = 11434
 
-[[services.ports]]
-  port = 11434
-  handlers = ['http']
+  [[services.ports]]
+    port = 11434
+    handlers = ['http']
 
 [[vm]]
-  size = 'a100-40gb'
+  size = 'a10'
   memory = '32gb'
   cpu_kind = 'performance'
   cpus = 8
+
+[http_service]
+  internal_port = 11434 
+  force_https = false 
+  auto_stop_machines = true 
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']

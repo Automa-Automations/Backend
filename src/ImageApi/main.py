@@ -6,9 +6,15 @@ import os
 from enum import Enum
 from io import BytesIO
 
+import ollama
 import requests
 from PIL import Image
 from pydantic import BaseModel, HttpUrl
+
+import src
+
+host = requests.resolve_alias("http://ollama.internal:11434")  # type: ignore
+ollamac_ = ollama.Client(host=host)
 
 
 class ImageAIModelTypes(Enum):
@@ -107,11 +113,38 @@ class ImageAPI:
     def _enhance_prompt(
         cls, prompt: ImageGenerationPrompt | str
     ) -> ImageGenerationPrompt:
+        positive, negative = "", ""
         if isinstance(prompt, str):
+            positive = ollamac_.generate(
+                model="llama3",
+                prompt=f"Respond only with 1-2 sentences, enhancing an existing prompt that will be used to generate an image: Add more detail that goes in the direction the user wants it, don't respond with 'Here is' or anything else, only rspond with the final prompt output! Here is the initial prompt: \"{prompt}\"",
+            ).get("response", "")
+
+            negative = ollamac_.generate(
+                model="llama3",
+                prompt=f"Respond only with 1-2 sentences, enhancing an existing prompt that will be used to generate an image: Only respond with the output, no 'Here is' or anything else.  You will recieve the positive prompt, and generate the negative prompt. The negative prompt should depict things that shouldn't be included in the image the user desires. Tag / Comma seperated response will work best Ex: \"ugly, misfigured, bad artist, words\" The negative prompt doesn't have to be 'negative' per say, for example if the user asks for a depressing setting / image, then the negative prompt will be \"sunshine, rainbows, happiness, clean space ...\". The negative prompt can't have contradiction keywords, for example if 'beautiful' is in the positive prompt you can't add 'beautiful' in the negative prompt, and if 'ugly' is in the positive prompt it can't be in the negative prompt as well! Here is the positive prompt: \"{positive}\"",
+            ).get("response", "")
+
             return ImageGenerationPrompt(
-                positive_prompt=prompt,
-                negative_prompt="ugly, misfigured, bad artist, words",
-                enhance=True,
+                positive_prompt=positive,
+                negative_prompt=negative,
+                enhance=False,
+            )
+        elif isinstance(prompt, ImageGenerationPrompt) and prompt.enhance:
+            positive = ollamac_.generate(
+                model="llama3",
+                prompt=f"Respond only with 1-2 sentences, enhancing an existing prompt that will be used to generate an image: Add more detail that goes in the direction the user wants it, don't respond with 'Here is' or anything else, only rspond with the final prompt output! Here is the initial prompt \"{prompt.positive_prompt}\"",
+            ).get("response", "")
+
+            negative = ollamac_.generate(
+                model="llama3",
+                prompt=f"Respond only with 1-2 sentences, enhancing an existing prompt that will be used to generate an image: Only respond with the output, no 'Here is' or anything else.  You will recieve the positive prompt, and generate the negative prompt. The negative prompt should depict things that shouldn't be included in the image the user desires. Tag / Comma seperated response will work best Ex: \"ugly, misfigured, bad artist, words\" The negative prompt doesn't have to be 'negative' per say, for example if the user asks for a depressing setting / image, then the negative prompt will be \"sunshine, rainbows, happiness, clean space ...\". . The negative prompt can't have contradiction keywords, for example if 'beautiful' is in the positive prompt you can't add 'beautiful' in the negative prompt, and if 'ugly' is in the positive prompt it can't be in the negative prompt as well! Here is the user provided negative prompt you should enhance: \"{prompt.negative_prompt}\". Here is the positive prompt: \"{positive}\"",
+            ).get("response", "")
+
+            return ImageGenerationPrompt(
+                positive_prompt=positive,
+                negative_prompt=negative,
+                enhance=False,
             )
         else:
             return prompt
